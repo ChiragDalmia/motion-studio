@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0 }
+  /* Back to the default surface: white ground, navy ink, red-ink brand. The
+     film has now used all three of this brand's contextual reds — fill on
+     navy (red-lift), band (red-ink) and text on white (red-ink) — without a
+     second palette or a dark-mode fork anywhere. */
+  #root { position: relative; background: var(--ground) }
+  #cta {
+    position: absolute; left: 160px; top: 420px;
+    font-family: var(--display); font-weight: 700; font-size: 124px; line-height: 1;
+    letter-spacing: -0.025em; color: var(--onGround); margin: 0;
+    clip-path: inset(0 0 100% 0);
+  }
+  #meta {
+    position: absolute; left: 164px; top: 592px;
+    font-family: var(--mono);
+    font-weight: 500; font-size: 30px; letter-spacing: 0.02em;
+    color: var(--brand);
+    clip-path: inset(0 0 100% 0);
+  }
+  #hair { position: absolute; left: 160px; top: 380px; width: 1600px; height: 2px; background: var(--line); transform-origin: 0% 50% }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="b4" data-width="1920" data-height="1080" data-duration="3">
+  <div id="hair" class="clip" data-start="0" data-duration="3" data-track-index="1"></div>
+  <h2 id="cta" class="clip" data-start="0" data-duration="3" data-track-index="2">Book the refresher.</h2>
+  <div id="meta" class="clip" data-start="0" data-duration="3" data-track-index="3">45 min &middot; online &middot; certificate same day</div>
+</div>
+<script>
+  /* Verb: hairline draw plus a clipped rise. Fourth distinct verb in four
+     beats — settle, wipe, cut, draw. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } });
+  t.addLabel('in', 0);
+  t.fromTo('#hair', { scaleX: 0 }, { scaleX: 1, duration: 0.88, ease: 'power3.inOut' }, 'in');
+  t.fromTo('#cta', { clipPath: 'inset(0 0 100% 0)' }, { clipPath: 'inset(0 0 0% 0)', duration: 0.65, ease: 'power4.out' }, 'in+=0.22');
+  t.fromTo('#meta', { clipPath: 'inset(0 0 100% 0)' }, { clipPath: 'inset(0 0 0% 0)', duration: 0.44 }, 'in+=0.53');
+  window.__timelines['b4'] = t;
+</script>
+</body>
+</html>

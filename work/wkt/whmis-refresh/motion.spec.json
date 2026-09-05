@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "duration": 14,
+  "_note": "See the relo film's sidecar for why `before` only orders opacity-driven entrances, and why this file is not named *.motion.json.",
+  "assertions": [
+    { "kind": "appearsBy", "selector": "#lock", "bySec": 1.6 },
+    { "kind": "appearsBy", "selector": "#head", "bySec": 5.4 },
+    { "kind": "appearsBy", "selector": "#warn", "bySec": 8.4 },
+    { "kind": "appearsBy", "selector": "#cta", "bySec": 12.2 },
+
+    { "kind": "before", "a": "#lock", "b": "#warn" },
+    { "kind": "before", "a": "#warn", "b": "#sub" },
+
+    { "kind": "staysInFrame", "selector": "#head" },
+    { "kind": "staysInFrame", "selector": "#warn" },
+    { "kind": "staysInFrame", "selector": "#cta" },
+
+    { "kind": "keepsMoving", "maxStaticSec": 3.4 }
+  ]
+}

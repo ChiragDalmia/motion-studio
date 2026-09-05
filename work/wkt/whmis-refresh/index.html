@@ -1,0 +1,156 @@
+<!doctype html>
+<!-- The four layers are fixed and the order is the law:
+       #art    camera-scaled. Everything photographic or illustrative.
+       #type   translate-only, NEVER scaled. Display type stays sharp.
+       #ui     immune to the camera. Chrome, rules, marks that must not move.
+       #grade  static. Grain, vignette, LUT target. Never animated. -->
+<html lang="en" data-composition-variables='[
+{"id":"ground","type":"color","label":"Ground","default":"#ffffff"},
+{"id":"onGround","type":"color","label":"On  Ground","default":"#05192d"},
+{"id":"surface","type":"color","label":"Surface","default":"#eaefef"},
+{"id":"onSurface","type":"color","label":"On  Surface","default":"#05192d"},
+{"id":"brand","type":"color","label":"Brand","default":"#d40040"},
+{"id":"onBrand","type":"color","label":"On  Brand","default":"#ffffff"},
+{"id":"accent","type":"color","label":"Accent","default":"#374757"},
+{"id":"onAccent","type":"color","label":"On  Accent","default":"#ffffff"},
+{"id":"line","type":"color","label":"Line","default":"#c2ccce"},
+{"id":"muted","type":"color","label":"Muted","default":"#6d747d"},
+{"id":"display","type":"string","label":"Display","default":"Montserrat, ui-sans-serif, system-ui, sans-serif"},
+{"id":"text","type":"string","label":"Text","default":"Roboto, ui-sans-serif, system-ui, sans-serif"},
+{"id":"beat","type":"number","label":"Beat","default":880,"unit":"ms"},
+{"id":"unit","type":"number","label":"Unit","default":6,"unit":"px"},
+{"id":"navy","type":"color","label":"Navy","default":"#05192d"},
+{"id":"red","type":"color","label":"Red","default":"#ff004d"},
+{"id":"redInk","type":"color","label":"Red Ink","default":"#d40040"},
+{"id":"redLift","type":"color","label":"Red Lift","default":"#ff3371"},
+{"id":"slate","type":"color","label":"Slate","default":"#374757"},
+{"id":"grey","type":"color","label":"Grey","default":"#c2ccce"},
+{"id":"off","type":"color","label":"Off","default":"#eaefef"},
+{"id":"mono","type":"string","label":"Mono","default":"ui-monospace, \"Roboto Mono\", SFMono-Regular, Menlo, monospace"},
+{"id":"sbOrange","type":"color","label":"Sb Orange","default":"#f7941e"},
+{"id":"sbBlue","type":"color","label":"Sb Blue","default":"#00a6e5"},
+{"id":"sbGreen","type":"color","label":"Sb Green","default":"#80c342"},
+{"id":"sbPurple","type":"color","label":"Sb Purple","default":"#ad71db"}
+]'>
+<head>
+<meta charset="utf-8">
+<title>We Know Training — whmis-refresh</title>
+<script src="gsap.min.js"></script>
+<link rel="stylesheet" href="brand.css">
+<style>
+  body { margin: 0; background: var(--navy) }
+
+  /* Dark-first: this brand's ground is navy and the film opens on it, so the
+     document background is the navy chip and not var(--ground). That is the
+     one place a brand-locked film reaches past the core, and it is why extras
+     are emitted as variables. */
+  #root {
+    position: relative;
+    width: 1920px; height: 1080px;
+    overflow: hidden;
+    background: var(--navy);
+    color: var(--onGround);
+    font-family: var(--text);
+  }
+
+  #art, #type, #ui, #grade { position: absolute; inset: 0 }
+  #art   { z-index: 10 }
+  #type  { z-index: 20 }
+  #ui    { z-index: 30 }
+  #grade { z-index: 40; pointer-events: none }
+
+  #cam { position: absolute; inset: 0; transform-origin: 50% 50% }
+
+  .clip { position: absolute }
+
+  /* #ui is immune to the camera. A four-chip sub-brand rail: this brand carries
+     four sub-brand colours the 14-token core does not name, and they are read
+     from the pack's extras rather than restated here. */
+  #rail { position: absolute; right: 72px; top: 72px; display: flex; gap: 10px }
+  #rail i { display: block; width: 40px; height: 6px; opacity: 0; transform-origin: 0% 50% }
+  #rail i:nth-child(1) { background: var(--sbOrange) }
+  #rail i:nth-child(2) { background: var(--sbBlue) }
+  #rail i:nth-child(3) { background: var(--sbGreen) }
+  #rail i:nth-child(4) { background: var(--sbPurple) }
+
+  /* #grade is static. No blend mode: measured at 4x throttle, multiply on a
+     full-frame overlay triples median seek cost for no visible difference. */
+  #grain {
+    position: absolute; inset: 0;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 140px 140px;
+  }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="main" data-width="1920" data-height="1080" data-duration="14">
+
+  <div id="art">
+    <div id="cam">
+      <div id="b1host" class="clip" data-start="0"    data-duration="3.5" data-track-index="1"
+           data-composition-src="compositions/b1.html" data-composition-id="b1"></div>
+      <div id="b3host" class="clip" data-start="7.5"  data-duration="3.5" data-track-index="2"
+           data-composition-src="compositions/b3.html" data-composition-id="b3"></div>
+    </div>
+  </div>
+
+  <!-- The two type beats host in #type, immune to the camera push, because
+       display type never sits in a camera-scaled layer. -->
+  <div id="type">
+    <div id="b2host" class="clip" data-start="3.5" data-duration="4" data-track-index="3"
+         data-composition-src="compositions/b2.html" data-composition-id="b2"></div>
+    <div id="b4host" class="clip" data-start="11"  data-duration="3" data-track-index="4"
+         data-composition-src="compositions/b4.html" data-composition-id="b4"></div>
+  </div>
+
+  <div id="ui">
+    <div id="rail"><i></i><i></i><i></i><i></i></div>
+  </div>
+
+  <div id="grade"><div id="grain"></div></div>
+
+</div>
+
+<script>
+  /* The camera clamp. Panning a layer scaled by s about its centre: a pre-scale
+     translate of X px moves content by s*X px, and the overhang available on
+     each side is (s*W - W)/2. So the largest safe translate, as a fraction of
+     the layer box, is (s - 1) / (2 * s) — and it is ZERO whenever s <= 1,
+     because a world smaller than the frame has nothing to pan into. */
+  function panLimit(s) {
+    return s <= 1 ? 0 : (s - 1) / (2 * s);
+  }
+  function pan(x, y, s) {
+    var m = panLimit(s);
+    return { x: Math.min(m, Math.max(-m, x)), y: Math.min(m, Math.max(-m, y)) };
+  }
+  function camera(s, x, y) {
+    var p = pan(x || 0, y || 0, s);
+    return { scale: s, xPercent: p.x * 100, yPercent: p.y * 100 };
+  }
+
+  /* Durations are authored once in STORYBOARD.md and copied into data-start.
+     Beat is 880ms here against relo's 520, and every duration below is a
+     multiple of it — the two films do not share a single timing number. */
+  var tl = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } });
+  tl.addLabel('b1', 0);
+  tl.addLabel('b2', 3.5);
+  tl.addLabel('b3', 7.5);
+  tl.addLabel('b4', 11);
+
+  /* A very slow push, held almost still. This brand's minCameraScale is 0.9
+     against relo's 0.82, so it has less room and uses less. */
+  tl.fromTo('#cam', camera(1.04, 0.01, 0), { scale: 1, xPercent: 0, yPercent: 0, duration: 3.5, ease: 'none' }, 'b1');
+
+  /* The sub-brand rail draws in as a decaying cascade: 0.74 per step for this
+     pack, so 40px, 29.6, 21.9, 16.2 of travel. */
+  tl.fromTo('#rail i:nth-child(1)', { autoAlpha: 0, scaleX: 0 }, { autoAlpha: 1, scaleX: 1, duration: 0.44, ease: 'power3.out' }, 'b1+=0.88');
+  tl.fromTo('#rail i:nth-child(2)', { autoAlpha: 0, scaleX: 0 }, { autoAlpha: 1, scaleX: 1, duration: 0.44, ease: 'power3.out' }, 'b1+=1.1');
+  tl.fromTo('#rail i:nth-child(3)', { autoAlpha: 0, scaleX: 0 }, { autoAlpha: 1, scaleX: 1, duration: 0.44, ease: 'power3.out' }, 'b1+=1.32');
+  tl.fromTo('#rail i:nth-child(4)', { autoAlpha: 0, scaleX: 0 }, { autoAlpha: 1, scaleX: 1, duration: 0.44, ease: 'power3.out' }, 'b1+=1.54');
+
+  window.__timelines['main'] = tl;
+</script>
+</body>
+</html>
