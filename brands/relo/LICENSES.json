@@ -1,0 +1,61 @@
+{
+  "brand": "relo",
+  "reviewed": "2026-09-04",
+  "assets": [
+    {
+      "asset": "font/master/Oswald-700.woff2",
+      "kind": "typeface",
+      "family": "Oswald",
+      "source": "Google Fonts",
+      "licence": "SIL Open Font License 1.1",
+      "url": "https://openfontlicense.org",
+      "permittedUse": ["web", "video", "print"],
+      "expires": null,
+      "note": "Subset by tools/font.mjs. OFL permits subsetting and embedding; the modified font may not be sold on its own."
+    },
+    {
+      "asset": "font/master/Poppins-500.woff2",
+      "kind": "typeface",
+      "family": "Poppins",
+      "source": "Google Fonts",
+      "licence": "SIL Open Font License 1.1",
+      "url": "https://openfontlicense.org",
+      "permittedUse": ["web", "video", "print"],
+      "expires": null
+    },
+    {
+      "asset": "font/master/Poppins-600.woff2",
+      "kind": "typeface",
+      "family": "Poppins",
+      "source": "Google Fonts",
+      "licence": "SIL Open Font License 1.1",
+      "url": "https://openfontlicense.org",
+      "permittedUse": ["web", "video", "print"],
+      "expires": null
+    },
+    {
+      "asset": "logo/mark.svg",
+      "kind": "mark",
+      "source": "RELO brand assets",
+      "licence": "owned",
+      "permittedUse": ["web", "video", "print"],
+      "expires": null,
+      "note": "gfx/mark.html is the same geometry with fills bound to tokens, so a surface reverses it without a second file."
+    },
+    {
+      "asset": "gfx/lockup.html",
+      "kind": "mark",
+      "source": "RELO brand assets",
+      "licence": "owned",
+      "permittedUse": ["web", "video", "print"],
+      "expires": null,
+      "note": "Mark plus the relo wordmark and the by-WKT signature, as outlines — no font is required to set it and no licensed face is redistributed as geometry. The top-right square is bound to --accent rather than --ground, which is an intro-only departure from logo/mark.svg."
+    }
+  ],
+  "missing": [
+    {
+      "kind": "music",
+      "why": "No music or SFX licence has been purchased, so no film in this brand may ship with audio. See docs/AUDIO.md — the free tiers of the bundled providers are not usable commercially, and both plausible stock licences forbid distributing a track in a form a visitor can extract standalone, which is exactly what view-source on an inlined data URI is."
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+<!-- RELO lockup: the mark, the relo wordmark and the by-WKT signature. Every
+     part sits on its own node so each can arrive on its own, and four details
+     of that arrangement are load-bearing.
+
+     The seam is the mark's hypotenuse as a drawable <line> with pathLength=1,
+     so a single dashoffset 1 -> 0 draws it at whatever size it renders, and it
+     runs bottom-left to top-right: the brand's motion vector, which nothing in
+     a RELO film moves against.
+
+     The bloom circle sits on the exact point the three primitives share, so a
+     clip on it opens the mark outward from its own corner rather than fading it
+     in. userSpaceOnUse, so the coordinates are the viewBox's and there is no
+     box-model guessing.
+
+     No animated node carries a transform attribute of its own. GSAP folds an
+     element's existing SVG transform into the x/y/scale it is about to
+     overwrite, so a tween on a group that carried translate(733,110) would
+     fling it to the origin. The positioning translate therefore lives on a
+     parent and the potrace flip on the child <path>; the animated groups
+     between them start clean.
+
+     The top-right square is --accent, where logo/mark.svg has it white: on a
+     light ground a white square reads as absence, and the intro is the one
+     place the mark states all three brand colours at once. Everything else is
+     token-bound, so dropping this on .s-navy reverses it with no second file.
+     Ids are prefixed -- two lockups on one frame must re-prefix, clip id
+     included, or the second one's bloom drives the first one's clip.
+
+     The viewBox is the lockup's own bounds plus 80 units of margin on every
+     side, and the margin is the entrance's, not taste. Measured: the lockup
+     rests at x 44..1856, y 119..792, and the pop's widest moment is the o at
+     scaleX 1.4, which reaches x 1926 -- 70 units past the resting bounds. An
+     exact crop clips it, and a viewBox is a clipping container, so the film
+     that inlines this gets a container_overflow finding for every frame of
+     the pop rather than a picture of the problem. -->
+<svg class="relo-lockup" viewBox="-36 39 1972 833" role="img" aria-label="relo by WKT">
+  <defs>
+    <clipPath id="relo-lockup-bloom" clipPathUnits="userSpaceOnUse">
+      <circle id="relo-lockup-bloom-c" cx="273.5" cy="348.5" r="0"/>
+    </clipPath>
+  </defs>
+  <line id="relo-lockup-seam" x1="44" y1="348.5" x2="273.5" y2="119" pathLength="1"
+        fill="none" stroke="var(--onGround)" stroke-width="16" stroke-dasharray="1" stroke-dashoffset="1"/>
+  <g id="relo-lockup-icon" clip-path="url(#relo-lockup-bloom)">
+    <rect x="44" y="348.5" width="229.5" height="229.5" fill="var(--brand)"/>
+    <rect x="273.5" y="119" width="229.5" height="229.5" fill="var(--accent)"/>
+    <polygon points="273.5,119 273.5,348.5 44,348.5" fill="var(--onGround)"/>
+  </g>
+  <g transform="translate(733,110)">
+    <g id="relo-lockup-r"><path transform="translate(0,485) scale(0.1,-0.1)" fill="var(--onGround)" d="M1706 3444 c-100 -20 -190 -51 -289 -100 -114 -57 -202 -120 -304 -218 l-83 -79 0 182 0 181 -465 0 -465 0 0 -1625 0 -1625 465 0 464 0 3 847 3 848 23 79 c12 44 40 117 62 161 l39 82 71 76 c110 118 237 189 409 228 l86 20 163 6 162 6 0 473 0 474 -137 -1 c-76 0 -169 -7 -207 -15z"/></g>
+    <g id="relo-lockup-e"><path transform="translate(0,485) scale(0.1,-0.1)" fill="var(--onGround)" d="M3875 3484 c-124 -12 -231 -28 -320 -49 -289 -69 -530 -193 -749 -389 -234 -209 -406 -494 -487 -809 -35 -138 -49 -254 -49 -430 l0 -167 16 -98 c29 -187 77 -339 153 -491 96 -191 199 -330 348 -471 192 -182 415 -315 658 -391 231 -72 403 -99 630 -99 325 0 602 61 882 195 194 93 378 222 516 362 l68 69 -128 110 c-70 61 -210 182 -311 269 l-184 158 -71 -70 c-81 -79 -131 -115 -232 -166 -143 -72 -283 -109 -465 -122 -89 -7 -211 5 -315 31 -90 23 -232 95 -307 158 -36 30 -89 83 -118 118 -46 57 -130 209 -145 266 l-6 22 1214 0 1214 0 7 61 c11 114 6 386 -9 491 -35 231 -108 444 -215 629 -124 212 -313 410 -522 546 -191 124 -461 223 -688 252 -94 12 -322 21 -385 15z m234 -805 c239 -38 432 -183 546 -409 23 -45 65 -153 65 -167 0 -1 -329 -3 -731 -3 l-731 0 7 33 c4 17 29 78 56 135 l50 103 77 81 c42 45 109 102 148 128 72 47 168 84 259 99 72 12 180 12 254 0z"/></g>
+    <g id="relo-lockup-l"><path transform="translate(0,485) scale(0.1,-0.1)" fill="var(--onGround)" d="M6473 4753 l-223 -3 0 -2295 0 -2295 463 0 462 0 -3 2300 -2 2300 -238 -2 c-130 -2 -337 -4 -459 -5z"/></g>
+    <g id="relo-lockup-o"><path transform="translate(0,485) scale(0.1,-0.1)" fill="var(--onGround)" d="M9270 3479 c-334 -38 -623 -150 -889 -346 -100 -74 -241 -216 -321 -325 -164 -221 -259 -449 -311 -751 l-19 -112 0 -155 0 -155 19 -110 c11 -60 29 -148 41 -194 23 -90 76 -234 118 -316 71 -141 192 -306 313 -427 232 -230 530 -388 865 -457 54 -12 165 -26 246 -33 l148 -12 147 12 c266 22 457 74 688 188 354 175 638 479 786 840 51 124 84 244 109 399 l20 120 0 150 0 150 -19 110 c-28 162 -48 239 -86 343 -61 162 -142 309 -243 436 -86 110 -239 256 -347 331 -231 162 -508 269 -798 310 -110 16 -345 18 -467 4z m426 -910 c39 -9 114 -39 165 -64 l94 -47 95 -97 95 -96 42 -85 c23 -47 52 -122 65 -165 l23 -80 0 -145 0 -145 -23 -78 c-24 -85 -74 -192 -120 -259 -41 -59 -146 -158 -212 -200 -75 -47 -190 -93 -275 -109 -92 -17 -251 -15 -350 5 l-79 16 -101 49 -102 50 -76 71 c-117 110 -189 230 -233 390 l-18 65 0 145 -1 145 23 80 c13 43 42 117 65 164 l42 85 73 78 c41 42 104 97 140 121 113 74 241 118 377 131 72 6 218 -6 291 -25z"/></g>
+  </g>
+  <g transform="translate(1304,656)">
+    <g id="relo-lockup-by"><path transform="translate(0,145) scale(0.1,-0.1)" fill="var(--onGround)" d="M100 835 l0 -515 55 0 55 0 0 67 0 67 53 -51 c28 -28 66 -58 82 -66 17 -9 58 -20 92 -26 l60 -11 54 11 c113 24 206 99 257 207 l27 57 0 110 0 110 -32 67 c-35 75 -93 137 -157 168 -24 11 -71 25 -104 31 l-61 11 -51 -11 c-68 -15 -131 -52 -180 -108 l-40 -46 0 222 0 221 -55 0 -55 0 0 -515z m461 120 c52 -19 112 -74 142 -130 l20 -40 5 -81 4 -82 -16 -49 c-22 -66 -65 -116 -128 -147 l-52 -26 -60 0 -61 0 -50 24 c-62 29 -107 76 -136 141 l-23 50 0 70 0 70 23 50 c29 65 74 112 136 141 l50 24 51 0 c28 0 71 -7 95 -15z M2101 1303 c0 -5 75 -228 167 -498 l167 -490 95 0 95 0 110 322 c60 178 112 323 115 323 3 0 55 -145 115 -323 l110 -322 95 0 95 0 167 495 c92 272 167 496 168 498 0 1 -50 1 -112 0 l-112 -3 -100 -327 c-55 -181 -103 -328 -106 -328 -4 0 -55 149 -114 330 l-108 331 -96 -3 -96 -3 -111 -337 -110 -338 -104 340 -104 340 -114 0 c-62 0 -113 -3 -112 -7z M3740 815 l0 -495 105 0 105 0 0 153 0 153 60 59 61 60 7 -11 c4 -7 72 -102 152 -213 l145 -200 128 -1 128 0 -10 18 c-5 9 -100 139 -210 287 l-200 270 122 125 c67 69 158 162 202 208 l80 82 -131 0 -130 0 -199 -216 -200 -216 -3 216 -2 216 -105 0 -105 0 0 -495z M4650 1215 l0 -94 153 -3 152 -3 3 -397 2 -398 105 0 105 0 2 398 3 397 153 3 152 3 0 94 0 95 -415 0 -415 0 0 -95z M910 1045 c0 -3 74 -168 165 -366 l165 -361 -20 -37 c-10 -21 -36 -53 -56 -71 l-37 -32 -61 4 c-34 3 -69 8 -79 13 l-17 7 -16 -37 -15 -38 13 -8 c25 -17 84 -29 138 -29 l56 0 44 23 c26 13 59 42 80 69 l34 47 167 408 167 408 -51 3 c-27 2 -53 0 -57 -5 -5 -4 -58 -138 -120 -298 -61 -159 -114 -293 -118 -297 -4 -4 -66 129 -138 295 l-131 302 -57 3 c-31 2 -56 0 -56 -3z"/></g>
+  </g>
+</svg>

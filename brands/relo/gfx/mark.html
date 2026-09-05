@@ -1,0 +1,16 @@
+<!-- RELO mark. Three primitives, no paths, so every part is animatable on its
+     own. The hypotenuse runs bottom-left to top-right: that rising diagonal is
+     the brand's motion vector, and nothing in a RELO film should move against
+     it. Bound to tokens, so dropping it on .s-navy reverses it correctly with
+     no second file. Ids are prefixed: two marks on one frame must not collide.
+
+     The viewBox is 195..885, not 0..1080 and not the content bounds 259..820.
+     The master art wastes a third of its frame on padding, so the mark reads
+     small at any size; but cropping to the content exactly clips the entrance,
+     which travels each primitive ~14% of its own width. 64 units of margin is
+     what the assembly needs — measured, as nine container_overflow warnings. -->
+<svg class="relo-mark" viewBox="195 195 690 690" role="img" aria-label="RELO">
+  <rect id="relo-mark-a" x="259.55" y="540" width="280.45" height="280.45" fill="var(--brand)"/>
+  <rect id="relo-mark-b" x="540" y="259.57" width="280.45" height="280.45" fill="var(--ground)"/>
+  <polygon id="relo-mark-c" points="540 540.01 259.55 540.01 540 259.55 540 540.01" fill="var(--onGround)"/>
+</svg>
