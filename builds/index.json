@@ -1,0 +1,34 @@
+{
+  "films": {
+    "relo-brand-promise": {
+      "brand": "relo",
+      "slug": "brand-promise",
+      "name": "RELO",
+      "file": "relo-brand-promise.html",
+      "bytes": {
+        "raw": 537479,
+        "gzip": 180979,
+        "brotli": 154825
+      },
+      "pins": {
+        "hyperframes": "0.8.27",
+        "gsap": "3.13.0"
+      }
+    },
+    "wkt-whmis-refresh": {
+      "brand": "wkt",
+      "slug": "whmis-refresh",
+      "name": "We Know Training",
+      "file": "wkt-whmis-refresh.html",
+      "bytes": {
+        "raw": 598832,
+        "gzip": 197842,
+        "brotli": 170867
+      },
+      "pins": {
+        "hyperframes": "0.8.27",
+        "gsap": "3.13.0"
+      }
+    }
+  }
+}
