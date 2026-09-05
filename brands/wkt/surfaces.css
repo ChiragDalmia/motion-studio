@@ -1,0 +1,27 @@
+.s-navy {
+  --ground: #05192d;
+  --onGround: #ffffff;
+  --surface: #233242;
+  --onSurface: #ffffff;
+  --brand: #ff3371;
+  --onBrand: #05192d;
+  --accent: #c2ccce;
+  --onAccent: #05192d;
+  --line: #697176;
+  --muted: #a7b1b3;
+  background: var(--ground);
+  color: var(--onGround);
+}
+
+.s-alert {
+  --ground: #d40040;
+  --onGround: #ffffff;
+  --surface: #b50a3b;
+  --onSurface: #ffffff;
+  --brand: #ffffff;
+  --onBrand: #d40040;
+  --line: #e49ea5;
+  --muted: #f9eced;
+  background: var(--ground);
+  color: var(--onGround);
+}
