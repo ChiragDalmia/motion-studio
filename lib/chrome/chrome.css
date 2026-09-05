@@ -1,0 +1,81 @@
+/* Player chrome. UI furniture, not film design — the only place in lib/ that
+   carries its own numbers. Everything here is scoped under .ms- or #ms-. */
+html, body { height: 100%; margin: 0; overflow: hidden; background: #000 }
+body { color: #fff; font: 500 13px/1 ui-sans-serif, system-ui, sans-serif }
+
+/* The composition is authored at a fixed pixel size. Letterbox and centre it.
+   Hidden until the chrome computes the scale; revealed even if the chrome
+   throws, so a script failure degrades to an unscaled first frame, not black. */
+#root {
+  position: absolute !important;
+  left: 50%; top: 50%;
+  transform-origin: 50% 50%;
+  visibility: hidden;
+}
+#root.ms-fit { visibility: visible }
+
+#ms-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 2147483000;
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, .72));
+  opacity: 0; transition: opacity .18s ease;
+  pointer-events: none;
+}
+body:hover #ms-bar, #ms-bar:focus-within, body.ms-paused #ms-bar { opacity: 1; pointer-events: auto }
+#ms-bar button {
+  flex: none; width: 30px; height: 30px; padding: 0;
+  display: grid; place-items: center;
+  border: 0; border-radius: 2px; cursor: pointer;
+  background: rgba(255, 255, 255, .12); color: #fff;
+  font: inherit; font-size: 14px;
+}
+#ms-bar button:hover { background: rgba(255, 255, 255, .24) }
+#ms-bar button:focus-visible, #ms-seek:focus-visible { outline: 2px solid #fff; outline-offset: 2px }
+#ms-seek { flex: 1 1 auto; height: 20px; margin: 0; cursor: pointer; accent-color: #fff }
+#ms-time { flex: none; font-variant-numeric: tabular-nums; opacity: .82 }
+
+#ms-cap {
+  position: fixed; left: 50%; bottom: 62px; z-index: 2147482000;
+  transform: translateX(-50%);
+  max-width: 78%; margin: 0;
+  padding: .3em .6em;
+  text-align: center; text-wrap: balance;
+  font-size: clamp(14px, 2.6vw, 26px); line-height: 1.32;
+  background: rgba(0, 0, 0, .78); color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .9);
+}
+#ms-cap:empty { display: none }
+
+#ms-poster {
+  position: fixed; inset: 0; z-index: 2147483100;
+  display: none; place-items: center;
+  background: rgba(0, 0, 0, .28);
+  border: 0; width: 100%; cursor: pointer;
+  color: #fff; font: inherit;
+}
+body.ms-poster #ms-poster { display: grid }
+#ms-poster span {
+  display: grid; place-items: center;
+  width: 68px; height: 68px; border-radius: 50%;
+  background: rgba(0, 0, 0, .62); backdrop-filter: blur(2px);
+  font-size: 24px; padding-left: 4px;
+}
+
+/* A transcript is present only on films that carry narration. It is real DOM so
+   it is selectable and indexable, and visually hidden until asked for. */
+#ms-tx {
+  position: fixed; left: 0; right: 0; bottom: 0; top: 0; z-index: 2147483200;
+  display: none; overflow: auto;
+  margin: 0; padding: 48px max(16px, 6vw) 72px;
+  background: rgba(0, 0, 0, .94);
+  font-size: 15px; line-height: 1.6;
+}
+body.ms-tx #ms-tx { display: block }
+#ms-tx li { margin: 0 0 .5em; list-style: none }
+#ms-tx b { display: inline-block; min-width: 4.5em; opacity: .55; font-weight: 500; font-variant-numeric: tabular-nums }
+
+/* No hover on touch, so the transport would never appear. */
+@media (hover: none), (prefers-reduced-motion: reduce) {
+  #ms-bar { opacity: 1; pointer-events: auto }
+}

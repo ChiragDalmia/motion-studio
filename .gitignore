@@ -1,0 +1,13 @@
+node_modules/
+.env
+work/*/*/compositions/_shared/
+work/*/*/media/
+work/*/*/snapshots/
+work/*/*/renders/
+lib/scenes/*/compositions/_shared/
+lib/scenes/*/media/
+lib/scenes/*/snapshots/
+tmp/
+work/*/*/brand.css
+work/*/*/gsap.min.js
+work/*/*/index.motion.json

@@ -1,0 +1,29 @@
+{
+  "name": "motion-studio",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "guard": "node tools/guard.mjs",
+    "fixtures": "node tools/fixtures.mjs",
+    "tokens": "node tools/tokens.mjs",
+    "font": "node tools/font.mjs",
+    "new": "node tools/new.mjs",
+    "pre": "node tools/prepare.mjs",
+    "build": "node tools/build.mjs",
+    "gate2": "node tools/gate2.mjs",
+    "do": "node tools/do.mjs",
+    "lint": "node tools/do.mjs lint",
+    "check": "node tools/do.mjs check",
+    "ship": "node tools/do.mjs ship",
+    "all": "node tools/do.mjs all"
+  },
+  "devDependencies": {
+    "@hyperframes/core": "0.8.27",
+    "gsap": "3.13.0",
+    "hyperframes": "0.8.27",
+    "playwright-core": "1.56.1"
+  }
+}
