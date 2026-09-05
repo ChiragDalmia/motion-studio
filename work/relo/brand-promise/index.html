@@ -1,0 +1,140 @@
+<!doctype html>
+<!-- The four layers are fixed and the order is the law:
+       #art    camera-scaled. Everything photographic or illustrative.
+       #type   translate-only, NEVER scaled. Display type stays sharp.
+       #ui     immune to the camera. Chrome, rules, marks that must not move.
+       #grade  static. Grain, vignette, LUT target. Never animated.
+
+     The film is currently the intro and nothing else: the brand sting plays,
+     the camera settles, the frame ends. #type and #ui are present and empty
+     because the layer stack is structural, not a consequence of what happens
+     to be on screen -- a new beat hosts into the layer it belongs to and the
+     order is already correct. -->
+<html lang="en" data-composition-variables='[
+{"id":"ground","type":"color","label":"Ground","default":"#ffffff"},
+{"id":"onGround","type":"color","label":"On  Ground","default":"#051047"},
+{"id":"surface","type":"color","label":"Surface","default":"#f6fbfd"},
+{"id":"onSurface","type":"color","label":"On  Surface","default":"#051047"},
+{"id":"brand","type":"color","label":"Brand","default":"#34bde8"},
+{"id":"onBrand","type":"color","label":"On  Brand","default":"#051047"},
+{"id":"accent","type":"color","label":"Accent","default":"#ffde17"},
+{"id":"onAccent","type":"color","label":"On  Accent","default":"#051047"},
+{"id":"line","type":"color","label":"Line","default":"#efeff0"},
+{"id":"muted","type":"color","label":"Muted","default":"#696a7a"},
+{"id":"display","type":"string","label":"Display","default":"Oswald, Haettenschweiler, Impact, sans-serif"},
+{"id":"text","type":"string","label":"Text","default":"Poppins, ui-sans-serif, system-ui, sans-serif"},
+{"id":"beat","type":"number","label":"Beat","default":520,"unit":"ms"},
+{"id":"unit","type":"number","label":"Unit","default":8,"unit":"px"},
+{"id":"navy","type":"color","label":"Navy","default":"#051047"},
+{"id":"navyLift","type":"color","label":"Navy Lift","default":"#081b77"},
+{"id":"cyan","type":"color","label":"Cyan","default":"#34bde8"},
+{"id":"cyanInk","type":"color","label":"Cyan Ink","default":"#2ba8ce"},
+{"id":"yellow","type":"color","label":"Yellow","default":"#ffde17"},
+{"id":"yellowWash","type":"color","label":"Yellow Wash","default":"#fffce4"}
+]'>
+<head>
+<meta charset="utf-8">
+<title>RELO — brand-promise</title>
+<script src="gsap.min.js"></script>
+<link rel="stylesheet" href="brand.css">
+<style>
+  body { margin: 0; background: var(--ground) }
+
+  #root {
+    position: relative;
+    width: 1920px; height: 1080px;
+    overflow: hidden;
+    background: var(--ground);
+    color: var(--onGround);
+    font-family: var(--text);
+  }
+
+  #art, #type, #ui, #grade { position: absolute; inset: 0 }
+  #art   { z-index: 10 }
+  #type  { z-index: 20 }
+  #ui    { z-index: 30 }
+  #grade { z-index: 40; pointer-events: none }
+
+  #cam { position: absolute; inset: 0; transform-origin: 50% 50% }
+
+  .clip { position: absolute }
+
+  /* #grade is static: a baked stepped grain, never animated, never a filter on
+     a moving element. 25 elements is the heavy-overlay ceiling, so this is one
+     tiled background and not a particle field. */
+  #grain {
+    position: absolute; inset: 0;
+    opacity: 0.055;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 140px 140px;
+  }
+  /* No mix-blend-mode here. Measured at 4x CPU throttle, `multiply` on a
+     full-frame overlay tripled median seek cost (0.8ms -> 2.3ms) for a
+     difference invisible at 5.5% opacity. This is the paint budget from
+     ai.md spending itself on nothing, which is the only reason it is a
+     budgeted craft rule rather than a correctness ban. */
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="main" data-width="1920" data-height="1080" data-duration="2">
+
+  <!-- The camera. Beats are sub-compositions hosted on their own track index,
+       because lint groups track density by data-track-index and allows three
+       timed elements per lane. The intro hosts here rather than in #type
+       despite carrying a wordmark: it is outlined geometry, not set type, so
+       the camera's 6% cannot cost it a pixel -- and the beat wants the push. -->
+  <div id="art">
+    <div id="cam">
+      <div id="introhost" class="clip" data-start="0" data-duration="2" data-track-index="1"
+           data-composition-src="compositions/intro.html" data-composition-id="intro"></div>
+    </div>
+  </div>
+
+  <!-- Display type never sits in a camera-scaled layer, so the type beat, when
+       there is one, hosts here and is immune to the push in #art. -->
+  <div id="type"></div>
+
+  <div id="ui"></div>
+
+  <div id="grade"><div id="grain"></div></div>
+
+</div>
+
+<script>
+  /* The camera clamp. Panning a layer scaled by s about its centre: a pre-scale
+     translate of X px moves content by s*X px, and the overhang available on
+     each side is (s*W - W)/2. So the largest safe translate, as a fraction of
+     the layer box, is (s - 1) / (2 * s) — and it is ZERO whenever s <= 1,
+     because a world smaller than the frame has nothing to pan into. Getting
+     that second case wrong is how a pan reveals the page behind the film. */
+  function panLimit(s) {
+    return s <= 1 ? 0 : (s - 1) / (2 * s);
+  }
+  function pan(x, y, s) {
+    var m = panLimit(s);
+    return { x: Math.min(m, Math.max(-m, x)), y: Math.min(m, Math.max(-m, y)) };
+  }
+  function camera(s, x, y) {
+    var p = pan(x || 0, y || 0, s);
+    return { scale: s, xPercent: p.x * 100, yPercent: p.y * 100 };
+  }
+
+  /* Durations are authored once, in STORYBOARD.md, and copied into data-start
+     above. Nothing here recomputes them: the root duration is read once at
+     compile time and is the lockfield. */
+  var tl = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } });
+  tl.addLabel('intro', 0);
+
+  /* A slow push across the intro, clamped so it can never expose the frame
+     edge. 1.06 -> 1.0 over the beat, so whatever follows the sting starts from
+     a neutral camera and inherits no residual move. The pan starts down-left
+     and resolves up-right, WITH the mark's rising diagonal: the same 2% either
+     way, but the other sign has the frame drifting against the brand's motion
+     vector for the whole time the lockup assembles along it, which is the one
+     thing a RELO film may not do. */
+  tl.fromTo('#cam', camera(1.06, -0.02, 0.01), { scale: 1, xPercent: 0, yPercent: 0, duration: 2, ease: 'power1.out' }, 'intro');
+
+  window.__timelines['main'] = tl;
+</script>
+</body>
+</html>

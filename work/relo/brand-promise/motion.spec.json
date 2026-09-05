@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "duration": 2,
+  "_note": "Copied to index.motion.json by tools/prepare.mjs --motion, which only tier 3 asks for: the motion audit samples ~240 frames and roughly doubles a check run. `before` compares when each element APPEARS, so it can only order entrances that change presence (opacity/autoAlpha). A clip-path reveal leaves the element present the whole time and both sides report the same instant — which is why the icon's bloom is not asserted here and the letters are.",
+  "assertions": [
+    { "kind": "appearsBy", "selector": "#relo-lockup-r", "bySec": 0.8 },
+    { "kind": "appearsBy", "selector": "#relo-lockup-o", "bySec": 1.2 },
+    { "kind": "appearsBy", "selector": "#relo-lockup-by", "bySec": 1.4 },
+
+    { "kind": "before", "a": "#relo-lockup-r", "b": "#relo-lockup-e" },
+    { "kind": "before", "a": "#relo-lockup-e", "b": "#relo-lockup-l" },
+    { "kind": "before", "a": "#relo-lockup-l", "b": "#relo-lockup-o" },
+    { "kind": "before", "a": "#relo-lockup-o", "b": "#relo-lockup-by" },
+
+    { "kind": "staysInFrame", "selector": "#relo-lockup-o" },
+    { "kind": "staysInFrame", "selector": "#relo-lockup-by" }
+  ]
+}
