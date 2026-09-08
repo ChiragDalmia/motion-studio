@@ -1,0 +1,45 @@
+{
+  "film": "relo/next-step",
+  "status": "script only — no audio has been generated or licensed. docs/AUDIO.md: the web build ships silent, a music licence has to be bought first, and provider free tiers are non-commercial. Generating the lines below is the MP4 pass, not this build.",
+  "voice": {
+    "brief": "One warm adult voice, natural Canadian English, conversational, addressing one learner. Gentle emphasis on 'next', 'why' and 'where you stand'. Preserve the gaps between lines exactly.",
+    "provider": null,
+    "voiceId": null,
+    "model": null,
+    "settings": null
+  },
+  "master": {
+    "integratedLufs": -16,
+    "truePeakDbtp": -1,
+    "voiceOverMusic": "voice clearly above the bed; duck the bed under every line"
+  },
+  "music": {
+    "brief": "Restrained instrumental at 96 BPM: soft felt-piano notes, a muted plucked motif, warm bass, light percussion. Sparse through 0:02-0:08, forward movement as the camera enters Relo at 0:06.5, steady under the lesson and the practice set, resolving warmly into the end frame from 0:43.5. No celebratory cue anywhere, including under the 12 / 12 score.",
+    "licence": "none purchased — see brands/relo/LICENSES.json `missing`"
+  },
+  "sfx": [
+    { "t": 2.0,   "cue": "faint paper: pencil on the notebook, under the opening only" },
+    { "t": 6.5,   "cue": "soft transition tone as the camera enters the laptop" },
+    { "t": 11.4,  "cue": "quiet click — Lessons, in the rail" },
+    { "t": 13.45, "cue": "quiet click — WATCH LESSONS" },
+    { "t": 15.25, "cue": "quiet click — play" },
+    { "t": 20.35, "cue": "quiet click — first answer" },
+    { "t": 21.45, "cue": "quiet click — SUBMIT" },
+    { "t": 21.65, "cue": "restrained tonal response as the explanation appears" },
+    { "t": 25.65, "cue": "quiet click — PROCEED" },
+    { "t": 27.5,  "cue": "quiet click — CONTINUE" },
+    { "t": 31.55, "cue": "quiet click — ReadyRating expansion" }
+  ],
+  "lines": [
+    { "id": "l1", "start": 2.35,  "end": 7.40,  "text": "Studying for your Alberta real estate exam? Wondering if you’re ready?", "sha256": null, "bytes": null, "durationMs": null },
+    { "id": "l2", "start": 8.40,  "end": 12.20, "text": "With Relo, your next study step is clear.", "sha256": null, "bytes": null, "durationMs": null },
+    { "id": "l3", "start": 12.90, "end": 17.60, "text": "Watch the lesson that teaches it, right where the plan sends you.", "sha256": null, "bytes": null, "durationMs": null },
+    { "id": "l4", "start": 19.10, "end": 25.00, "text": "Practise the concept, with explanations that help you understand why.", "sha256": null, "bytes": null, "durationMs": null },
+    { "id": "l5", "start": 25.90, "end": 29.30, "text": "Finish the set and your plan moves with you.", "sha256": null, "bytes": null, "durationMs": null },
+    { "id": "l6", "start": 30.40, "end": 33.90, "text": "ReadyRating helps you see where you stand.", "sha256": null, "bytes": null, "durationMs": null },
+    { "id": "l7", "start": 35.20, "end": 39.80, "text": "And live Office Hours give you space to ask an industry expert.", "sha256": null, "bytes": null, "durationMs": null },
+    { "id": "l8", "start": 40.35, "end": 43.15, "text": "Take your next step with Relo.", "sha256": null, "bytes": null, "durationMs": null },
+    { "id": "l9", "start": 44.30, "end": 49.10, "text": "Start with both courses. Buy the Residential Real Estate Bundle.", "sha256": null, "bytes": null, "durationMs": null }
+  ],
+  "silentTail": { "from": 49.1, "to": 51.5 }
+}

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0 }
+  #root { position: relative; background: transparent; overflow: hidden }
+  /* #stage is the timed element and never leaves the frame; #w is the zoomed
+     capture space inside it. F2 -- the whole quiz page in view at 1.15 with a
+     band above -- is the markup's own transform. */
+  #stage { position: absolute; inset: 0; overflow: hidden }
+  #w { position: absolute; left: 0; top: 0; width: 1600px; height: 1000px; overflow: hidden; transform-origin: 0 0; transform: translate(0px, 204px) scale(1.15); border-radius: 6px; box-shadow: 0 18px 50px rgba(5,16,71,0.14) }
+  .shot { position: absolute; background-repeat: no-repeat; background-size: 100% 100% }
+  .base { left: 0; top: 0; width: 1600px; height: 1000px }
+  .hid { opacity: 0; visibility: hidden }
+  #s03 { background-image: var(--img-s03) }
+  #s05 { background-image: var(--img-s05) }
+  #v06 { background-image: var(--img-v06) }
+  /* The dashboard it comes back to is the day-one page plus the one
+     rectangle the practice set changed: the counter now reads 12 / 20. */
+  #v07 { background-image: var(--img-v01) }
+  #d07 { left: 80px; top: 348px; width: 612px; height: 174px; background-image: var(--img-d07) }
+  /* State crops from the 2x captures, registered to the pixel: the first
+     answer's row (hover, selected+hover, selected), SUBMIT (enabled, hovered),
+     PROCEED and CONTINUE hovered. A layout the product re-renders whole -- the
+     answered question, the scored set, the dashboard it returns to -- is a whole
+     capture, because that is what the product actually swaps. */
+  .row { left: 65px; top: 234px; width: 1470px; height: 55px }
+  .btn { left: 56px; top: 458px; width: 100px; height: 56px }
+  #oH { background-image: var(--img-opt1-hover) }
+  #oSH { background-image: var(--img-opt1-sel-hover) }
+  #oS { background-image: var(--img-opt1-sel) }
+  #bOn { background-image: var(--img-submit-on) }
+  #bH { background-image: var(--img-submit-hover) }
+  #hPr { left: 60px; top: 500px; width: 102px; height: 48px; background-image: var(--img-h-proceed) }
+  #hCo { left: 1340px; top: 356px; width: 144px; height: 48px; background-image: var(--img-h-continue) }
+  #cur { position: absolute; left: 0; top: 0; width: 20px; height: 29px; transform-origin: 2px 2px; transform: translate(328px, 638px) scale(1.319); filter: drop-shadow(0 2px 3px rgba(0,0,0,0.35)) }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="quiz" data-width="1920" data-height="1080" data-duration="11.4">
+  <div id="stage" class="clip" data-start="0" data-duration="11.4" data-track-index="1">
+    <div id="w" data-layout-allow-overflow>
+      <div id="s03" class="shot base" role="img" aria-label="Question 1 of 12: a licensee is asked by a neighbour whether a particular fence sits on the property line. Which source most directly answers a question about the registered boundaries of a parcel?"></div>
+      <div id="oH" class="shot row hid"></div>
+      <div id="oSH" class="shot row hid"></div>
+      <div id="oS" class="shot row hid" role="img" aria-label="Selected: the land titles record and the survey registered against it"></div>
+      <div id="bOn" class="shot btn hid"></div>
+      <div id="bH" class="shot btn hid"></div>
+      <div id="s05" class="shot base hid" role="img" aria-label="Correct. Explanation: registered boundaries come from the land titles record and the survey attached to it. A listing sheet and a municipal tax notice describe the property for other purposes and are not authoritative on boundaries, and the seller's recollection is not a record at all."></div>
+      <div id="hPr" class="shot hid"></div>
+      <div id="v06" class="shot base hid" role="img" aria-label="Results saved. Your score: 100 percent, 12 of 12, with the question review below and a Continue button"></div>
+      <div id="hCo" class="shot hid"></div>
+      <div id="v07" class="shot base hid" aria-hidden="true"></div>
+      <div id="d07" class="shot hid" role="img" aria-label="Back on the dashboard: the Study Navigator now reads 12 of 20 questions"></div>
+      <svg id="cur" class="hid" viewBox="0 0 20 29" aria-hidden="true"><path d="M1.6 1.2 L1.6 24.3 L7.3 18.8 L11 27.4 L14.6 25.8 L11 17.4 L18.6 17 Z" fill="#111" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+</div>
+<script>
+  /* Film 18.6 -> 30.0, and nothing in it waits. Pointer in 19.2; the first
+     answer 19.5 -> 20.05 with one 3px correction, dwell, click 20.35 -- the row
+     shows its real selected state and SUBMIT lights. 20.55 -> 21.15 to SUBMIT,
+     dwell, click 21.45; the answered layout replaces the question in 100ms and
+     21.6 -> 22.25 the camera pushes to F3, which holds the green answer and the
+     explanation together with the explanation's first sentence on the frame's
+     centre line. That is the one hold in the beat, and it is 2.4s, the length of
+     the line set over it. 24.75 the pointer comes back for PROCEED, click 25.65:
+     the set is scored -- 100%, 12 of 12, results saved -- and the camera widens
+     to R1 to take the whole card. CONTINUE 27.5 goes back to the dashboard, and
+     the camera lands on the Study Navigator at the framing dash.html used, where
+     the counter it read 0 / 20 on now reads 12 / 20. rating.html opens on that
+     exact frame. Initial states are all markup; nothing is set at 0. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+  var F2 = { scale: 1.15, x: 0, y: 204 }, F3 = { scale: 1.22, x: 2, y: 190 };
+  var R1 = { scale: 1.25, x: 0, y: 150 }, FN = { scale: 2.0, x: 189, y: 212 };
+  var C2 = 1.517 / F2.scale, C3 = 1.517 / F3.scale, CR = 1.517 / R1.scale, CN = 1.517 / FN.scale;
+
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.22, ease: 'power1.out' }, 'in+=0.6');
+  t.fromTo('#cur', { x: 328 }, { x: 96, duration: 0.55, ease: 'power3.inOut' }, 'in+=0.9');
+  t.fromTo('#cur', { y: 638 }, { y: 261, duration: 0.5, ease: 'power2.out' }, 'in+=0.9');
+  /* The one correction: 3px right, 2px up, into the radio's centre. */
+  t.fromTo('#cur', { x: 96, y: 261 }, { x: 99, y: 259, duration: 0.11, ease: 'power1.out' }, 'in+=1.47');
+  t.fromTo('#oH', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 'in+=1.45');
+  /* Click 20.35. */
+  t.fromTo('#cur', { scale: C2 }, { scale: C2 * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=1.75');
+  t.fromTo('#oSH', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 'in+=1.75');
+  t.fromTo('#bOn', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.1, ease: 'none' }, 'in+=1.76');
+  /* To SUBMIT: a longer, flatter travel. The row's hover ends as the pointer
+     leaves it, so the selected-only crop takes over. */
+  t.fromTo('#cur', { x: 99 }, { x: 104, duration: 0.6, ease: 'power2.inOut' }, 'in+=1.95');
+  t.fromTo('#cur', { y: 259 }, { y: 484, duration: 0.58, ease: 'power3.inOut' }, 'in+=1.95');
+  t.fromTo('#oS', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.1, ease: 'none' }, 'in+=2.02');
+  t.fromTo(['#oH', '#oSH'], { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.1, ease: 'none' }, 'in+=2.02');
+  t.fromTo('#bH', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 'in+=2.5');
+  /* Click 21.45. */
+  t.fromTo('#cur', { scale: C2 }, { scale: C2 * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=2.85');
+  t.fromTo('#s05', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'none' }, 'in+=2.85');
+  /* Out of the way, and gone for the one hold. */
+  t.fromTo('#cur', { x: 104, y: 484 }, { x: 300, y: 620, duration: 0.42, ease: 'power2.inOut' }, 'in+=3.05');
+  t.fromTo('#cur', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.28, ease: 'power1.in' }, 'in+=3.12');
+  t.fromTo('#w', { scale: F2.scale, x: F2.x, y: F2.y }, { scale: F3.scale, x: F3.x, y: F3.y, duration: 0.65 }, 'in+=3.0');
+  t.fromTo('#cur', { scale: C2 }, { scale: C3, duration: 0.63 }, 'in+=3.02');
+
+  /* 24.75: back for PROCEED. */
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.2, ease: 'power1.out' }, 'in+=6.0');
+  t.fromTo('#cur', { x: 300 }, { x: 110, duration: 0.6, ease: 'power2.inOut' }, 'in+=6.15');
+  t.fromTo('#cur', { y: 620 }, { y: 524, duration: 0.56, ease: 'power3.out' }, 'in+=6.15');
+  t.fromTo('#hPr', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 'in+=6.75');
+  /* Click 25.65: eleven more questions have gone by, and the set is scored. */
+  t.fromTo('#cur', { scale: C3 }, { scale: C3 * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=7.05');
+  t.fromTo('#v06', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'none' }, 'in+=7.05');
+  t.fromTo('#hPr', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.1, ease: 'none' }, 'in+=7.05');
+  t.fromTo('#w', { scale: F3.scale, x: F3.x, y: F3.y }, { scale: R1.scale, x: R1.x, y: R1.y, duration: 0.8 }, 'in+=7.05');
+  t.fromTo('#cur', { scale: C3 }, { scale: CR, duration: 0.64 }, 'in+=7.21');
+  /* Across to CONTINUE. */
+  t.fromTo('#cur', { x: 110 }, { x: 1412, duration: 0.65, ease: 'power2.inOut' }, 'in+=7.95');
+  t.fromTo('#cur', { y: 524 }, { y: 380, duration: 0.6, ease: 'power3.out' }, 'in+=7.95');
+  t.fromTo('#hCo', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 'in+=8.6');
+  /* Click 27.5: back to the dashboard, and the counter has moved. */
+  t.fromTo('#cur', { scale: CR }, { scale: CR * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=8.9');
+  t.fromTo(['#v07', '#d07'], { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'none' }, 'in+=8.9');
+  t.fromTo('#hCo', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.1, ease: 'none' }, 'in+=8.9');
+  t.fromTo('#cur', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.3, ease: 'power1.in' }, 'in+=8.98');
+  t.fromTo('#w', { scale: R1.scale, x: R1.x, y: R1.y }, { scale: FN.scale, x: FN.x, y: FN.y, duration: 0.8 }, 'in+=8.9');
+  t.fromTo('#cur', { scale: CR }, { scale: CN, duration: 0.64 }, 'in+=9.06');
+
+  window.__timelines['quiz'] = t;
+</script>
+</body>
+</html>

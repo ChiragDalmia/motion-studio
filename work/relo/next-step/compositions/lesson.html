@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0 }
+  #root { position: relative; background: transparent; overflow: hidden }
+  /* Same capture space and the same camera algebra as every other product beat:
+     1600x1000, translated and scaled about its top-left inside #stage. L1 -- the
+     lessons index with a white band above it for the editorial line -- is the
+     frame dash.html hands over on, so it is the markup's own transform. */
+  #stage { position: absolute; inset: 0; overflow: hidden }
+  #w { position: absolute; left: 0; top: 0; width: 1600px; height: 1000px; overflow: hidden; transform-origin: 0 0; transform: translate(0px, 200px) scale(1.35); border-radius: 6px; box-shadow: 0 18px 50px rgba(5,16,71,0.14) }
+  .shot { position: absolute; background-repeat: no-repeat; background-size: 100% 100% }
+  .base { left: 0; top: 0; width: 1600px; height: 1000px }
+  .hid { opacity: 0; visibility: hidden }
+  #v10 { background-image: var(--img-v10) }
+  #v11 { background-image: var(--img-v11) }
+  /* WATCH LESSONS and the player's own play control, hovered, cropped from the
+     same 2x captures so they register to the pixel. */
+  #hW { left: 1207px; top: 100px; width: 158px; height: 38px; background-image: var(--img-h-watch) }
+  #hP { left: 67px; top: 673px; width: 36px; height: 36px; background-image: var(--img-h-play) }
+  /* THE PLAYBACK, and both moving things are the product's own pixels. The
+     played part of the scrub bar is the bar at the END of the video, cropped and
+     revealed left to right: exactly the pixels the product paints as it plays.
+     The transport row cannot be interpolated, because a clock counts -- so it is
+     four captures of the real control, playing, at 0, 1, 2 and 3 seconds, cut on
+     the second, which is what the product does. The controls stay up because the
+     pointer stays inside the player, which is also why they are up in the
+     captures: ArtPlayer hides them when the pointer leaves. */
+  #pbar { left: 67px; top: 661px; width: 1163px; height: 8px; background-image: var(--img-p-bar); clip-path: inset(0 100% 0 0) }
+  .tr { left: 67px; top: 673px; width: 163px; height: 36px }
+  #t0 { background-image: var(--img-p-t0) }
+  #t1 { background-image: var(--img-p-t1) }
+  #t2 { background-image: var(--img-p-t2) }
+  #t3 { background-image: var(--img-p-t3) }
+  /* The pointer arrives where dash.html parked it: on the rail's Lessons icon,
+     at the size that reads 44 frame px at L1. */
+  #cur { position: absolute; left: 0; top: 0; width: 20px; height: 29px; transform-origin: 2px 2px; transform: translate(28px, 122px) scale(1.1237); filter: drop-shadow(0 2px 3px rgba(0,0,0,0.35)) }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="lesson" data-width="1920" data-height="1080" data-duration="6.2">
+  <div id="stage" class="clip" data-start="0" data-duration="6.2" data-track-index="1">
+    <div id="w" data-layout-allow-overflow>
+      <div id="v10" class="shot base" role="img" aria-label="Lessons: Professional Responsibilities, 5 concepts, 5 hours 26 minutes, 44 videos, with a Watch Lessons button"></div>
+      <div id="hW" class="shot hid"></div>
+      <div id="v11" class="shot base hid" role="img" aria-label="Lesson video: Who Must Hold a Licence, from Licensing and Practice, with the twelve lessons of that concept listed beside it and a notes field below"></div>
+      <div id="pbar" class="shot hid" aria-hidden="true"></div>
+      <div id="t0" class="shot tr hid" aria-hidden="true"></div>
+      <div id="t1" class="shot tr hid" aria-hidden="true"></div>
+      <div id="t2" class="shot tr hid" aria-hidden="true"></div>
+      <div id="t3" class="shot tr hid" aria-hidden="true"></div>
+      <div id="hP" class="shot hid"></div>
+      <svg id="cur" viewBox="0 0 20 29" aria-hidden="true"><path d="M1.6 1.2 L1.6 24.3 L7.3 18.8 L11 27.4 L14.6 25.8 L11 17.4 L18.6 17 Z" fill="#111" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+</div>
+<script>
+  /* Film 12.4 -> 18.6. dash.html ends on this frame, with this pointer in this
+     place and nothing moving, so the cut at 12.4 cannot be seen. 12.55 -> 13.18
+     to WATCH LESSONS, 270ms dwell on its real hover state, click 13.45: the
+     lesson player replaces the index in 120ms and the camera eases back to P1 --
+     the whole player page, the lesson list beside it, the notes field under it.
+     14.3 -> 15.02 down to the play control, dwell, click 15.25; the video runs
+     for three seconds, the scrub bar filling with the product's own played
+     pixels and the clock counting 0, 1, 2, 3. The pointer stays in the player,
+     because that is what keeps a video's controls on screen. Held from 18.25.
+     Initial states are all markup; nothing is set at 0. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+  var L1 = { scale: 1.35, x: 0, y: 200 }, P1 = { scale: 1.2, x: 0, y: 200 };
+  var CL = 1.517 / L1.scale, CP = 1.517 / P1.scale;
+  /* Three seconds of an 84.39s video, as a percentage of the bar's own width. */
+  var END = 100 - 3 * 100 / 84.39;
+
+  t.fromTo('#cur', { x: 28 }, { x: 1286, duration: 0.63, ease: 'power2.inOut' }, 'in+=0.15');
+  t.fromTo('#cur', { y: 122 }, { y: 119, duration: 0.58, ease: 'power3.out' }, 'in+=0.15');
+  t.fromTo('#hW', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 'in+=0.78');
+  /* Click 13.45. */
+  t.fromTo('#cur', { scale: CL }, { scale: CL * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=1.05');
+  t.fromTo('#v11', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'none' }, 'in+=1.05');
+  t.fromTo('#hW', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.1, ease: 'none' }, 'in+=1.05');
+  t.fromTo('#w', { scale: L1.scale, x: L1.x, y: L1.y }, { scale: P1.scale, x: P1.x, y: P1.y, duration: 0.7 }, 'in+=1.05');
+  t.fromTo('#cur', { scale: CL }, { scale: CP, duration: 0.54 }, 'in+=1.21');
+
+  /* Down to the transport: x and y on different lengths and eases, so the path
+     bows and the pointer decelerates onto the control. */
+  t.fromTo('#cur', { x: 1286 }, { x: 85, duration: 0.72, ease: 'power2.inOut' }, 'in+=1.9');
+  t.fromTo('#cur', { y: 119 }, { y: 691, duration: 0.66, ease: 'power3.out' }, 'in+=1.9');
+  t.fromTo('#hP', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 'in+=2.58');
+  /* Click 15.25: the transport flips to pause and the video runs. */
+  t.fromTo('#cur', { scale: CP }, { scale: CP * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=2.85');
+  t.fromTo('#hP', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.08, ease: 'none' }, 'in+=2.88');
+  t.fromTo('#t0', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.04, ease: 'none' }, 'in+=2.88');
+  t.fromTo('#pbar', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.04, ease: 'none' }, 'in+=2.88');
+  t.fromTo('#pbar', { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 ' + END + '% 0 0)', duration: 3.2, ease: 'none' }, 'in+=2.88');
+  t.fromTo('#t1', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'none' }, 'in+=3.88');
+  t.fromTo('#t2', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'none' }, 'in+=4.88');
+  t.fromTo('#t3', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'none' }, 'in+=5.88');
+  /* Off the control and out of the way, but still inside the player. */
+  t.fromTo('#cur', { x: 85 }, { x: 660, duration: 0.62, ease: 'power2.inOut' }, 'in+=3.1');
+  t.fromTo('#cur', { y: 691 }, { y: 402, duration: 0.66, ease: 'power2.inOut' }, 'in+=3.1');
+
+  window.__timelines['lesson'] = t;
+</script>
+</body>
+</html>

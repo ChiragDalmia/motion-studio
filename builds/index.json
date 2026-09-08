@@ -15,6 +15,21 @@
         "gsap": "3.13.0"
       }
     },
+    "relo-next-step": {
+      "brand": "relo",
+      "slug": "next-step",
+      "name": "RELO",
+      "file": "relo-next-step.html",
+      "bytes": {
+        "raw": 2921369,
+        "gzip": 1169973,
+        "brotli": 914402
+      },
+      "pins": {
+        "hyperframes": "0.8.27",
+        "gsap": "3.13.0"
+      }
+    },
     "wkt-whmis-refresh": {
       "brand": "wkt",
       "slug": "whmis-refresh",

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0 }
+  /* Default surface. The pane's own light grey is the product's, not ours; the
+     ground it sits on when it is not full-bleed is the host's white. */
+  #root { position: relative; background: transparent; overflow: hidden }
+  /* #stage is the timed element and never leaves the frame. #w inside it is
+     the zoomed world and is DECLARED to overflow (data-layout-allow-overflow):
+     a camera that pushes into a screen renders the screen larger than the
+     frame on purpose, and the audit's opt-out is how that intent is stated. It is
+     capture space -- 1600x1000, the product's own viewport -- and the camera is
+     translate(x, y) scale(k) of it about its top-left, clipped by #stage. Every
+     coordinate in the script below is a capture coordinate straight from the
+     product. The landing frame F0 (1.2 at 0,0) is the markup's own transform:
+     it is the exact state desk.html's move ends in. */
+  #stage { position: absolute; inset: 0; overflow: hidden }
+  #w { position: absolute; left: 0; top: 0; width: 1600px; height: 1000px; overflow: hidden; transform-origin: 0 0; transform: translate(0px, 0px) scale(1.2); border-radius: 6px; box-shadow: 0 18px 50px rgba(5,16,71,0.14) }
+  .shot { position: absolute; background-repeat: no-repeat; background-size: 100% 100% }
+  .base { left: 0; top: 0; width: 1600px; height: 1000px }
+  .hid { opacity: 0; visibility: hidden }
+  #v01 { background-image: var(--img-v01) }
+  #v10 { background-image: var(--img-v10) }
+  /* The captured hover state of the one control this beat clicks, cropped from
+     the same 2x capture so it registers to the pixel. */
+  #hL { left: 0px; top: 100px; width: 56px; height: 44px; background-image: var(--img-h-lessons) }
+  /* The pointer: 44 frame px tall at this zoom, tip at (2,2) of its own box,
+     parked off-frame bottom until it is needed. */
+  #cur { position: absolute; left: 0; top: 0; width: 20px; height: 29px; transform-origin: 2px 2px; transform: translate(430px, 500px) scale(0.7585); filter: drop-shadow(0 2px 3px rgba(0,0,0,0.35)) }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="dash" data-width="1920" data-height="1080" data-duration="4.4">
+  <div id="stage" class="clip" data-start="0" data-duration="4.4" data-track-index="1">
+    <div id="w" data-layout-allow-overflow>
+      <div id="v01" class="shot base" role="img" aria-label="RELO dashboard, day one: Study Navigator recommends practice questions to develop mastery, 20 to 30 minutes, 0 of 20 questions"></div>
+      <div id="hL" class="shot hid"></div>
+      <div id="v10" class="shot base hid" role="img" aria-label="Lessons: Professional Responsibilities, 5 concepts, 5 hours 26 minutes, 44 videos, with a Watch Lessons button"></div>
+      <svg id="cur" class="hid" viewBox="0 0 20 29" aria-hidden="true"><path d="M1.6 1.2 L1.6 24.3 L7.3 18.8 L11 27.4 L14.6 25.8 L11 17.4 L18.6 17 Z" fill="#111" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+</div>
+<script>
+  /* Film 8.0: land flat on the day-one dashboard, exactly where desk.html left
+     it. 8.1 -> 9.4: reframe so the Study Navigator IS the frame -- the card
+     centred and 63% of the width, the sidebar down to its icon rail alone (the
+     product's own collapsed state, 57 capture px), and a white band above for
+     the editorial line. 10.2 the pointer comes in from off-frame bottom on a
+     curved path; 250ms dwell on the rail's Lessons icon with its real hover
+     state; click at 11.4; the lessons index replaces the dashboard in 120ms --
+     a page change, not a dissolve -- and the camera eases back to L1, the frame
+     lesson.html opens on. Initial states are all markup; nothing is set at 0. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+  var F0 = { scale: 1.2, x: 0, y: 0 }, F1 = { scale: 2.0, x: 189, y: 212 }, L1 = { scale: 1.35, x: 0, y: 200 };
+  /* The pointer is 44 frame px tall whatever the world is scaled to, so its own
+     scale is the inverse of the camera's and has to travel when the camera does. */
+  var C1 = 1.517 / F1.scale, CL = 1.517 / L1.scale;
+  /* The reframe leaves on the frame after the cut, not 0.6s later, and takes the
+     whole 1.3s to land where it always landed, at 9.4. desk.html's dive arrives
+     at zero velocity and this starts at zero velocity, so the join is smooth and
+     there is no held frame between them: one continuous push from the room into
+     the card, instead of a dive, a freeze, and a second move that restarts it.
+     0.1s of settle is left in, which is what a camera operator would leave. */
+  t.fromTo('#w', F0, { scale: F1.scale, x: F1.x, y: F1.y, duration: 1.3 }, 'in+=0.1');
+
+  /* Approach: x and y on different eases and lengths, so the path bows and the
+     pointer decelerates into the icon rather than sliding on a rail. */
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.06, ease: 'none' }, 'in+=2.2');
+  t.fromTo('#cur', { x: 430 }, { x: 28, duration: 0.82, ease: 'power2.inOut' }, 'in+=2.24');
+  t.fromTo('#cur', { y: 500 }, { y: 122, duration: 0.74, ease: 'power3.out' }, 'in+=2.24');
+  t.fromTo('#hL', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 'in+=3.06');
+  /* Click at 11.4: one press on the pointer, in place; the product answers. */
+  t.fromTo('#cur', { scale: C1 }, { scale: C1 * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=3.4');
+  t.fromTo('#v10', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'none' }, 'in+=3.4');
+  /* The rail item the pointer is on is the ACTIVE item on the page it opened,
+     so the hover crop -- which is the dashboard's -- goes with the dashboard. */
+  t.fromTo('#hL', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.1, ease: 'none' }, 'in+=3.4');
+  t.fromTo('#w', { scale: F1.scale, x: F1.x, y: F1.y }, { scale: L1.scale, x: L1.x, y: L1.y, duration: 0.7 }, 'in+=3.4');
+  t.fromTo('#cur', { scale: C1 }, { scale: CL, duration: 0.54 }, 'in+=3.56');
+  /* Still from 12.1, so the cut into lesson.html lands on a held frame with the
+     pointer in the place that beat picks it up from. */
+
+  window.__timelines['dash'] = t;
+</script>
+</body>
+</html>
