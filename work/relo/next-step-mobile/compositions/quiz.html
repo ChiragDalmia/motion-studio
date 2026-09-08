@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0 }
+  #root { position: relative; background: transparent; overflow: hidden }
+  /* F2m, the reading frame dash.html lands on: 2.0 at (-80, -125): the quiz
+     header sits just above the frame, the question start, all four answers and
+     SUBMIT inside it. */
+  #stage { position: absolute; inset: 0; overflow: hidden }
+  #w { position: absolute; left: 0; top: 0; width: 1600px; height: 1000px; overflow: hidden; transform-origin: 0 0; transform: translate(-80px, -125px) scale(2); border-radius: 6px; box-shadow: 0 18px 50px rgba(5,16,71,0.14) }
+  .shot { position: absolute; background-repeat: no-repeat; background-size: 100% 100% }
+  .base { left: 0; top: 0; width: 1600px; height: 1000px }
+  .hid { opacity: 0; visibility: hidden }
+  #s03 { background-image: var(--img-s03) }
+  #s05 { background-image: var(--img-s05) }
+  .row { left: 65px; top: 234px; width: 1470px; height: 55px }
+  .btn { left: 56px; top: 458px; width: 100px; height: 56px }
+  #oH { background-image: var(--img-opt1-hover) }
+  #oSH { background-image: var(--img-opt1-sel-hover) }
+  #oS { background-image: var(--img-opt1-sel) }
+  #bOn { background-image: var(--img-submit-on) }
+  #bH { background-image: var(--img-submit-hover) }
+  #cur { position: absolute; left: 0; top: 0; width: 20px; height: 29px; transform-origin: 2px 2px; transform: translate(328px, 638px) scale(0.7585); filter: drop-shadow(0 2px 3px rgba(0,0,0,0.35)) }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="quiz" data-width="1080" data-height="1350" data-duration="10">
+  <div id="stage" class="clip" data-start="0" data-duration="10" data-track-index="1">
+    <div id="w" data-layout-allow-overflow>
+      <div id="s03" class="shot base" role="img" aria-label="Question 1 of 12: a licensee is asked by a neighbour whether a particular fence sits on the property line. Which source most directly answers a question about the registered boundaries of a parcel?"></div>
+      <div id="oH" class="shot row hid"></div>
+      <div id="oSH" class="shot row hid"></div>
+      <div id="oS" class="shot row hid" role="img" aria-label="Selected: the land titles record and the survey registered against it"></div>
+      <div id="bOn" class="shot btn hid"></div>
+      <div id="bH" class="shot btn hid"></div>
+      <div id="s05" class="shot base hid" role="img" aria-label="Correct. Explanation: registered boundaries come from the land titles record and the survey attached to it. A listing sheet and a municipal tax notice describe the property for other purposes and are not authoritative on boundaries, and the seller's recollection is not a record at all."></div>
+      <svg id="cur" class="hid" viewBox="0 0 20 29" aria-hidden="true"><path d="M1.6 1.2 L1.6 24.3 L7.3 18.8 L11 27.4 L14.6 25.8 L11 17.4 L18.6 17 Z" fill="#111" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+</div>
+<script>
+  /* Film 13.5 -> 23.5, the same clicks at the same times as the desktop beat.
+     A 4:5 frame cannot hold the quiz's 1400px question line at a readable size,
+     so the mobile camera presents it sequentially: 13.6 -> 15.6 a reading pan
+     along the question, 15.75 -> 16.5 back to the reading frame for the answer
+     and SUBMIT; after the answered layout arrives the camera holds on the green
+     answer, then 19.2 -> 19.85 moves to the explanation and 20.3 -> 22.8 reads
+     along its first sentence, the one the brief asks to emphasise. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+  var F2 = { scale: 2.0, x: -80, y: -125 }, F3 = { scale: 2.2, x: -1817, y: 150 };
+  var C = 1.517 / F2.scale;
+
+  t.fromTo('#w', { x: F2.x }, { x: -1794, duration: 2.0, ease: 'power1.inOut' }, 'in+=0.1');
+  t.fromTo('#w', { x: -1794 }, { x: F2.x, duration: 0.75 }, 'in+=2.25');
+
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.25, ease: 'power1.out' }, 'in+=3.1');
+  t.fromTo('#cur', { x: 328 }, { x: 96, duration: 0.55, ease: 'power3.inOut' }, 'in+=3.45');
+  t.fromTo('#cur', { y: 638 }, { y: 261, duration: 0.5, ease: 'power2.out' }, 'in+=3.45');
+  t.fromTo('#cur', { x: 96, y: 261 }, { x: 99, y: 259, duration: 0.11, ease: 'power1.out' }, 'in+=4.02');
+  t.fromTo('#oH', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 'in+=4.0');
+  t.fromTo('#cur', { scale: C }, { scale: C * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=4.35');
+  t.fromTo('#oSH', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 'in+=4.35');
+  t.fromTo('#bOn', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.1, ease: 'none' }, 'in+=4.36');
+  t.fromTo('#cur', { x: 99 }, { x: 104, duration: 0.61, ease: 'power2.inOut' }, 'in+=4.55');
+  t.fromTo('#cur', { y: 259 }, { y: 484, duration: 0.58, ease: 'power3.inOut' }, 'in+=4.55');
+  t.fromTo('#oS', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.1, ease: 'none' }, 'in+=4.62');
+  t.fromTo(['#oH', '#oSH'], { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.1, ease: 'none' }, 'in+=4.62');
+  t.fromTo('#bH', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 'in+=5.16');
+  t.fromTo('#cur', { scale: C }, { scale: C * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=5.4');
+  t.fromTo('#s05', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.1, ease: 'power1.inOut' }, 'in+=5.4');
+  t.fromTo('#cur', { x: 104, y: 484 }, { x: 68, y: 638, duration: 0.4, ease: 'power2.inOut' }, 'in+=5.6');
+  t.fromTo('#cur', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.3, ease: 'power1.in' }, 'in+=5.65');
+  /* 19.2 -> 19.85: to the explanation; 20.3 -> 22.8: along its first sentence. */
+  t.fromTo('#w', { scale: F2.scale, x: F2.x, y: F2.y }, { scale: F3.scale, x: F3.x, y: F3.y, duration: 0.65 }, 'in+=5.7');
+  t.fromTo('#w', { x: F3.x }, { x: -2222, duration: 2.5, ease: 'power1.inOut' }, 'in+=6.8');
+
+  window.__timelines['quiz'] = t;
+</script>
+</body>
+</html>

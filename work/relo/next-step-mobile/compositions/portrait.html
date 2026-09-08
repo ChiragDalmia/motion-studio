@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0 }
+  #root { position: relative; background: transparent; overflow: hidden }
+  #bg { position: absolute; inset: 0; background: var(--ground); opacity: 0; visibility: hidden }
+  .hid { opacity: 0; visibility: hidden }
+  /* The photograph's frame starts as the open ReadyRating card's rectangle in
+     the previous frame -- (22, 489) 1036x372 -- and resolves to a 640px square
+     at (220, 200), with the headline, name and role stacked beneath it. */
+  #pf { position: absolute; left: 22px; top: 489px; width: 1036px; height: 372px; overflow: hidden; border-radius: 8px; box-shadow: 0 24px 60px rgba(0,0,0,0.30) }
+  #photo { position: absolute; inset: 0; background: var(--img-angela) 50% 28% / cover no-repeat }
+  #h { position: absolute; left: 120px; top: 900px; font-family: var(--display); font-weight: 700; font-size: 84px; line-height: 1.05; letter-spacing: -0.02em; color: var(--onGround); margin: 0 }
+  #nm { position: absolute; left: 120px; top: 1030px; font-family: var(--text); font-weight: 600; font-size: 44px; line-height: 1.2; color: var(--onGround); margin: 0 }
+  #rl { position: absolute; left: 120px; top: 1094px; font-family: var(--text); font-weight: 500; font-size: 44px; line-height: 1.3; color: var(--brand); margin: 0 }
+</style>
+</head>
+<body>
+<div id="root" class="s-navy" data-composition-id="portrait" data-width="1080" data-height="1350" data-duration="5.2">
+  <div id="bg" class="clip" data-start="0" data-duration="5.2" data-track-index="1"></div>
+  <div id="pf" class="clip hid" data-start="0" data-duration="5.2" data-track-index="2"><div id="photo" role="img" aria-label="Angela Detmold"></div></div>
+  <h2 id="h" class="clip hid" data-start="0" data-duration="5.2" data-track-index="3">Live Office Hours</h2>
+  <p id="nm" class="clip hid" data-start="0" data-duration="5.2" data-track-index="4">Angela Detmold</p>
+  <p id="rl" class="clip hid" data-start="0" data-duration="5.2" data-track-index="4">Senior Industry Advisor, Real Estate</p>
+</div>
+<script>
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power3.out', immediateRender: false } });
+  t.addLabel('in', 0);
+  t.fromTo('#bg', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.16, ease: 'power2.out' }, 'in');
+  t.fromTo('#pf', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.16, ease: 'power1.inOut' }, 'in+=0.16');
+  t.fromTo('#pf', { x: 0, y: 0, width: 1036, height: 372, borderRadius: 8 }, { x: 198, y: -289, width: 640, height: 640, borderRadius: 16, duration: 0.8, ease: 'power3.inOut' }, 'in+=0.25');
+  t.fromTo('#h', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.44 }, 'in+=0.6');
+  t.fromTo('#nm', { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.36 }, 'in+=0.78');
+  t.fromTo('#rl', { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.36 }, 'in+=0.78');
+  window.__timelines['portrait'] = t;
+</script>
+</body>
+</html>

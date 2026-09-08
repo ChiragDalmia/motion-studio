@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0 }
+  #root { position: relative; background: transparent; overflow: hidden }
+  /* F4m: 2.0 at (-570, -271), the collapsed ReadyRating card centred and
+     nearly the full width of the 4:5 frame. */
+  #stage { position: absolute; inset: 0; overflow: hidden }
+  #w { position: absolute; left: 0; top: 0; width: 1600px; height: 1000px; overflow: hidden; transform-origin: 0 0; transform: translate(-570px, -271px) scale(2); border-radius: 6px; box-shadow: 0 18px 50px rgba(5,16,71,0.14) }
+  .shot { position: absolute; background-repeat: no-repeat; background-size: 100% 100% }
+  .base { left: 0; top: 0; width: 1600px; height: 1000px }
+  .hid { opacity: 0; visibility: hidden }
+  #s01 { background-image: var(--img-s01) }
+  #rH { left: 296px; top: 438px; width: 518px; height: 70px; background-image: var(--img-rr-down-hover) }
+  .open { left: 286px; top: 428px; width: 540px; height: 196px }
+  #rOH { background-image: var(--img-rr-open-hover); clip-path: inset(0 0 100% 0) }
+  #rO { background-image: var(--img-rr-open) }
+  #cur { position: absolute; left: 0; top: 0; width: 20px; height: 29px; transform-origin: 2px 2px; transform: translate(758px, 558px) scale(0.7585); filter: drop-shadow(0 2px 3px rgba(0,0,0,0.35)) }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="rating" data-width="1080" data-height="1350" data-duration="5">
+  <div id="stage" class="clip" data-start="0" data-duration="5" data-track-index="1">
+    <div id="w" data-layout-allow-overflow>
+      <div id="s01" class="shot base" role="img" aria-label="RELO dashboard with the ReadyRating panel collapsed"></div>
+      <div id="rH" class="shot hid"></div>
+      <div id="rOH" class="shot open hid"></div>
+      <div id="rO" class="shot open hid" role="img" aria-label="ReadyRating, readiness to pass the exam: level 1 of 5. Not ready yet, but you'll get there!"></div>
+      <svg id="cur" class="hid" viewBox="0 0 20 29" aria-hidden="true"><path d="M1.6 1.2 L1.6 24.3 L7.3 18.8 L11 27.4 L14.6 25.8 L11 17.4 L18.6 17 Z" fill="#111" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+</div>
+<script>
+  /* Same events and times as the desktop beat; the camera settles 116px down
+     (F5m) as the card opens so the whole open card sits centred. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+  var C = 1.517 / 2.0;
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.22, ease: 'power1.out' }, 'in+=0.25');
+  t.fromTo('#cur', { x: 758 }, { x: 783, duration: 0.5, ease: 'power2.inOut' }, 'in+=0.45');
+  t.fromTo('#cur', { y: 558 }, { y: 471, duration: 0.46, ease: 'power3.out' }, 'in+=0.45');
+  t.fromTo('#rH', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 'in+=0.95');
+  t.fromTo('#cur', { scale: C }, { scale: C * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=1.15');
+  t.fromTo('#rOH', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.04, ease: 'none' }, 'in+=1.15');
+  t.fromTo('#rOH', { clipPath: 'inset(0 0 100% 0)' }, { clipPath: 'inset(0 0 0% 0)', duration: 0.28, ease: 'power2.out' }, 'in+=1.15');
+  t.fromTo('#w', { y: -271 }, { y: -387, duration: 0.75 }, 'in+=1.25');
+  t.fromTo('#cur', { x: 783, y: 471 }, { x: 788, y: 638, duration: 0.5 }, 'in+=1.5');
+  t.fromTo('#cur', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.35, ease: 'power1.in' }, 'in+=1.75');
+  t.fromTo('#rO', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.12, ease: 'none' }, 'in+=1.56');
+  t.fromTo(['#rOH', '#rH'], { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.12, ease: 'none' }, 'in+=1.56');
+  window.__timelines['rating'] = t;
+</script>
+</body>
+</html>

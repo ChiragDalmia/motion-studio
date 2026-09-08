@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "duration": 45,
+  "_note": "Copied to index.motion.json by tools/prepare.mjs --motion (tier 3 only). `appearsBy` asserts presence, so it can only see opacity/autoAlpha entrances; clip-path wipes leave the element present, which is why the editorial lines are not asserted here and the product states are. The end frame's elements live in the host (e- prefix), not in a beat.",
+  "assertions": [
+    { "kind": "appearsBy", "selector": "#relo-lockup-r", "bySec": 0.8 },
+    { "kind": "appearsBy", "selector": "#relo-lockup-by", "bySec": 1.4 },
+    { "kind": "before", "a": "#relo-lockup-r", "b": "#relo-lockup-o" },
+
+    { "kind": "appearsBy", "selector": "#dash #hP", "bySec": 11.9 },
+    { "kind": "appearsBy", "selector": "#dash #s03", "bySec": 12.2 },
+    { "kind": "before", "a": "#dash #hP", "b": "#dash #s03" },
+
+    { "kind": "appearsBy", "selector": "#quiz #oSH", "bySec": 18.0 },
+    { "kind": "appearsBy", "selector": "#quiz #bOn", "bySec": 18.0 },
+    { "kind": "appearsBy", "selector": "#quiz #bH", "bySec": 18.8 },
+    { "kind": "appearsBy", "selector": "#quiz #s05", "bySec": 19.1 },
+    { "kind": "before", "a": "#quiz #oSH", "b": "#quiz #bH" },
+    { "kind": "before", "a": "#quiz #bH", "b": "#quiz #s05" },
+
+    { "kind": "appearsBy", "selector": "#rating #rH", "bySec": 24.6 },
+    { "kind": "appearsBy", "selector": "#rating #rO", "bySec": 25.3 },
+    { "kind": "before", "a": "#rating #rH", "b": "#rating #rO" },
+
+    { "kind": "appearsBy", "selector": "#portrait #nm", "bySec": 29.3 },
+    { "kind": "appearsBy", "selector": "#e-vig", "bySec": 37.05 },
+    { "kind": "appearsBy", "selector": "#e-cta", "bySec": 37.9 },
+    { "kind": "before", "a": "#e-title", "b": "#e-cta" },
+    { "kind": "staysInFrame", "selector": "#e-cta" },
+    { "kind": "staysInFrame", "selector": "#e-title" }
+  ]
+}
