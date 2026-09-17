@@ -1,0 +1,61 @@
+{
+  "brand": "relo",
+  "title": "RELO brand-logo",
+  "duration": 2,
+  "beats": [
+    {
+      "id": "intro",
+      "layer": "art",
+      "duration": 2,
+      "surface": "default",
+      "scene": "sting"
+    }
+  ],
+  "motion": {
+    "assertions": [
+      {
+        "kind": "appearsBy",
+        "selector": "#relo-lockup-r",
+        "bySec": 0.8
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#relo-lockup-o",
+        "bySec": 1.2
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#relo-lockup-by",
+        "bySec": 1.4
+      },
+      {
+        "kind": "before",
+        "a": "#relo-lockup-r",
+        "b": "#relo-lockup-e"
+      },
+      {
+        "kind": "before",
+        "a": "#relo-lockup-e",
+        "b": "#relo-lockup-l"
+      },
+      {
+        "kind": "before",
+        "a": "#relo-lockup-l",
+        "b": "#relo-lockup-o"
+      },
+      {
+        "kind": "before",
+        "a": "#relo-lockup-o",
+        "b": "#relo-lockup-by"
+      },
+      {
+        "kind": "staysInFrame",
+        "selector": "#relo-lockup-o"
+      },
+      {
+        "kind": "staysInFrame",
+        "selector": "#relo-lockup-by"
+      }
+    ]
+  }
+}

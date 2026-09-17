@@ -1,0 +1,79 @@
+<!-- The RELO brand sting. A shared scene: film.json points a beat at it
+     with "scene": "sting" and tools/prepare.mjs materializes it as that
+     beat's composition. Two films use it and it is authored once. -->
+
+<template data-film>
+<style>
+  /* The default surface. The host paints var(--ground) behind this beat and
+     every part of the lockup inks in var(--onGround) or a brand colour, so the
+     pair is the pack's own and no colour is named in this file. */
+
+  /* The box is the viewBox's own aspect -- 566 = 1340 * 833/1972 -- so nothing
+     letterboxes inside it and the 80 units of entrance margin the shape file
+     carries stay even. The wordmark itself lands 1231px wide, just under two
+     thirds of the frame; the rest of the box is that margin. */
+  #lockup { position: absolute; left: 290px; top: 257px; width: 1340px; height: 566px }
+  #lockup svg { display: block; width: 100%; height: 100% }
+</style>
+  <div id="lockup" class="clip" data-start="0" data-duration="2" data-track-index="1">
+    <!--include lockup-->
+  </div>
+<script>
+  /* Verb: draw, bloom, pop. The seam races up the mark's own diagonal, hands
+     the frame to the bloom before it has finished retiring, and the wordmark
+     pops out of the bloom's tail letter by letter -- one arrival in three
+     registers, not three entrances. Every window is a fraction of the pack's
+     520ms beat: 0.5, 0.75, 1, and a quarter-beat between letters.
+
+     transformOrigin is stated, not inherited. Left to itself GSAP anchored
+     every one of these SVG transforms at the element's bbox top-LEFT corner
+     -- measured, at t=0: the r squashed rightward out of its own slot from
+     x=743 instead of about its centre, and the icon's 0.9 grew out of its top
+     corner while the clip circle opened from its middle, so the two halves of
+     the bloom pulled against each other. 50% 50% of the bbox is what both
+     want, and for the icon that point is (273.5, 348.5) -- the corner the
+     three primitives share, which is the bloom's centre too. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power3.out', transformOrigin: '50% 50%' } });
+  t.addLabel('in', 0);
+
+  /* Draw. The tween is on the CSS property, not the attribute: an inline style
+     is the only thing that outranks the stroke-dashoffset presentation
+     attribute the shape file ships with, and the shape file ships with it so
+     that the seam is hidden before any timeline touches it. */
+  t.fromTo('#relo-lockup-seam', { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.26, ease: 'power4.out' }, 'in');
+  /* It retires INTO the bloom rather than before it. By 0.39 the triangle's own
+     hypotenuse is already underneath, so this fade uncovers nothing. */
+  t.fromTo('#relo-lockup-seam', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.13, ease: 'power1.in' }, 'in+=0.26');
+
+  /* Bloom. The clip radius and the 0.9 -> 1 scale share one window and one
+     ease, which is what makes them read as a single motion instead of a reveal
+     with a zoom stapled on. Both resolve about (273.5, 348.5) -- the point the
+     three primitives share, which is also the icon's bbox centre, which is
+     GSAP's default origin for an SVG element. Three ways of naming one point. */
+  t.fromTo('#relo-lockup-bloom-c', { attr: { r: 0 } }, { attr: { r: 335 }, duration: 0.39 }, 'in+=0.13');
+  t.fromTo('#relo-lockup-icon', { scale: 0.9 }, { scale: 1, duration: 0.39 }, 'in+=0.13');
+
+  /* Pop, r through o, a quarter-beat apart, opening at 0.26 while the bloom is
+     only a third done, so the energy carries straight through. The squash --
+     wide and short into true -- plus back.out's overshoot is what reads as a
+     spring; travel is a flat 26 user units per letter rather than a percentage,
+     because a percentage would make the l with its ascender travel farthest and
+     break the line. The cascade is what absorbed the retime to 2s: it opens a
+     quarter-beat earlier, and each letter keeps its full one-beat window, so
+     the pop is no faster than it was -- there is just less air in front of it. */
+  t.fromTo('#relo-lockup-r', { y: 26, scaleX: 1.4, scaleY: 0.6, autoAlpha: 0 }, { y: 0, scaleX: 1, scaleY: 1, autoAlpha: 1, duration: 0.52, ease: 'back.out(1.7)' }, 'in+=0.26');
+  t.fromTo('#relo-lockup-e', { y: 26, scaleX: 1.4, scaleY: 0.6, autoAlpha: 0 }, { y: 0, scaleX: 1, scaleY: 1, autoAlpha: 1, duration: 0.52, ease: 'back.out(1.7)' }, 'in+=0.39');
+  t.fromTo('#relo-lockup-l', { y: 26, scaleX: 1.4, scaleY: 0.6, autoAlpha: 0 }, { y: 0, scaleX: 1, scaleY: 1, autoAlpha: 1, duration: 0.52, ease: 'back.out(1.7)' }, 'in+=0.52');
+  t.fromTo('#relo-lockup-o', { y: 26, scaleX: 1.4, scaleY: 0.6, autoAlpha: 0 }, { y: 0, scaleX: 1, scaleY: 1, autoAlpha: 1, duration: 0.52, ease: 'back.out(1.7)' }, 'in+=0.65');
+
+  /* The signature is the same pop, quieter: half the travel, a fifth of the
+     overshoot, landing a quarter-beat after the o's settle so it never competes
+     with it and the eye still finishes on it. */
+  t.fromTo('#relo-lockup-by', { y: 14, scale: 0.8, autoAlpha: 0 }, { y: 0, scale: 1, autoAlpha: 1, duration: 0.39, ease: 'back.out(1.2)' }, 'in+=0.91');
+
+  /* 1.3s of arrival, then 0.7s of stillness. The hold is the beat -- it is what
+     the cut into b2 cuts away from -- and 0.7s is the shortest it may be: the
+     pack's stillness floor is 640ms, which is what set the arrival's budget
+     once the beat itself was fixed at 2s. */
+</script>
+</template>

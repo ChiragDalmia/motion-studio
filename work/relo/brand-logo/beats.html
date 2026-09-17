@@ -1,0 +1,36 @@
+<!-- work/relo/brand-logo. Beat ids, starts, tracks and labels come from
+     film.json, so a retime is one number there and nothing here moves.
+     Every generated file is gitignored: npm run pre writes them. -->
+
+<template data-film>
+<style>
+  /* #grade is static: a baked stepped grain, never animated, never a filter on
+     a moving element. 25 elements is the heavy-overlay ceiling, so this is one
+     tiled background and not a particle field. */
+  #grain {
+    position: absolute; inset: 0;
+    opacity: 0.055;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 140px 140px;
+  }
+  /* No mix-blend-mode here. Measured at 4x CPU throttle, `multiply` on a
+     full-frame overlay tripled median seek cost (0.8ms -> 2.3ms) for a
+     difference invisible at 5.5% opacity. This is the paint budget from
+     AGENTS.md spending itself on nothing, which is the only reason it is a
+     budgeted craft rule rather than a correctness ban. */
+</style>
+<script>
+  /* A slow push across the intro, clamped so it can never expose the frame
+     edge. 1.06 -> 1.0 over the beat, so whatever follows the sting starts from
+     a neutral camera and inherits no residual move. The pan starts down-left
+     and resolves up-right, WITH the mark's rising diagonal: the same 2% either
+     way, but the other sign has the frame drifting against the brand's motion
+     vector for the whole time the lockup assembles along it, which is the one
+     thing a RELO film may not do. */
+  tl.fromTo('#cam', camera(1.06, -0.02, 0.01), { scale: 1, xPercent: 0, yPercent: 0, duration: 2, ease: 'power1.out' }, 'intro');
+</script>
+</template>
+
+<template data-layer="grade">
+<div id="grain"></div>
+</template>
