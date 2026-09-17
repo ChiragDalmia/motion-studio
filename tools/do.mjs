@@ -295,9 +295,21 @@ const pick = () => {
 
 let code = 0;
 switch (cmd) {
-  case 'list':
-    for (const f of films()) console.log(`  ${f.id}`);
+  // --since <ref> narrows the list to what that ref changed, for a CI job that
+  // should not gate every film on every commit. The reason goes to stderr so
+  // stdout stays nothing but ids for a shell loop to read.
+  case 'list': {
+    const i = rest.indexOf('--since');
+    if (i < 0) { for (const f of films()) console.log(`  ${f.id}`); break; }
+    const ref = rest[i + 1];
+    // Without this, changed() would fall back to its HEAD default and select
+    // nothing on a clean checkout, which reads as a pass over zero films.
+    if (!ref) { console.error('list --since needs a ref'); process.exit(2); }
+    const c = await changed(ref);
+    console.error(`  selection: ${c.why}`);
+    for (const f of c.list) console.log(`  ${f.id}`);
     break;
+  }
   case 'pre': {
     const list = pick();
     const p = await ensure(list, { motion: rest.includes('--motion') });
