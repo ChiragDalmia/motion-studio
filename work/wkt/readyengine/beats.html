@@ -1,0 +1,838 @@
+<!-- work/wkt/readyengine. Beat ids, starts, tracks and labels come from
+     film.json, so a retime is one number there and nothing here moves.
+     Every generated file is gitignored: npm run pre writes them. -->
+
+<template data-film>
+<style>
+  /* ------------------------------------------------------------------ *
+   * The film's type scale. Declared once here because every beat is
+   * inlined into this document, so a beat only states what is its own.
+   * ------------------------------------------------------------------ */
+  .dsp { font-family: var(--display); font-weight: 700; letter-spacing: -0.025em; line-height: 1.05; margin: 0 }
+  .lbl { font-family: var(--text); font-weight: 500; font-size: 20px; letter-spacing: 0.19em; text-transform: uppercase; color: var(--brand) }
+  .mic { font-family: var(--text); font-weight: 500; font-size: 17px; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,255,255,0.58) }
+  .bdy { font-family: var(--text); font-weight: 400; line-height: 1.42; color: #dfe6e8 }
+
+  /* A product capture is a screen, not a card: one hairline, one soft drop,
+     no rounded-corner styling of our own beyond the product's own 6px. */
+  .pane { position: absolute; left: 0; top: 0; overflow: hidden; border-radius: 6px;
+          box-shadow: 0 26px 70px rgba(0,0,0,0.46), 0 0 0 1px rgba(255,255,255,0.08) }
+  .shot { position: absolute; background-repeat: no-repeat; background-size: 100% 100% }
+  .hid { opacity: 0; visibility: hidden }
+
+  /* ------------------------------------------------------------------ *
+   * The end card. Untimed host elements: a sub-composition is shown for
+   * start <= t < end, so a beat ending at 88 is already gone at t = 88.
+   * ------------------------------------------------------------------ */
+  #end { position: absolute; inset: 0 }
+  #e-name { position: absolute; left: 164px; top: 286px; font-size: 132px; color: #ffffff; opacity: 0 }
+  #e-tm { font-size: 42px; vertical-align: super; letter-spacing: 0 }
+  #e-rule { position: absolute; left: 170px; top: 470px; width: 760px; height: 8px; background: var(--brand); transform-origin: 0% 50%; transform: scaleX(0) }
+  #e-line { position: absolute; left: 168px; top: 512px; font-size: 60px; color: #ffffff; opacity: 0 }
+  #e-pb { position: absolute; left: 1300px; top: 520px; opacity: 0 }
+  #e-lock { position: absolute; left: 1300px; top: 556px; width: 420px; opacity: 0 }
+  #e-lock svg { display: block; width: 100%; height: auto }
+  #e-cta { position: absolute; left: 168px; top: 672px; font-size: 34px; opacity: 0 }
+  #e-url { position: absolute; left: 168px; top: 730px; font-family: var(--display); font-weight: 700; font-size: 34px; letter-spacing: 0.02em; color: var(--brand); opacity: 0 }
+
+  /* #ui is immune to the camera. */
+  #mark { position: absolute; left: 72px; top: 980px; width: 170px; opacity: 0.92 }
+  #mark svg { display: block; width: 100%; height: auto }
+  /* Sized and capped so its box cannot reach the caption column: gate 2
+     re-measures the layout with every clip forced off, and two pieces of
+     chrome sharing the bottom band is exactly what that catches. */
+  #eg { position: absolute; right: 64px; top: 966px; width: 326px; text-align: right;
+        font-size: 13px; letter-spacing: 0.12em; line-height: 1.5; opacity: 0 }
+
+  #grain {
+    position: absolute; inset: 0;
+    opacity: 0.045;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 140px 140px;
+  }
+
+  /* Reduced motion. The timeline is the film and cannot be removed, but the
+     global camera push is decoration on top of it: neutralising #cam with
+     !important outranks the inline transform GSAP writes, so the frame stops
+     travelling while every framing that carries meaning is untouched. The
+     grain goes with it. */
+  @media (prefers-reduced-motion: reduce) {
+    #cam { transform: none !important }
+    #grain { display: none }
+  }
+</style>
+<script>
+  /* One camera move in the whole film, and it is the opening: 1.03 -> 1.00
+     over the title, arriving at rest exactly as the product does. Every later
+     reframe is a world transform inside its own beat, so display type never
+     rides a scale. minCameraScale for this pack is 0.9; 1.03 is well inside. */
+  tl.fromTo('#cam', camera(1.03, 0, 0), { scale: 1, xPercent: 0, yPercent: 0, duration: 7.2, ease: 'sine.inOut' }, 'open');
+
+  /* Chrome. The lockup is on screen from the first frame, the film's opening
+     frame must not be one flat colour, and a brand film should not open
+     unbranded either, and leaves before the end card, which carries its own. */
+  tl.fromTo('#mark', { autoAlpha: 0.92 }, { autoAlpha: 0, duration: 0.5, immediateRender: true }, 'value+=7.6');
+  tl.fromTo('#eg', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.6 }, 'rating-=0.4');
+  tl.fromTo('#eg', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.45 }, 'riley-=0.5');
+  tl.fromTo('#eg', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.5 }, 'checks+=6.6');
+  tl.fromTo('#eg', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.45 }, 'value-=0.5');
+
+  /* The end card. Untimed elements, so every state below is authored in the
+     markup and only ever moves forward from it. */
+  tl.fromTo('#e-name', { autoAlpha: 0, y: 26 }, { autoAlpha: 1, y: 0, duration: 0.88, ease: 'power2.out' }, 'end-=0.4');
+  tl.fromTo('#e-rule', { scaleX: 0 }, { scaleX: 1, duration: 0.88, ease: 'power4.inOut' }, 'end');
+  tl.fromTo('#e-line', { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 0.8, ease: 'power2.out' }, 'end+=0.6');
+  tl.fromTo('#e-pb', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.6 }, 'end+=3.8');
+  tl.fromTo('#e-lock', { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.88, ease: 'power2.out' }, 'end+=3.9');
+  tl.fromTo('#e-cta', { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.7, ease: 'power2.out' }, 'end+=6.4');
+  tl.fromTo('#e-url', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.7, ease: 'power2.out' }, 'end+=7');
+  /* Settled at 82.7 and held to 88. Narration ends 85.1, so the last 2.9s
+     are an unnarrated hold on the finished card. */
+</script>
+</template>
+
+<template data-layer="type">
+<!--hosts-->
+<div id="end">
+  <h1 id="e-name" class="dsp">ReadyEngine<span id="e-tm">&#8482;</span></h1>
+  <div id="e-rule"></div>
+  <h2 id="e-line" class="dsp">Know when you&#8217;re ready.</h2>
+  <div id="e-pb" class="mic">Powered by</div>
+  <div id="e-lock">
+    <!-- brands/wkt/logo/mark.svg, geometry unaltered. The knot keeps the
+         brand's own #ff004d on every ground in this film; only the
+         wordmark reverses to white, which is the approved dark variant.
+         Fills are literal so nothing inherited, currentColor or
+         surface-bound can recolour a part of the mark. -->
+    <!--include mark-reversed-->
+  </div>
+  <div id="e-cta" class="bdy">Talk to WKT about ReadyEngine for your program.</div>
+  <div id="e-url">wkt.ca</div>
+</div>
+</template>
+
+<template data-layer="ui">
+<!--hosts-->
+<div id="mark">
+  <!-- The same canonical artwork, same fills, at chrome size. -->
+  <!--include mark-reversed-->
+</div>
+<!-- The publisher interface in the WKT master is identified discreetly,
+     which is the production rule for it. -->
+<div id="eg" class="mic">Example program<br>RELO &#183; Fundamentals of Real Estate</div>
+</template>
+
+<template data-layer="grade">
+<div id="grain"></div>
+</template>
+
+<template data-beat="open">
+<style>
+  /* The beat states its surface: this film sits on the brand's navy ground
+     from the first frame. #root stays transparent and #stage paints, so a
+     later beat can push over this one without two opaque roots fighting. */
+  #stage { position: absolute; inset: 0; overflow: hidden; background: var(--navy) }
+
+  /* The readiness field. Twenty-eight learners as twenty-eight marks, all
+     unread, the frame the opening line describes. One row is one element
+     with a 92px repeat, so the field costs four nodes and not a hundred. */
+  .row { position: absolute; left: 1170px; width: 570px; height: 18px; opacity: 0.42;
+         background: repeating-linear-gradient(to right, rgba(255,255,255,0.22) 0 18px, rgba(255,255,255,0) 18px 92px) }
+  #r1 { top: 300px } #r2 { top: 392px } #r3 { top: 484px } #r4 { top: 576px }
+
+  .hl { position: absolute; left: 152px; width: 950px; font-size: 78px; color: #ffffff; opacity: 0 }
+  #h1 { top: 250px } #h2 { top: 336px }
+  #h3 { top: 448px; color: var(--brand) }
+
+  #re { position: absolute; left: 150px; top: 566px; font-size: 116px; color: #ffffff; opacity: 0 }
+  #tm { font-size: 38px; vertical-align: super; letter-spacing: 0 }
+  #rerule { position: absolute; left: 156px; top: 716px; width: 420px; height: 8px; background: var(--brand);
+            transform-origin: 0% 50%; transform: scaleX(0) }
+
+  /* Capture space: 1600x1000, the product's own viewport. W is the film's
+     wide framing and every later dashboard beat opens on these three numbers. */
+  #w { width: 1600px; height: 1000px; transform-origin: 0 0;
+       transform: translate(272px, 272px) scale(0.86); opacity: 0 }
+  #dash { left: 0; top: 0; width: 1600px; height: 1000px; background-image: var(--img-dash) }
+</style>
+  <div id="stage" class="clip" data-start="0" data-duration="10.2" data-track-index="1">
+    <!-- The pane is first so it paints UNDER the type: the wordmark lifts
+         off the screen that is rising, instead of vanishing behind it, and
+         no frame has display type hidden by an opaque sibling. -->
+    <div id="w" class="pane" data-layout-allow-overflow>
+      <div id="dash" class="shot" role="img" aria-label="ReadyEngine dashboard: Study Navigator, ReadyRating, Pacing and a Concept Mastery map for Fundamentals of Real Estate"></div>
+    </div>
+
+    <div id="r1" class="row"></div>
+    <div id="r2" class="row"></div>
+    <div id="r3" class="row"></div>
+    <div id="r4" class="row"></div>
+
+    <h1 id="h1" class="hl dsp">Know where</h1>
+    <h1 id="h2" class="hl dsp">your learners stand.</h1>
+    <h1 id="h3" class="hl dsp">Before exam day.</h1>
+
+    <div id="re" class="dsp">ReadyEngine<span id="tm">&#8482;</span></div>
+    <div id="rerule"></div>
+  </div>
+<script>
+  /* Verb: settle, then hand over. The field is already drawn at t = 0, the
+     film may not open on one flat colour, and lifts to full as a decaying
+     cascade, 0.74 per step for this pack, 0.22s apart. The
+     headline lands on it, and the wordmark leaves upward on the same current
+     the product rises on, so ReadyEngine is named INTO the interface instead
+     of getting a logo sequence of its own. Every initial state is in the
+     markup and the timeline only moves forward from it. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power3.out', immediateRender: false } });
+  t.addLabel('in', 0);
+
+  t.fromTo('#r1', { autoAlpha: 0.42 }, { autoAlpha: 1, duration: 0.88 }, 'in+=0.30');
+  t.fromTo('#r2', { autoAlpha: 0.42 }, { autoAlpha: 1, duration: 0.88 }, 'in+=0.52');
+  t.fromTo('#r3', { autoAlpha: 0.42 }, { autoAlpha: 1, duration: 0.88 }, 'in+=0.74');
+  t.fromTo('#r4', { autoAlpha: 0.42 }, { autoAlpha: 1, duration: 0.88 }, 'in+=0.96');
+
+  /* Type over an opaque ground arrives by opacity and travel, never by a
+     clip-path wipe: elementFromPoint mid-wipe returns the ground and the
+     layout audit calls that occluded text. */
+  t.fromTo('#h1', { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: 0.88, ease: 'power2.out' }, 'in+=0.95');
+  t.fromTo('#h2', { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: 0.88, ease: 'power2.out' }, 'in+=1.20');
+  t.fromTo('#h3', { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 0.88, ease: 'power2.out' }, 'in+=1.75');
+
+  /* Every fade-out in this film pairs with an entrance that already owns the
+     property, so a backward seek re-renders the entrance and restores the
+     start value. immediateRender would defeat that: it writes the from-state
+     at CONSTRUCTION, and with sixteen captions and five callouts on the same
+     rule the film opened with all of them stacked on screen at once. */
+  t.fromTo('#h1', { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -26, duration: 0.62, ease: 'power2.in' }, 'in+=4.15');
+  t.fromTo('#h2', { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -26, duration: 0.62, ease: 'power2.in' }, 'in+=4.23');
+  t.fromTo('#h3', { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -26, duration: 0.62, ease: 'power2.in' }, 'in+=4.31');
+
+  t.fromTo('#re', { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.88, ease: 'power2.out' }, 'in+=4.65');
+  t.fromTo('#rerule', { scaleX: 0 }, { scaleX: 1, duration: 0.88, ease: 'power4.inOut' }, 'in+=4.95');
+
+  /* The field clears, the wordmark lifts, and the interface takes the frame.
+     The pane starts 220px low and arrives at W at 7.85 with zero velocity, so
+     the cut into the rating beat at 10.2 lands on a frame already still. */
+  t.fromTo('.row', { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -16, duration: 0.70, stagger: 0.05, ease: 'power1.in' }, 'in+=5.55');
+  t.fromTo('#re', { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -34, duration: 0.70, ease: 'power2.in' }, 'in+=5.95');
+  /* #rerule's opacity is established by nothing earlier, its entrance is a
+     scaleX, so this one needs the flag. At construction it writes opacity 1
+     onto an element the markup holds at scaleX 0, which paints nothing. */
+  t.fromTo('#rerule', { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -34, duration: 0.60, ease: 'power2.in', immediateRender: true }, 'in+=5.95');
+  t.fromTo('#w', { autoAlpha: 0, x: 272, y: 272, scale: 0.86 }, { autoAlpha: 1, x: 272, y: 52, scale: 0.86, duration: 1.80, ease: 'power3.out' }, 'in+=6.05');
+</script>
+</template>
+
+<template data-beat="rating">
+<style>
+  #stage { position: absolute; inset: 0; overflow: hidden; background: var(--navy) }
+
+  /* Capture space, 1600x1000, the product's own viewport. #w is DECLARED to
+     overflow: a camera that pushes into a screen renders the screen larger
+     than the frame on purpose, and the audit's opt-out is how that intent is
+     stated. The markup transform is W, the exact state open.html ends in, so
+     the cut at film 10.2 lands on an identical frame. */
+  #w { width: 1600px; height: 1000px; transform-origin: 0 0;
+       transform: translate(272px, 52px) scale(0.86) }
+  #dash { left: 0; top: 0; width: 1600px; height: 1000px; background-image: var(--img-dash) }
+  /* Each state overlay is a crop of the SAME viewport, so it registers to the
+     pixel, and each one covers everything visible at the framing that uses
+     it, no half-updated composite can appear at any zoom. */
+  #rrx { left: 0; top: 424px; width: 900px; height: 576px; background-image: var(--img-rrx) }
+  #cla { left: 520px; top: 300px; width: 1080px; height: 700px; background-image: var(--img-cla) }
+  /* The one concept this film follows, marked in the product's own space. */
+  #mk { position: absolute; left: 815px; top: 712px; width: 205px; height: 4px;
+        background: #d40040; transform-origin: 0% 50%; transform: scaleX(0) }
+  /* 44 frame px tall at every zoom: the pointer's own scale is the inverse of
+     the world's, and it travels whenever the world does. */
+  #cur { position: absolute; left: 0; top: 0; width: 20px; height: 29px; transform-origin: 2px 2px;
+         transform: translate(430px, 700px) scale(1.764); opacity: 0;
+         filter: drop-shadow(0 2px 3px rgba(0,0,0,0.35)) }
+</style>
+  <div id="stage" class="clip" data-start="0" data-duration="12.8" data-track-index="1">
+    <div id="w" class="pane" data-layout-allow-overflow>
+      <div id="dash" class="shot" role="img" aria-label="ReadyEngine dashboard for Fundamentals of Real Estate"></div>
+      <div id="rrx" class="shot hid" role="img" aria-label="ReadyRating expanded: Not ready yet, but you will get there, with the level scale one to five and level one filled"></div>
+      <div id="cla" class="shot hid" role="img" aria-label="Concept Mastery breakdown: Concepts To Learn, beginning with Scope and Responsibilities, each with Watch and Quiz"></div>
+      <div id="mk"></div>
+      <svg id="cur" viewBox="0 0 20 29" aria-hidden="true"><path d="M1.6 1.2 L1.6 24.3 L7.3 18.8 L11 27.4 L14.6 25.8 L11 17.4 L18.6 17 Z" fill="#111" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+<script>
+  /* Film 10.2: hold on the frame open.html ended on, then one continuous
+     travel, into the ReadyRating card, across to Concept Mastery, and into
+     the breakdown, with the two product state swaps landing on clicks.
+     A PRODUCT STATE SWAP IS A CUT, SO ITS EASE IS A STEP: steps(1) rounds
+     progress, so no sample at any render rate can catch two pages blended. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+
+  var W = { s: 0.86, x: 272, y: 52 };
+  var R = { s: 2.00, x: 190, y: -545 };     /* ReadyRating card, centred */
+  var R2 = { s: 2.045, x: 172.7, y: -568.6 }; /* the same point, crept in */
+  var G = { s: 1.90, x: -1088.2, y: -600.6 }; /* Concept Mastery, grid */
+  var G2 = { s: 1.925, x: -1106.2, y: -612.4 };
+  var L = { s: 1.82, x: -966.8, y: -712.7 };  /* the same card, breakdown */
+  var P = 1.517;
+
+  t.fromTo('#w', { x: W.x, y: W.y, scale: W.s }, { x: R.x, y: R.y, scale: R.s, duration: 1.40 }, 'in+=0.25');
+
+  /* Approach: x and y on different eases and lengths, so the path bows and
+     the pointer decelerates into the control rather than sliding on a rail. */
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'power1.out' }, 'in+=1.30');
+  t.fromTo('#cur', { x: 430 }, { x: 656, duration: 0.96, ease: 'power2.inOut' }, 'in+=1.34');
+  t.fromTo('#cur', { y: 700 }, { y: 472, duration: 0.88, ease: 'power3.out' }, 'in+=1.34');
+  t.fromTo('#cur', { scale: P / W.s }, { scale: P / R.s, duration: 1.40 }, 'in+=0.25');
+
+  /* Click at film 12.85: one press in place, and the product answers. */
+  t.fromTo('#cur', { scale: P / R.s }, { scale: P / R.s * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=2.65');
+  t.fromTo('#rrx', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'steps(1)' }, 'in+=2.65');
+
+  /* The film's one long look at the rating: 1 of 5, held 2.8s while the line
+     that defines the scale is spoken. The creep keeps the frame alive without
+     asking the eye to follow anything. */
+  t.fromTo('#w', { x: R.x, y: R.y, scale: R.s }, { x: R2.x, y: R2.y, scale: R2.s, duration: 2.80, ease: 'none' }, 'in+=2.80');
+  t.fromTo('#cur', { scale: P / R.s }, { scale: P / R2.s, duration: 2.60, ease: 'none' }, 'in+=2.85');
+
+  /* Across to the breakdown. The pointer leaves after the camera does and
+     arrives before it stops, so the two moves read as one gesture. */
+  t.fromTo('#w', { x: R2.x, y: R2.y, scale: R2.s }, { x: G.x, y: G.y, scale: G.s, duration: 1.80 }, 'in+=5.70');
+  t.fromTo('#cur', { scale: P / R2.s }, { scale: P / G.s, duration: 1.80 }, 'in+=5.70');
+  t.fromTo('#cur', { x: 656 }, { x: 1180, duration: 1.30, ease: 'power2.inOut' }, 'in+=6.30');
+  t.fromTo('#cur', { y: 472 }, { y: 580, duration: 1.16, ease: 'power3.out' }, 'in+=6.30');
+
+  t.fromTo('#w', { x: G.x, y: G.y, scale: G.s }, { x: G2.x, y: G2.y, scale: G2.s, duration: 1.80, ease: 'none' }, 'in+=7.55');
+  t.fromTo('#cur', { scale: P / G.s }, { scale: P / G2.s, duration: 1.80, ease: 'none' }, 'in+=7.55');
+
+  /* Click LIST at film 19.6. The grid becomes the named breakdown and the
+     camera eases back to the frame plan.html opens on. */
+  t.fromTo('#cur', { scale: P / G2.s }, { scale: P / G2.s * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=9.40');
+  t.fromTo('#cla', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'steps(1)' }, 'in+=9.40');
+  t.fromTo('#w', { x: G2.x, y: G2.y, scale: G2.s }, { x: L.x, y: L.y, scale: L.s, duration: 0.90 }, 'in+=9.40');
+  t.fromTo('#cur', { scale: P / G2.s }, { scale: P / L.s, duration: 0.74 }, 'in+=9.56');
+
+  /* The concept the rest of the film follows. */
+  t.fromTo('#mk', { scaleX: 0 }, { scaleX: 1, duration: 0.62, ease: 'power4.inOut' }, 'in+=11.00');
+  /* Still from 11.8 (film 22.0), so the cut into plan.html is invisible. */
+</script>
+</template>
+
+<template data-beat="plan">
+<style>
+  #stage { position: absolute; inset: 0; overflow: hidden; background: var(--navy) }
+
+  /* Two worlds, both in the product's own capture space. #wd is the dashboard
+     viewport (1600x1000) and opens on L, the exact state rating.html ends in.
+     #wq is the adaptive quiz, cropped from the same viewport at x 30, and it
+     is a crop, so its lower edge dissolves rather than cutting. */
+  #wd { width: 1600px; height: 1000px; transform-origin: 0 0;
+        transform: translate(-966.8px, -712.7px) scale(1.82) }
+  #dash { left: 0; top: 0; width: 1600px; height: 1000px; background-image: var(--img-dash) }
+  #cla { left: 520px; top: 300px; width: 1080px; height: 700px; background-image: var(--img-cla) }
+  #mk { position: absolute; left: 815px; top: 712px; width: 205px; height: 4px; background: #d40040 }
+  .mrk { position: absolute; border: 4px solid #d40040; border-radius: 8px; opacity: 0 }
+  #mex { left: 1314px; top: 0px; width: 156px; height: 50px }
+  #mpr { left: 95px; top: 290px; width: 581px; height: 138px }
+  #cd { position: absolute; left: 0; top: 0; width: 20px; height: 29px; transform-origin: 2px 2px;
+        transform: translate(1180px, 580px) scale(0.8335); filter: drop-shadow(0 2px 3px rgba(0,0,0,0.35)) }
+
+  #wq { width: 1570px; height: 560px; transform-origin: 0 0;
+        transform: translate(2.5px, 178px) scale(1.22); opacity: 0;
+        -webkit-mask-image: linear-gradient(to bottom, #000 0 84%, transparent 100%);
+        mask-image: linear-gradient(to bottom, #000 0 84%, transparent 100%) }
+  #q1 { left: 0; top: 0; width: 1570px; height: 540px; background-image: var(--img-q1) }
+  #qrow { left: 60px; top: 226px; width: 1480px; height: 70px; background-image: var(--img-qrow) }
+  #qbtn { left: 58px; top: 460px; width: 224px; height: 54px; background-image: var(--img-qbtn) }
+  #qexp { left: 0; top: 0; width: 1570px; height: 560px; background-image: var(--img-qexp) }
+  #cq { position: absolute; left: 0; top: 0; width: 20px; height: 29px; transform-origin: 2px 2px;
+        transform: translate(1045.9px, 308.5px) scale(1.2434); opacity: 0;
+        filter: drop-shadow(0 2px 3px rgba(0,0,0,0.35)) }
+</style>
+  <div id="stage" class="clip" data-layout-allow-overflow data-start="0" data-duration="17.1" data-track-index="1">
+    <div id="wd" class="pane" data-layout-allow-overflow>
+      <div id="dash" class="shot" role="img" aria-label="ReadyEngine dashboard for Fundamentals of Real Estate"></div>
+      <div id="cla" class="shot" role="img" aria-label="Concept Mastery breakdown: Concepts To Learn, beginning with Scope and Responsibilities, each with Watch and Quiz"></div>
+      <div id="mk"></div>
+      <div id="mex" class="mrk"></div>
+      <div id="mpr" class="mrk"></div>
+      <svg id="cd" viewBox="0 0 20 29" aria-hidden="true"><path d="M1.6 1.2 L1.6 24.3 L7.3 18.8 L11 27.4 L14.6 25.8 L11 17.4 L18.6 17 Z" fill="#111" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/></svg>
+    </div>
+    <div id="wq" data-layout-allow-overflow>
+      <div id="q1" class="shot" role="img" aria-label="Fundamentals of Real Estate adaptive quiz, question 1 of 12, Scope and Responsibilities: which source most directly answers a question about the registered boundaries of a parcel"></div>
+      <div id="qrow" class="shot hid" role="img" aria-label="The land titles record and the survey registered against it, selected"></div>
+      <div id="qbtn" class="shot hid" role="img" aria-label="Submit, enabled"></div>
+      <div id="qexp" class="shot hid" role="img" aria-label="The answered question with the Explanation panel: registered boundaries come from the land titles record and the survey attached to it"></div>
+      <svg id="cq" viewBox="0 0 20 29" aria-hidden="true"><path d="M1.6 1.2 L1.6 24.3 L7.3 18.8 L11 27.4 L14.6 25.8 L11 17.4 L18.6 17 Z" fill="#111" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+<script>
+  /* Film 23.0: opens on the frame rating.html ended on, pointer included, so
+     the cut is invisible. The concept marked in the previous beat is the row
+     the pointer now takes into practice; the explanation that comes back is
+     about the same boundary question; and the plan the camera returns to is
+     the one built on the exam date in the header. One learner, one concept. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+
+  var L = { s: 1.82, x: -966.8, y: -712.7 };
+  var Q0 = { s: 1.22, x: 2.5, y: 178 };
+  var Q = { s: 1.16, x: 49.5, y: 196 };
+  var E = { s: 1.247, x: -19, y: 160 };
+  var E2 = { s: 1.272, x: -38.6, y: 152.5 };
+  var S0 = { s: 1.26, x: -22.5, y: 204 };
+  var S = { s: 1.30, x: -50.5, y: 196 };
+  var P = 1.517;
+
+  /* To practice, from the row the breakdown named. */
+  t.fromTo('#cd', { x: 1180 }, { x: 1235, duration: 0.90, ease: 'power2.inOut' }, 'in+=0.70');
+  t.fromTo('#cd', { y: 580 }, { y: 697, duration: 0.82, ease: 'power3.out' }, 'in+=0.70');
+  t.fromTo('#cd', { scale: P / L.s }, { scale: P / L.s * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=1.90');
+
+  /* The page change is a cut. The quiz arrives slightly too close and settles
+     out of it, so the dive that took us into the row carries through it. */
+  t.fromTo('#wd', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.02, ease: 'steps(1)', immediateRender: true }, 'in+=1.90');
+  t.fromTo('#wq', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'steps(1)' }, 'in+=1.90');
+  t.fromTo('#cq', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'steps(1)' }, 'in+=1.90');
+  t.fromTo('#wq', { x: Q0.x, y: Q0.y, scale: Q0.s }, { x: Q.x, y: Q.y, scale: Q.s, duration: 1.00 }, 'in+=1.90');
+  t.fromTo('#cq', { scale: P / Q0.s }, { scale: P / Q.s, duration: 1.00 }, 'in+=1.90');
+
+  /* Answer, then submit. Both states are the product's own. */
+  t.fromTo('#cq', { x: 1045.9 }, { x: 99, duration: 0.78, ease: 'power2.inOut' }, 'in+=2.90');
+  t.fromTo('#cq', { y: 308.5 }, { y: 260, duration: 0.70, ease: 'power3.out' }, 'in+=2.90');
+  t.fromTo('#cq', { scale: P / Q.s }, { scale: P / Q.s * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=3.60');
+  t.fromTo('#qrow', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'steps(1)' }, 'in+=3.60');
+  t.fromTo('#qbtn', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'steps(1)' }, 'in+=3.60');
+  t.fromTo('#cq', { x: 99 }, { x: 104, duration: 0.86, ease: 'power2.inOut' }, 'in+=3.85');
+  t.fromTo('#cq', { y: 260 }, { y: 486, duration: 0.80, ease: 'power3.out' }, 'in+=3.85');
+  t.fromTo('#cq', { scale: P / Q.s }, { scale: P / Q.s * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=5.05');
+
+  t.fromTo('#qexp', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'steps(1)' }, 'in+=5.05');
+  t.fromTo('#qrow', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.02, ease: 'steps(1)' }, 'in+=5.05');
+  t.fromTo('#qbtn', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.02, ease: 'steps(1)' }, 'in+=5.05');
+  t.fromTo('#wq', { x: Q.x, y: Q.y, scale: Q.s }, { x: E.x, y: E.y, scale: E.s, duration: 1.10 }, 'in+=5.05');
+  t.fromTo('#cq', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.40, ease: 'power1.out' }, 'in+=5.25');
+  /* The one reading hold in the beat: 3.45s on the explanation, alive only
+     through a creep the eye does not have to follow. */
+  t.fromTo('#wq', { x: E.x, y: E.y, scale: E.s }, { x: E2.x, y: E2.y, scale: E2.s, duration: 3.45, ease: 'none' }, 'in+=6.15');
+
+  /* Back to the plan the answer feeds: the Study Navigator beside the exam
+     date the pacing is built on. */
+  t.fromTo('#wq', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.02, ease: 'steps(1)' }, 'in+=9.90');
+  t.fromTo('#wd', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'steps(1)' }, 'in+=9.90');
+  t.fromTo('#cd', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.02, ease: 'steps(1)', immediateRender: true }, 'in+=9.90');
+  t.fromTo('#wd', { x: L.x, y: L.y, scale: L.s }, { x: S0.x, y: S0.y, scale: S0.s, duration: 0.02, ease: 'steps(1)' }, 'in+=9.88');
+  t.fromTo('#wd', { x: S0.x, y: S0.y, scale: S0.s }, { x: S.x, y: S.y, scale: S.s, duration: 1.00 }, 'in+=9.90');
+
+  t.fromTo('#mex', { autoAlpha: 0, scale: 1.05 }, { autoAlpha: 1, scale: 1, duration: 0.52, ease: 'power2.out' }, 'in+=11.30');
+  t.fromTo('#mex', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.40, ease: 'power1.in' }, 'in+=12.20');
+  t.fromTo('#mpr', { autoAlpha: 0, scale: 1.03 }, { autoAlpha: 1, scale: 1, duration: 0.52, ease: 'power2.out' }, 'in+=12.50');
+  t.fromTo('#mpr', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.45, ease: 'power1.in' }, 'in+=13.40');
+
+  /* And across to where the plan puts the work: WATCH and QUIZ, against the
+     concepts still to learn. */
+  t.fromTo('#wd', { x: S.x, y: S.y, scale: S.s }, { x: L.x, y: L.y, scale: L.s, duration: 1.00 }, 'in+=13.60');
+
+  /* The seam. The stage leaves upward and exams.html arrives on the same
+     current, so the two beats are one move rather than a cut and a restart. */
+  t.fromTo('#stage', { y: 0 }, { y: -1080, duration: 0.50, ease: 'power2.inOut' }, 'in+=16.60');
+</script>
+</template>
+
+<template data-beat="exams">
+<style>
+  /* The stage arrives from below, over the outgoing plan beat, so the two are
+     one move on one current rather than a cut and a restart. */
+  #stage { position: absolute; inset: 0; overflow: hidden; background: var(--navy); transform: translateY(1080px) }
+  /* #stage is DECLARED to overflow: the seam is a push, so for half a
+     second this beat is a frame-height outside its parent on purpose. */
+
+  /* The practice-exam screen, cropped at the product's own viewport to the
+     block above the domain table, that table is recorded fixture data from
+     the other vertical in the lab and does not describe this course, so it is
+     out of frame rather than on screen and wrong. The crop's edges dissolve
+     instead of cutting, which is what stops a detail reading as a card. */
+  #we { width: 1400px; height: 260px; transform-origin: 0 0;
+        transform: translate(8px, 343px) scale(1.36);
+        -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 7%, #000 88%, transparent 100%);
+        mask-image: linear-gradient(to bottom, transparent 0, #000 7%, #000 88%, transparent 100%) }
+  #exam { left: 0; top: 0; width: 1400px; height: 260px; background-image: var(--img-exam) }
+  #bar { position: absolute; left: 226px; top: 78px; width: 6px; height: 170px;
+         background: #d40040; transform-origin: 50% 0%; transform: scaleY(0) }
+</style>
+  <div id="stage" class="clip" data-layout-allow-overflow data-start="0" data-duration="5.9" data-track-index="1">
+    <div id="we" data-layout-allow-overflow>
+      <div id="exam" class="shot" role="img" aria-label="Fundamentals of Real Estate Practice Exam: this practice exam covers 34 questions in 1 hour and simulates the time constraints you will experience on the FRE exam"></div>
+      <div id="bar"></div>
+    </div>
+  </div>
+<script>
+  /* Film 39.6: arrive, then read. X0 lands the whole card; X1 takes the line
+     that states what the exam is; X2 is a creep so the last 2.3s of the hold
+     are not a frozen still under live narration. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+
+  var X0 = { s: 1.36, x: 8, y: 343 };
+  var X1 = { s: 1.52, x: 0, y: 322 };
+  var X2 = { s: 1.545, x: -15.5, y: 318.4 };
+
+  t.fromTo('#stage', { y: 1080 }, { y: 0, duration: 0.50, ease: 'power2.inOut' }, 'in');
+  t.fromTo('#we', { x: X0.x, y: X0.y, scale: X0.s }, { x: X1.x, y: X1.y, scale: X1.s, duration: 1.40 }, 'in+=1.00');
+  t.fromTo('#bar', { scaleY: 0 }, { scaleY: 1, duration: 0.70, ease: 'power3.inOut' }, 'in+=1.90');
+  t.fromTo('#we', { x: X1.x, y: X1.y, scale: X1.s }, { x: X2.x, y: X2.y, scale: X2.s, duration: 2.60, ease: 'none' }, 'in+=2.60');
+
+  /* The seam out. riley.html arrives on the same upward current. */
+  t.fromTo('#stage', { y: 0 }, { y: -1080, duration: 0.50, ease: 'power2.inOut' }, 'in+=5.40');
+</script>
+</template>
+
+<template data-beat="riley">
+<style>
+  #stage { position: absolute; inset: 0; overflow: hidden; background: var(--navy); transform: translateY(1080px) }
+  /* #stage is DECLARED to overflow: the seam is a push, so for half a
+     second this beat is a frame-height outside its parent on purpose. */
+
+  /* Editorial, and deliberately not a product window. The approved
+     deployment's study assistant is a real feature and it is named Riley
+     here, but the lab build carries no Riley interface to capture, so this
+     beat states the exchange in the film's own voice rather than drawing an
+     interface that does not exist. Nothing here imitates a chat surface. */
+  #rule { position: absolute; left: 200px; top: 300px; width: 6px; height: 84px;
+          background: var(--brand); transform-origin: 50% 0%; transform: scaleY(0) }
+  #lbl { position: absolute; left: 236px; top: 302px; opacity: 0 }
+  #q { position: absolute; left: 236px; top: 356px; width: 1520px; font-size: 46px;
+       color: rgba(255,255,255,0.66); opacity: 0 }
+  #div { position: absolute; left: 236px; top: 460px; width: 1400px; height: 1px;
+         background: rgba(255,255,255,0.20); transform-origin: 0% 50%; transform: scaleX(0) }
+  .a { position: absolute; left: 236px; width: 1480px; font-size: 36px; opacity: 0 }
+  #a1 { top: 506px } #a2 { top: 572px } #a3 { top: 638px }
+</style>
+  <div id="stage" class="clip" data-layout-allow-overflow data-start="0" data-duration="7.1" data-track-index="1">
+    <div id="rule"></div>
+    <div id="lbl" class="lbl">Riley &#183; 24/7 study assistant</div>
+    <div id="q" class="dsp">&#8220;Why is the land titles record the authority on a boundary?&#8221;</div>
+    <div id="div"></div>
+    <div id="a1" class="a bdy">Because the registered survey attached to the title is what defines the parcel.</div>
+    <div id="a2" class="a bdy">A listing sheet or a municipal tax notice describes the property for other</div>
+    <div id="a3" class="a bdy">purposes; neither is authoritative on where the boundary runs.</div>
+  </div>
+<script>
+  /* Film 45.0: the same concept the practice question turned on, asked and
+     answered. The answer arrives a line at a time on one short rise, which is
+     how reading feels, and then the beat stops moving for 1.4s. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.out', immediateRender: false } });
+  t.addLabel('in', 0);
+
+  t.fromTo('#stage', { y: 1080 }, { y: 0, duration: 0.50, ease: 'power2.inOut' }, 'in');
+  t.fromTo('#rule', { scaleY: 0 }, { scaleY: 1, duration: 0.62, ease: 'power3.inOut' }, 'in+=0.80');
+  t.fromTo('#lbl', { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.62 }, 'in+=0.90');
+  t.fromTo('#q', { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 0.80 }, 'in+=1.30');
+  t.fromTo('#div', { scaleX: 0 }, { scaleX: 1, duration: 0.88, ease: 'power4.inOut' }, 'in+=1.90');
+  t.fromTo('#a1', { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.70 }, 'in+=2.50');
+  t.fromTo('#a2', { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.70 }, 'in+=3.30');
+  t.fromTo('#a3', { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.70 }, 'in+=4.10');
+
+  t.fromTo('#stage', { y: 0 }, { y: -1080, duration: 0.50, ease: 'power2.inOut' }, 'in+=6.60');
+</script>
+</template>
+
+<template data-beat="checks">
+<style>
+  #stage { position: absolute; inset: 0; overflow: hidden; background: var(--navy); transform: translateY(1080px) }
+  /* #stage is DECLARED to overflow: the seam is a push, so for half a
+     second this beat is a frame-height outside its parent on purpose. */
+
+  /* Part A, editorial. One concept on a time axis: three separated sessions,
+     the middle one drawn hollow and tagged, so what the axis states is
+     repetition WITHOUT assistance. No score, no bar and no terminal tick, nothing here can be read as an inevitable climb. */
+  #clb { position: absolute; left: 260px; top: 300px; opacity: 0 }
+  #ax { position: absolute; left: 260px; top: 519px; width: 1400px; height: 2px;
+        background: rgba(255,255,255,0.28); transform-origin: 0% 50%; transform: scaleX(0) }
+  .mrk { position: absolute; width: 34px; height: 34px; top: 503px; opacity: 0 }
+  .on { background: var(--brand) }
+  .off { border: 3px solid rgba(255,255,255,0.5) }
+  #m1 { left: 420px } #m2 { left: 900px } #m3 { left: 1440px }
+  .cap { position: absolute; width: 320px; top: 572px; font-size: 22px; line-height: 1.5;
+         font-family: var(--text); font-weight: 500; color: rgba(255,255,255,0.52); opacity: 0 }
+  #d1 { left: 420px } #d2 { left: 900px } #d3 { left: 1440px }
+  .un { color: #ffffff }
+
+  /* Part B and C, product. The same viewport, the same two framings the
+     rating beat used, so the film returns to a place the viewer knows. */
+  #wd { width: 1600px; height: 1000px; transform-origin: 0 0;
+        transform: translate(-1088.2px, -450.6px) scale(1.90); opacity: 0 }
+  #dash { left: 0; top: 0; width: 1600px; height: 1000px; background-image: var(--img-dash) }
+  #gc { left: 520px; top: 300px; width: 1080px; height: 700px; background-image: var(--img-gc) }
+  #clc { left: 520px; top: 300px; width: 1080px; height: 700px; background-image: var(--img-clc) }
+  #mk2 { position: absolute; left: 815px; top: 712px; width: 190px; height: 4px;
+         background: #d40040; transform-origin: 0% 50%; transform: scaleX(0) }
+</style>
+  <div id="stage" class="clip" data-layout-allow-overflow data-start="0" data-duration="15.1" data-track-index="1">
+    <!-- The card is first so it paints UNDER the axis it replaces: the axis
+         clears upward off a screen that is rising, and no frame has the day
+         captions hidden behind an opaque sibling. -->
+    <div id="wd" class="pane" data-layout-allow-overflow>
+      <div id="dash" class="shot" role="img" aria-label="ReadyEngine dashboard, Concept Mastery"></div>
+      <div id="gc" class="shot hid" role="img" aria-label="Concept Mastery after further practice: five concepts have moved from Basic to Intermediate"></div>
+      <div id="clc" class="shot hid" role="img" aria-label="Concept Mastery breakdown after further practice: Concepts To Learn now begins with Client and Property Info"></div>
+      <div id="mk2"></div>
+    </div>
+
+    <div id="clb" class="lbl">One concept &#183; Scope &amp; Responsibilities</div>
+    <div id="ax"></div>
+    <div id="m1" class="mrk on"></div>
+    <div id="m2" class="mrk off"></div>
+    <div id="m3" class="mrk on"></div>
+    <div id="d1" class="cap"><span class="un">Day 1</span><br>answered unaided</div>
+    <div id="d2" class="cap">Day 6<br>answered with help</div>
+    <div id="d3" class="cap"><span class="un">Day 15</span><br>answered unaided</div>
+  </div>
+<script>
+  /* Film 51.6. Part A states the rule the product applies; part B shows the
+     product applying it. The grid cross-cut is a DISSOLVE and not a step,
+     because unlike a page change it is time passing between two real states
+     of the same screen, the only motion over it is the dissolve itself. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.out', immediateRender: false } });
+  t.addLabel('in', 0);
+
+  var G = { s: 1.90, x: -1088.2, y: -600.6 };
+  var G2 = { s: 1.925, x: -1106.2, y: -612.4 };
+  var L = { s: 1.82, x: -966.8, y: -712.7 };
+
+  t.fromTo('#stage', { y: 1080 }, { y: 0, duration: 0.50, ease: 'power2.inOut' }, 'in');
+  t.fromTo('#clb', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.62 }, 'in+=0.70');
+  t.fromTo('#ax', { scaleX: 0 }, { scaleX: 1, duration: 0.88, ease: 'power4.inOut' }, 'in+=0.90');
+  t.fromTo('#m1', { autoAlpha: 0, scale: 0.7 }, { autoAlpha: 1, scale: 1, duration: 0.44 }, 'in+=1.30');
+  t.fromTo('#d1', { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 0.52 }, 'in+=1.45');
+  t.fromTo('#m2', { autoAlpha: 0, scale: 0.7 }, { autoAlpha: 1, scale: 1, duration: 0.44 }, 'in+=2.10');
+  t.fromTo('#d2', { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 0.52 }, 'in+=2.25');
+  t.fromTo('#m3', { autoAlpha: 0, scale: 0.7 }, { autoAlpha: 1, scale: 1, duration: 0.44 }, 'in+=2.90');
+  t.fromTo('#d3', { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 0.52 }, 'in+=3.05');
+
+  /* The axis hands over to the screen it describes. */
+  t.fromTo('#clb', { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -22, duration: 0.60, ease: 'power2.in' }, 'in+=5.40');
+  t.fromTo('#ax', { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -22, duration: 0.60, ease: 'power2.in', immediateRender: true }, 'in+=5.44');
+  t.fromTo('.mrk', { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -22, duration: 0.60, stagger: 0.05, ease: 'power2.in' }, 'in+=5.44');
+  t.fromTo('.cap', { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -22, duration: 0.60, stagger: 0.05, ease: 'power2.in' }, 'in+=5.44');
+  t.fromTo('#wd', { autoAlpha: 0, x: G.x, y: G.y + 150, scale: G.s }, { autoAlpha: 1, x: G.x, y: G.y, scale: G.s, duration: 1.40, ease: 'power3.out' }, 'in+=5.70');
+
+  /* Five concepts move from Basic to Intermediate. Both frames are states the
+     product actually produced; the film only holds the camera still. */
+  t.fromTo('#gc', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.40, ease: 'power1.inOut' }, 'in+=7.30');
+  t.fromTo('#wd', { x: G.x, y: G.y, scale: G.s }, { x: G2.x, y: G2.y, scale: G2.s, duration: 2.60, ease: 'none' }, 'in+=7.70');
+
+  /* And the plan behind it is a different plan: the concepts still to learn
+     are not the ones the film started on. */
+  t.fromTo('#clc', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'steps(1)' }, 'in+=10.70');
+  t.fromTo('#wd', { x: G2.x, y: G2.y, scale: G2.s }, { x: L.x, y: L.y, scale: L.s, duration: 1.10, ease: 'power2.inOut' }, 'in+=10.70');
+  t.fromTo('#mk2', { scaleX: 0 }, { scaleX: 1, duration: 0.62, ease: 'power4.inOut' }, 'in+=12.00');
+
+  t.fromTo('#stage', { y: 0 }, { y: -1080, duration: 0.50, ease: 'power2.inOut' }, 'in+=14.60');
+</script>
+</template>
+
+<template data-beat="value">
+<style>
+  #stage { position: absolute; inset: 0; overflow: hidden; background: var(--navy); transform: translateY(1080px) }
+  /* #stage is DECLARED to overflow: the seam is a push, so for half a
+     second this beat is a frame-height outside its parent on purpose. */
+
+  /* Editorial, and deliberately not an interface. The approved deployment has
+     no organizational dashboard, so this beat draws the SHAPE of the evidence the same one-to-five scale the film has been reading for one learner,
+     across a cohort, and never a screen that does not exist. Fictional
+     demo data throughout. */
+  #vlbl { position: absolute; left: 300px; top: 296px; opacity: 0 }
+  #base { position: absolute; left: 300px; top: 700px; width: 1320px; height: 2px;
+          background: rgba(255,255,255,0.28); transform-origin: 0% 50%; transform: scaleX(0) }
+  /* One column is one element: an 18px mark on a 26px repeat, so twenty-eight
+     learners cost five nodes. */
+  .col { position: absolute; width: 22px; transform-origin: 50% 100%; transform: scaleY(0);
+         background: repeating-linear-gradient(to bottom, rgba(255,255,255,0.82) 0 22px, rgba(255,255,255,0) 22px 32px) }
+  .hot { background: repeating-linear-gradient(to bottom, #ff3371 0 22px, rgba(255,255,255,0) 22px 32px);
+         transform: scaleY(1); opacity: 0 }
+  #c1, #o1 { left: 449px; top: 510px; height: 182px }
+  #c2, #o2 { left: 689px; top: 414px; height: 278px }
+  #c3 { left: 929px; top: 446px; height: 246px }
+  #c4 { left: 1169px; top: 574px; height: 118px }
+  #c5 { left: 1409px; top: 670px; height: 22px }
+
+  #nums { position: absolute; left: 340px; top: 726px; width: 1200px; display: flex; opacity: 0 }
+  #nums span { width: 240px; text-align: center; font-family: var(--display); font-weight: 700;
+                font-size: 34px; color: rgba(255,255,255,0.55) }
+  #sub { position: absolute; left: 340px; top: 784px; width: 1200px; text-align: center; opacity: 0 }
+  #brk { position: absolute; left: 390px; top: 708px; width: 380px; height: 4px; background: var(--brand);
+         transform-origin: 50% 50%; transform: scaleX(0) }
+  #ring { position: absolute; left: 685px; top: 410px; width: 24px; height: 24px;
+          border: 3px solid #ffffff; border-radius: 2px; opacity: 0 }
+  #one { position: absolute; left: 620px; top: 356px; width: 160px; text-align: center; opacity: 0 }
+</style>
+  <div id="stage" class="clip" data-layout-allow-overflow data-start="0" data-duration="8.8" data-track-index="1">
+    <div id="vlbl" class="lbl">ReadyRating across a cohort</div>
+    <div id="base"></div>
+    <div id="c1" class="col"></div>
+    <div id="c2" class="col"></div>
+    <div id="c3" class="col"></div>
+    <div id="c4" class="col"></div>
+    <div id="c5" class="col"></div>
+    <div id="o1" class="col hot"></div>
+    <div id="o2" class="col hot"></div>
+    <div id="brk"></div>
+    <div id="nums"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
+    <div id="sub" class="mic">28 learners &#183; Fundamentals of Real Estate</div>
+    <div id="ring"></div>
+    <div id="one" class="mic">one learner</div>
+  </div>
+<script>
+  /* Film 66.2: the scale the film opened on, now read. The columns grow from
+     the baseline; only then do the two lowest take the brand colour and a
+     bracket, which is the whole organizational claim, where support is
+     needed, stated once and without a number attached to it. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.out', immediateRender: false } });
+  t.addLabel('in', 0);
+
+  t.fromTo('#stage', { y: 1080 }, { y: 0, duration: 0.50, ease: 'power2.inOut' }, 'in');
+  t.fromTo('#vlbl', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.62 }, 'in+=0.60');
+  t.fromTo('#base', { scaleX: 0 }, { scaleX: 1, duration: 0.88, ease: 'power4.inOut' }, 'in+=0.70');
+  t.fromTo('#c1', { scaleY: 0 }, { scaleY: 1, duration: 0.80, ease: 'power3.out' }, 'in+=1.00');
+  t.fromTo('#c2', { scaleY: 0 }, { scaleY: 1, duration: 0.80, ease: 'power3.out' }, 'in+=1.11');
+  t.fromTo('#c3', { scaleY: 0 }, { scaleY: 1, duration: 0.80, ease: 'power3.out' }, 'in+=1.22');
+  t.fromTo('#c4', { scaleY: 0 }, { scaleY: 1, duration: 0.80, ease: 'power3.out' }, 'in+=1.33');
+  t.fromTo('#c5', { scaleY: 0 }, { scaleY: 1, duration: 0.80, ease: 'power3.out' }, 'in+=1.44');
+  t.fromTo('#nums', { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.62 }, 'in+=1.40');
+  t.fromTo('#sub', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.62 }, 'in+=1.80');
+
+  t.fromTo('#o1', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.62 }, 'in+=3.20');
+  t.fromTo('#o2', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.62 }, 'in+=3.34');
+  t.fromTo('#brk', { scaleX: 0 }, { scaleX: 1, duration: 0.70, ease: 'power3.inOut' }, 'in+=3.80');
+
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.6 }, { autoAlpha: 1, scale: 1, duration: 0.62 }, 'in+=5.20');
+  t.fromTo('#one', { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 0.62 }, 'in+=5.40');
+
+  /* Out BEFORE the end card, not under it: the field is clear by film 74.5
+     and the wordmark starts rising at 74.6, so the two never share a frame. */
+  /* Split, because immediateRender writes the from-state at CONSTRUCTION:
+     with y in the same tween it stamped y = 0 on a stage the markup holds
+     a frame-height below, and the beat covered the one it pushes over for
+     the whole of its first frame. Only autoAlpha needs the flag, y is
+     already established by the entrance, so a backward seek restores it. */
+  t.fromTo('#stage', { autoAlpha: 1 }, { autoAlpha: 0, duration: 1.10, ease: 'power2.in', immediateRender: true }, 'in+=7.20');
+  t.fromTo('#stage', { y: 0 }, { y: -70, duration: 1.10, ease: 'power2.in' }, 'in+=7.20');
+</script>
+</template>
+
+<template data-beat="note">
+<style>
+  #stage { position: absolute; inset: 0 }
+
+  /* The editorial callouts, and the only place they are written. One at a
+     time, never a restatement of the narration underneath, and always on
+     their own opaque plate so a callout is legible over a white product
+     screen without tinting the screen itself. */
+  .n { position: absolute; left: 112px; top: 104px; padding: 24px 40px 28px 32px;
+       background: rgba(5,25,45,0.94); border-left: 6px solid var(--brand); opacity: 0 }
+  .n .k { display: block; margin-bottom: 12px }
+  .n .v { display: block; font-family: var(--display); font-weight: 700; letter-spacing: -0.018em;
+          font-size: 40px; color: #ffffff }
+</style>
+  <div id="stage" class="clip" data-start="0" data-duration="75" data-track-index="1">
+    <div id="n1" class="n"><span class="k lbl">ReadyRating&#8482; &#183; 1&#8211;5</span><span class="v">Based on demonstrated understanding.</span></div>
+    <div id="n2" class="n"><span class="v">A plan built around each learner.</span></div>
+    <div id="n3" class="n"><span class="v">Practice aligned to exam content.</span></div>
+    <div id="n4" class="n"><span class="v">Understanding checked over time.</span></div>
+    <div id="n5" class="n"><span class="v">Evidence to guide support.</span></div>
+  </div>
+<script>
+  /* Times are film times against a label at zero: this layer runs from 0, so
+     every offset below can be read straight against STORYBOARD.md. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.out', immediateRender: false } });
+  t.addLabel('reel', 0);
+
+  t.fromTo('#n1', { autoAlpha: 0, x: -16 }, { autoAlpha: 1, x: 0, duration: 0.62 }, 'reel+=12.2');
+  t.fromTo('#n1', { autoAlpha: 1, x: 0 }, { autoAlpha: 0, x: -16, duration: 0.50, ease: 'power2.in' }, 'reel+=18.6');
+  t.fromTo('#n2', { autoAlpha: 0, x: -16 }, { autoAlpha: 1, x: 0, duration: 0.62 }, 'reel+=33.4');
+  t.fromTo('#n2', { autoAlpha: 1, x: 0 }, { autoAlpha: 0, x: -16, duration: 0.50, ease: 'power2.in' }, 'reel+=39.3');
+  t.fromTo('#n3', { autoAlpha: 0, x: -16 }, { autoAlpha: 1, x: 0, duration: 0.62 }, 'reel+=41.0');
+  t.fromTo('#n3', { autoAlpha: 1, x: 0 }, { autoAlpha: 0, x: -16, duration: 0.50, ease: 'power2.in' }, 'reel+=44.8');
+  t.fromTo('#n4', { autoAlpha: 0, x: -16 }, { autoAlpha: 1, x: 0, duration: 0.62 }, 'reel+=53.2');
+  t.fromTo('#n4', { autoAlpha: 1, x: 0 }, { autoAlpha: 0, x: -16, duration: 0.50, ease: 'power2.in' }, 'reel+=58.0');
+  t.fromTo('#n5', { autoAlpha: 0, x: -16 }, { autoAlpha: 1, x: 0, duration: 0.62 }, 'reel+=68.2');
+  t.fromTo('#n5', { autoAlpha: 1, x: 0 }, { autoAlpha: 0, x: -16, duration: 0.50, ease: 'power2.in' }, 'reel+=73.9');
+</script>
+</template>
+
+<template data-beat="cap">
+<style>
+  #stage { position: absolute; inset: 0 }
+
+  /* The narration band. The web build ships silent (docs/AUDIO.md), so the
+     captions are the read: every word below is page 1 of
+     WKT_ReadyEngine_Final_Revised_Script_20260908_v4.pdf, verbatim and in
+     order, and vo.json and captions.vtt beside this file are the same table
+     for a voiceover pass and an external player. */
+  #scrim { position: absolute; left: 0; top: 836px; width: 1920px; height: 244px;
+           background: linear-gradient(to bottom, rgba(5,25,45,0) 0%, rgba(5,25,45,0.86) 44%, rgba(5,25,45,1) 66%) }
+  .c { position: absolute; left: 414px; width: 1092px; bottom: 74px; margin: 0;
+       text-align: center; font-family: var(--text); font-weight: 400; font-size: 29px;
+       line-height: 1.38; color: #eaf0f1; opacity: 0 }
+</style>
+  <div id="stage" class="clip" data-start="0" data-duration="88" data-track-index="1">
+    <div id="scrim"></div>
+    <p id="k1" class="c">Know where your learners stand before exam day.</p>
+    <p id="k2" class="c">ReadyEngine is an online platform that personalizes exam preparation<br>and makes each learner&#8217;s readiness visible.</p>
+    <p id="k3" class="c">ReadyRating shows readiness on a scale of one to five, based on each learner&#8217;s<br>demonstrated understanding of the concepts their exam requires.</p>
+    <p id="k4" class="c">The breakdown shows which concepts need more practice.</p>
+    <p id="k5" class="c">Here&#8217;s how it works.</p>
+    <p id="k6" class="c">As learners answer practice questions,<br>ReadyEngine identifies where they need more support.</p>
+    <p id="k7" class="c">That shapes a study plan around their needs and exam date,<br>with lessons and practice focused on what to work on next.</p>
+    <p id="k8" class="c">Practice exams are aligned to the concepts covered on the exam.</p>
+    <p id="k9" class="c">Learners can ask questions and get explanations<br>through Riley, their 24/7 study assistant.</p>
+    <p id="k10" class="c">ReadyEngine keeps checking. It looks for understanding<br>demonstrated more than once, without help.</p>
+    <p id="k11" class="c">As learners practise, their study plan and ReadyRating update.</p>
+    <p id="k12" class="c">Concepts that need more attention return to the plan.</p>
+    <p id="k13" class="c">Help learners focus their preparation, and give your team a clearer view<br>of where support is needed before exam day.</p>
+    <p id="k14" class="c">ReadyEngine. Know when you&#8217;re ready.</p>
+    <p id="k15" class="c">Powered by We Know Training.</p>
+    <p id="k16" class="c">Talk to WKT about ReadyEngine for your program.</p>
+  </div>
+<script>
+  /* One cue per line, in and out the same shape, so no two cues can ever be
+     on screen together: each out lands before the next in. Times are film
+     times against a label at zero, the law wants every position stated as a
+     label expression, and this layer starts with the film. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power1.out', immediateRender: false } });
+  t.addLabel('reel', 0);
+
+  t.fromTo('#k1', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=0.80');
+  t.fromTo('#k1', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=4.20');
+  t.fromTo('#k2', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=4.60');
+  t.fromTo('#k2', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=10.30');
+  t.fromTo('#k3', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=10.80');
+  t.fromTo('#k3', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=19.10');
+  t.fromTo('#k4', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=19.45');
+  t.fromTo('#k4', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=23.00');
+  t.fromTo('#k5', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=23.50');
+  t.fromTo('#k5', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=25.10');
+  t.fromTo('#k6', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=25.75');
+  t.fromTo('#k6', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=30.75');
+  t.fromTo('#k7', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=31.40');
+  t.fromTo('#k7', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=39.30');
+  t.fromTo('#k8', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=40.20');
+  t.fromTo('#k8', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=44.70');
+  t.fromTo('#k9', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=45.60');
+  t.fromTo('#k9', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=51.30');
+  t.fromTo('#k10', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=52.20');
+  t.fromTo('#k10', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=57.80');
+  t.fromTo('#k11', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=58.25');
+  t.fromTo('#k11', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=62.00');
+  t.fromTo('#k12', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=62.35');
+  t.fromTo('#k12', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=65.85');
+  t.fromTo('#k13', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=66.80');
+  t.fromTo('#k13', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=74.70');
+  t.fromTo('#k14', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=75.80');
+  t.fromTo('#k14', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=78.60');
+  t.fromTo('#k15', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=78.90');
+  t.fromTo('#k15', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=81.20');
+  t.fromTo('#k16', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=81.60');
+  t.fromTo('#k16', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=85.20');
+</script>
+</template>

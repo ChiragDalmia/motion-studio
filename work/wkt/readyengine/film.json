@@ -1,0 +1,305 @@
+{
+  "brand": "wkt",
+  "title": "We Know Training ReadyEngine explainer",
+  "duration": 88,
+  "budget": {
+    "brotli": 575488,
+    "gzip": 608256
+  },
+  "beats": [
+    {
+      "id": "open",
+      "layer": "art",
+      "duration": 10.2,
+      "surface": "navy"
+    },
+    {
+      "id": "rating",
+      "layer": "art",
+      "duration": 12.8,
+      "surface": "navy"
+    },
+    {
+      "id": "plan",
+      "layer": "art",
+      "duration": 17.1,
+      "surface": "navy"
+    },
+    {
+      "id": "exams",
+      "layer": "art",
+      "start": 39.6,
+      "duration": 5.9,
+      "surface": "navy"
+    },
+    {
+      "id": "riley",
+      "layer": "art",
+      "start": 45,
+      "duration": 7.1,
+      "surface": "navy"
+    },
+    {
+      "id": "checks",
+      "layer": "art",
+      "start": 51.6,
+      "duration": 15.1,
+      "surface": "navy"
+    },
+    {
+      "id": "value",
+      "layer": "art",
+      "start": 66.2,
+      "duration": 8.8,
+      "surface": "navy"
+    },
+    {
+      "id": "note",
+      "layer": "type",
+      "start": 0,
+      "duration": 75,
+      "surface": "navy"
+    },
+    {
+      "id": "cap",
+      "layer": "ui",
+      "start": 0,
+      "duration": 88,
+      "surface": "navy"
+    }
+  ],
+  "labels": {
+    "end": 75
+  },
+  "images": [
+    "cla",
+    "clc",
+    "dash",
+    "exam",
+    "gc",
+    "q1",
+    "qbtn",
+    "qexp",
+    "qrow",
+    "rrx"
+  ],
+  "vo": [
+    {
+      "start": 0.9,
+      "end": 4.2,
+      "text": "Know where your learners stand before exam day."
+    },
+    {
+      "start": 4.7,
+      "end": 10.3,
+      "text": "ReadyEngine is an online platform that personalizes exam preparation and makes each learner\u2019s readiness visible."
+    },
+    {
+      "start": 10.9,
+      "end": 19.1,
+      "text": "ReadyRating shows readiness on a scale of one to five, based on each learner\u2019s demonstrated understanding of the concepts their exam requires."
+    },
+    {
+      "start": 19.55,
+      "end": 23,
+      "text": "The breakdown shows which concepts need more practice."
+    },
+    {
+      "start": 23.6,
+      "end": 25.1,
+      "text": "Here\u2019s how it works."
+    },
+    {
+      "start": 25.85,
+      "end": 30.75,
+      "text": "As learners answer practice questions, ReadyEngine identifies where they need more support."
+    },
+    {
+      "start": 31.5,
+      "end": 39.3,
+      "text": "That shapes a study plan around their needs and exam date, with lessons and practice focused on what to work on next."
+    },
+    {
+      "start": 40.3,
+      "end": 44.7,
+      "text": "Practice exams are aligned to the concepts covered on the exam."
+    },
+    {
+      "start": 45.7,
+      "end": 51.3,
+      "text": "Learners can ask questions and get explanations through Riley, their 24/7 study assistant."
+    },
+    {
+      "start": 52.3,
+      "end": 57.8,
+      "text": "ReadyEngine keeps checking. It looks for understanding demonstrated more than once, without help."
+    },
+    {
+      "start": 58.35,
+      "end": 62,
+      "text": "As learners practise, their study plan and ReadyRating update."
+    },
+    {
+      "start": 62.45,
+      "end": 65.85,
+      "text": "Concepts that need more attention return to the plan."
+    },
+    {
+      "start": 66.9,
+      "end": 74.7,
+      "text": "Help learners focus their preparation, and give your team a clearer view of where support is needed before exam day."
+    },
+    {
+      "start": 75.9,
+      "end": 78.6,
+      "text": "ReadyEngine. Know when you\u2019re ready."
+    },
+    {
+      "start": 79,
+      "end": 81.2,
+      "text": "Powered by We Know Training."
+    },
+    {
+      "start": 81.7,
+      "end": 85.1,
+      "text": "Talk to WKT about ReadyEngine for your program."
+    }
+  ],
+  "motion": {
+    "assertions": [
+      {
+        "kind": "appearsBy",
+        "selector": "#h1",
+        "bySec": 2.2
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#re",
+        "bySec": 5.8
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#dash",
+        "bySec": 8.2
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#rrx",
+        "bySec": 13.4
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#cla",
+        "bySec": 20.2
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#qexp",
+        "bySec": 29
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#exam",
+        "bySec": 41
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#a3",
+        "bySec": 50.2
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#gc",
+        "bySec": 60.2
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#clc",
+        "bySec": 63.4
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#c2",
+        "bySec": 68.4
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#e-name",
+        "bySec": 76.2
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#e-lock",
+        "bySec": 80.4
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#e-url",
+        "bySec": 83.4
+      },
+      {
+        "kind": "before",
+        "a": "#h1",
+        "b": "#re"
+      },
+      {
+        "kind": "before",
+        "a": "#re",
+        "b": "#dash"
+      },
+      {
+        "kind": "before",
+        "a": "#rrx",
+        "b": "#cla"
+      },
+      {
+        "kind": "before",
+        "a": "#cla",
+        "b": "#qexp"
+      },
+      {
+        "kind": "before",
+        "a": "#gc",
+        "b": "#clc"
+      },
+      {
+        "kind": "before",
+        "a": "#e-name",
+        "b": "#e-lock"
+      },
+      {
+        "kind": "before",
+        "a": "#e-lock",
+        "b": "#e-url"
+      },
+      {
+        "kind": "staysInFrame",
+        "selector": "#e-name"
+      },
+      {
+        "kind": "staysInFrame",
+        "selector": "#e-line"
+      },
+      {
+        "kind": "staysInFrame",
+        "selector": "#e-lock"
+      },
+      {
+        "kind": "staysInFrame",
+        "selector": "#e-cta"
+      },
+      {
+        "kind": "staysInFrame",
+        "selector": "#e-url"
+      },
+      {
+        "kind": "staysInFrame",
+        "selector": "#mark"
+      },
+      {
+        "kind": "keepsMoving",
+        "maxStaticSec": 5.4
+      }
+    ]
+  }
+}
