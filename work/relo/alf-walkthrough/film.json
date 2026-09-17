@@ -1,0 +1,254 @@
+{
+  "brand": "relo",
+  "title": "RELO alf-walkthrough",
+  "duration": 51.5,
+  "budget": {
+    "brotli": 962560,
+    "gzip": 1228800
+  },
+  "beats": [
+    {
+      "id": "intro",
+      "layer": "art",
+      "duration": 2,
+      "surface": "default",
+      "scene": "sting"
+    },
+    {
+      "id": "desk",
+      "layer": "art",
+      "duration": 6,
+      "surface": "default"
+    },
+    {
+      "id": "dash",
+      "layer": "art",
+      "duration": 4.4,
+      "surface": "default"
+    },
+    {
+      "id": "lesson",
+      "layer": "art",
+      "duration": 6.2,
+      "surface": "default"
+    },
+    {
+      "id": "quiz",
+      "layer": "art",
+      "duration": 11.4,
+      "surface": "default"
+    },
+    {
+      "id": "rating",
+      "layer": "art",
+      "duration": 5,
+      "surface": "default"
+    },
+    {
+      "id": "portrait",
+      "layer": "art",
+      "start": 34.8,
+      "duration": 5.2,
+      "surface": "navy"
+    },
+    {
+      "id": "return",
+      "layer": "type",
+      "duration": 11.5,
+      "surface": "default"
+    },
+    {
+      "id": "copy",
+      "layer": "type",
+      "start": 2,
+      "duration": 49.5,
+      "surface": "default"
+    }
+  ],
+  "labels": {
+    "close": 43.5
+  },
+  "images": [
+    "angela",
+    "d07",
+    "h-continue",
+    "h-lessons",
+    "h-play",
+    "h-proceed",
+    "h-watch",
+    "opt1-hover",
+    "opt1-sel",
+    "opt1-sel-hover",
+    "p-bar",
+    "p-t0",
+    "p-t1",
+    "p-t2",
+    "p-t3",
+    "rr-down-hover",
+    "rr-open",
+    "rr-open-hover",
+    "s03",
+    "s05",
+    "submit-hover",
+    "submit-on",
+    "v01",
+    "v01-small",
+    "v06",
+    "v10",
+    "v11"
+  ],
+  "vo": [
+    {
+      "start": 2.35,
+      "end": 7.4,
+      "text": "Studying for your Alberta real estate exam? Wondering if you\u2019re ready?"
+    },
+    {
+      "start": 8.4,
+      "end": 12.2,
+      "text": "With Relo, your next study step is clear."
+    },
+    {
+      "start": 12.9,
+      "end": 17.6,
+      "text": "Watch the lesson that teaches it, right where the plan sends you."
+    },
+    {
+      "start": 19.1,
+      "end": 25,
+      "text": "Practise the concept, with explanations that help you understand why."
+    },
+    {
+      "start": 25.9,
+      "end": 29.3,
+      "text": "Finish the set and your plan moves with you."
+    },
+    {
+      "start": 30.4,
+      "end": 33.9,
+      "text": "ReadyRating helps you see where you stand."
+    },
+    {
+      "start": 35.2,
+      "end": 39.8,
+      "text": "And live Office Hours give you space to ask an industry expert."
+    },
+    {
+      "start": 40.35,
+      "end": 43.15,
+      "text": "Take your next step with Relo."
+    },
+    {
+      "start": 44.3,
+      "end": 49.1,
+      "text": "Start with both courses. Buy the Residential Real Estate Bundle."
+    }
+  ],
+  "motion": {
+    "assertions": [
+      {
+        "kind": "appearsBy",
+        "selector": "#relo-lockup-r",
+        "bySec": 0.8
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#relo-lockup-by",
+        "bySec": 1.4
+      },
+      {
+        "kind": "before",
+        "a": "#relo-lockup-r",
+        "b": "#relo-lockup-o"
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#dash #hP",
+        "bySec": 11.9
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#dash #s03",
+        "bySec": 12.2
+      },
+      {
+        "kind": "before",
+        "a": "#dash #hP",
+        "b": "#dash #s03"
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#quiz #oSH",
+        "bySec": 18
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#quiz #bOn",
+        "bySec": 18
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#quiz #bH",
+        "bySec": 18.8
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#quiz #s05",
+        "bySec": 19.1
+      },
+      {
+        "kind": "before",
+        "a": "#quiz #oSH",
+        "b": "#quiz #bH"
+      },
+      {
+        "kind": "before",
+        "a": "#quiz #bH",
+        "b": "#quiz #s05"
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#rating #rH",
+        "bySec": 24.6
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#rating #rO",
+        "bySec": 25.3
+      },
+      {
+        "kind": "before",
+        "a": "#rating #rH",
+        "b": "#rating #rO"
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#portrait #nm",
+        "bySec": 29.3
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#e-vig",
+        "bySec": 37.05
+      },
+      {
+        "kind": "appearsBy",
+        "selector": "#e-cta",
+        "bySec": 37.9
+      },
+      {
+        "kind": "before",
+        "a": "#e-title",
+        "b": "#e-cta"
+      },
+      {
+        "kind": "staysInFrame",
+        "selector": "#e-cta"
+      },
+      {
+        "kind": "staysInFrame",
+        "selector": "#e-title"
+      }
+    ]
+  }
+}

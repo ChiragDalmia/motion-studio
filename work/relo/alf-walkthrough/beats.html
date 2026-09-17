@@ -1,0 +1,964 @@
+<!-- work/relo/alf-walkthrough. Beat ids, starts, tracks and labels come from
+     film.json, so a retime is one number there and nothing here moves.
+     Every generated file is gitignored: npm run pre writes them. -->
+
+<template data-film>
+<style>
+  /* The runtime treats the root as a clip too and hides it at t = duration, so
+     the film's last frame -- the end frame, with the purchase CTA -- would be a
+     black stage the moment playback finishes. The brief needs that CTA on
+     screen after playback, so the root is pinned visible. Every other hide the
+     runtime does (a beat outside its window) is on the beat's host, not here. */
+  #root { visibility: visible !important }
+
+  /* #ui is immune to the camera and carries only the reduced-motion poster. The
+     end frame's CTA lives in #type, so #type takes pointer events only there. */
+  #ui { pointer-events: none }
+  #type { pointer-events: none }
+
+  /* THE END FRAME. A sub-composition is shown for start <= t < end, so the CTA
+     cannot live in a beat: it has to be on screen when playback stops at 45.0.
+     Main-timeline tweens hold their final state at t = duration, so everything
+     below does. Every id is e- prefixed so nothing here can be mistaken for a
+     beat's element. #end is the navy ground plus the offer; #returnhost -- the
+     return beat itself -- is a sibling AFTER it, so it is on top while the navy
+     rises behind it. */
+  #end { position: absolute; inset: 0 }
+  #e-lock { position: absolute; left: 120px; top: 88px; width: 300px }
+  #e-lock svg { display: block; width: 100%; height: auto }
+  #e-title { position: absolute; left: 116px; top: 236px; font-size: 84px; line-height: 1.05; color: var(--onGround) }
+  #e-reca { position: absolute; left: 118px; top: 352px; font-family: var(--text); font-weight: 500; font-size: 28px; color: var(--brand); margin: 0 }
+  /* THREE PURCHASE OPTIONS, all real links. The bundle is one lifted row with
+     the accent CTA; the two single courses are quiet rows under a hairline. */
+  #e-bundle { position: absolute; left: 820px; top: 392px; width: 1000px; height: 168px; border-radius: 18px; background: rgba(255,255,255,0.07); box-shadow: inset 3px 0 0 var(--brand); font-family: var(--text); color: var(--onGround) }
+  #e-bn { position: absolute; left: 36px; top: 30px; font-size: 32px; font-weight: 600; margin: 0 }
+  #e-bs { position: absolute; left: 36px; top: 84px; font-size: 23px; font-weight: 500; color: var(--brand); margin: 0 }
+  #e-cta { position: absolute; left: 662px; top: 44px; width: 300px; height: 80px; line-height: 80px; text-align: center; border-radius: 10px; background: var(--accent); color: var(--onAccent); font-family: var(--text); font-weight: 600; font-size: 28px; text-decoration: none; transform-origin: 50% 50%; pointer-events: auto }
+  #e-cta:focus-visible, .e-alt a:focus-visible { outline: 3px solid var(--brand); outline-offset: 4px }
+  .e-alt { position: absolute; left: 820px; width: 1000px; height: 84px; font-family: var(--text); color: var(--onGround); border-top: 1px solid rgba(255,255,255,0.16) }
+  #e-a1 { top: 596px } #e-a2 { top: 692px }
+  .e-alt .n { position: absolute; left: 36px; top: 24px; font-size: 26px; font-weight: 500; margin: 0 }
+  .e-alt a { position: absolute; left: 700px; top: 22px; font-size: 24px; font-weight: 600; color: var(--brand); text-decoration: none; border-bottom: 2px solid var(--brand); padding-bottom: 4px; pointer-events: auto }
+  #e-url { position: absolute; left: 820px; top: 828px; font-family: var(--text); font-weight: 500; font-size: 26px; letter-spacing: 0.02em; color: var(--onGround); margin: 0 }
+  /* The desk card IS the return beat, held to the end of the film rather than
+     copied into the host. The beat runs 33.5 -> 45; its own 3.5s camera push
+     holds its final pose after 37.0, so the card shrink is a transform on this
+     host element. No second copy of the artwork, and no cut to hide.
+
+     The runtime hides a clip outside its window by writing visibility:hidden
+     inline, and a clip's window is start <= t < end -- so at t = 45.0 exactly,
+     the last frame, this beat would be gone. !important outranks that inline
+     style, the same guard #root already uses above. Visibility is therefore no
+     longer the gate, so opacity is: it is 0 in the markup and the main timeline
+     turns it on at 33.5. Extending the beat past 45 instead would work too, and
+     is wrong -- it makes getDuration() 45.1 against an authored 45. */
+  #returnhost { left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; transform-origin: 0 0; box-shadow: 0 24px 60px rgba(0,0,0,0.28); visibility: visible !important; opacity: 0 }
+  .hid { opacity: 0; visibility: hidden }
+
+  /* Reduced motion: the film is replaced by one still -- product, offer and a
+     working CTA -- in #ui. Static CSS, no script, so the render (which never
+     asks for reduced motion) is unaffected and the timeline stays untouched. */
+  #poster { display: none; position: absolute; inset: 0; background: var(--navy); color: #ffffff; pointer-events: auto }
+  #poster .shot { position: absolute; left: 960px; top: 120px; width: 840px; height: 525px; background: var(--img-v01-small) 0 0 / 100% 100% no-repeat; border-radius: 8px; box-shadow: 0 24px 60px rgba(0,0,0,0.3) }
+  #poster h2 { position: absolute; left: 120px; top: 120px; width: 780px; font-size: 84px; line-height: 1.05; color: #ffffff }
+  #poster .sub { position: absolute; left: 120px; top: 420px; width: 780px; font-family: var(--text); font-weight: 500; font-size: 32px; line-height: 1.4; color: #ffffff; margin: 0 }
+  #poster a { position: absolute; left: 120px; top: 620px; padding: 0 44px; height: 76px; line-height: 76px; border-radius: 10px; background: var(--accent); color: var(--onAccent); font-family: var(--text); font-weight: 600; font-size: 30px; text-decoration: none }
+  #poster .url { position: absolute; left: 120px; top: 740px; font-family: var(--text); font-weight: 500; font-size: 26px; color: #ffffff; margin: 0 }
+  @media (prefers-reduced-motion: reduce) {
+    #art, #type { visibility: hidden }
+    #poster { display: block }
+  }
+</style>
+<script>
+  /* The intro's push, unchanged from brand-logo: 1.06 -> 1.0 over the sting,
+     down-left to up-right, WITH the mark's rising diagonal. It ends neutral at
+     2.0, and #cam is never touched again: every later reframe is a world
+     transform inside its own beat, so the editorial layer above never scales. */
+  tl.fromTo('#cam', camera(1.06, -0.02, 0.01), { scale: 1, xPercent: 0, yPercent: 0, duration: 2, ease: 'power1.out' }, 'intro');
+
+  /* THE END FRAME, film 43.5 -> 44.3. The return beat, still on screen and
+     holding its final pose -- the learner looking up at you -- moves left and
+     down into a 600px card while the navy rises behind it; lockup, title,
+     courses, offer and CTA arrive in that order and everything is still by 44.3.
+     Held to 51.5, and at 51.5, because these are main-timeline tweens at their
+     end state, the frame and its CTA stay. */
+  /* The beat's own gate: opacity, because its visibility is pinned (see above).
+     A switch, not a move -- the cut from the portrait at 40.0 is a cut -- so it
+     is 20 milliseconds and the curve on it cannot be seen. It has to FINISH on
+     the frame the beat starts, not start there: a tween renders its from-state
+     at its own start time, so gating exactly at 40.0 left t = 40.0 -- a frame
+     the render will ask for -- with the portrait already hidden by the runtime
+     and this still at zero, which is a white flash. It holds on to 51.5.
+     4 milliseconds, not 20: for the length of the switch the desk is partly
+     transparent OVER the portrait that is still on screen, and 20ms is a frame
+     at 50fps. At 4 it is under a frame at any rate a film is rendered at, so
+     every frame the render asks for is either all portrait or all desk. */
+  tl.fromTo('#returnhost', { opacity: 0 }, { opacity: 1, duration: 0.004, ease: 'power1.out', immediateRender: false }, 'return-=0.004');
+  /* The navy starts 0.15s early and takes 0.35s, so it is fully up by 43.7 while
+     the desk still covers all but a sliver of the frame. Fading it on the same
+     frame the shrink starts left the vacated edge showing the host's white
+     ground through a half-transparent navy -- a bright band chasing the card
+     down and to the right. Early is free: until 43.5 an opaque full-frame desk
+     is on top of it, so nothing of the navy can be seen arriving. */
+  tl.fromTo('#end', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.35, ease: 'power2.inOut', immediateRender: false }, 'close-=0.15');
+  /* power2.inOut over 0.7s, not power3 over 0.6: same reason as the dive into
+     the laptop -- power3's peak is twice as fast for the same distance and has
+     to shed all of it at the end, and on a 3.2x reduction that reads as the card
+     hitting a stop. Both ends are still: the beat's own push has finished at
+     43.5 and nothing moves after 44.2. */
+  tl.fromTo('#returnhost', { scale: 1, x: 0, y: 0, borderRadius: '0px' }, { scale: 0.3125, x: 120, y: 440, borderRadius: '64px', duration: 0.7, ease: 'power2.inOut', immediateRender: false }, 'close');
+  tl.fromTo('#e-lock', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.4, immediateRender: false }, 'close+=0.35');
+  tl.fromTo('#e-title', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.44, immediateRender: false }, 'close+=0.36');
+  tl.fromTo('#e-reca', { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 0.3, immediateRender: false }, 'close+=0.42');
+  tl.fromTo('#e-bundle', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.34, immediateRender: false }, 'close+=0.48');
+  tl.fromTo('#e-cta', { scale: 0.96 }, { scale: 1, duration: 0.3, ease: 'back.out(1.4)', immediateRender: false }, 'close+=0.56');
+  tl.fromTo('#e-a1', { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.3, immediateRender: false }, 'close+=0.6');
+  tl.fromTo('#e-a2', { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.3, immediateRender: false }, 'close+=0.66');
+  tl.fromTo('#e-url', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.25, immediateRender: false }, 'close+=0.72');
+
+  /* Both purchase links. The build's self-containment guard rejects any
+     absolute href in the markup because it cannot tell navigation from a
+     resource; a link fetches nothing until it is clicked, so the URL travels
+     as data-go and is put on each anchor here, once, at load. Same flow. */
+  var ctas = document.querySelectorAll('[data-go]');
+  for (var i = 0; i < ctas.length; i++) ctas[i].setAttribute('href', ctas[i].getAttribute('data-go'));
+</script>
+</template>
+
+<template data-layer="art">
+<!-- 0.2s early on purpose: the navy and the portrait rise OVER the open
+     ReadyRating card, so this is the one deliberate overlap in the film. -->
+</template>
+
+<template data-layer="type">
+<div id="end" class="s-navy hid">
+  <div id="e-lock" class="hid">
+    <!-- THE MARK CARRIES THE YELLOW SQUARE. --accent, the same as the intro's
+         lockup in compositions/intro.html, so the logo is one logo for the
+         whole film: cyan square, yellow square, and the triangle that flips
+         with the surface. This was var(--ground) once, which on the navy end
+         frame painted the square navy on navy -- the film then showed the
+         mark with its yellow square at 0:00 and without it at the close.
+         The product's own UI (the captures in compositions/img/) draws a
+         reduced two-shape mark; that is the app's chrome, NOT the brand
+         lockup, and it does not govern this. Confirmed by the brand owner.
+         Do not "restore" the knockout. -->
+    <svg class="cl-lockup" viewBox="-36 39 1972 833" role="img" aria-label="relo by WKT">
+    <g id="e-lockup-icon">
+    <rect x="44" y="348.5" width="229.5" height="229.5" fill="var(--brand)"/>
+    <rect x="273.5" y="119" width="229.5" height="229.5" fill="var(--accent)"/>
+    <polygon points="273.5,119 273.5,348.5 44,348.5" fill="var(--onGround)"/>
+    </g>
+    <g transform="translate(733,110)">
+    <g id="e-lockup-r"><path transform="translate(0,485) scale(0.1,-0.1)" fill="var(--onGround)" d="M1706 3444 c-100 -20 -190 -51 -289 -100 -114 -57 -202 -120 -304 -218 l-83 -79 0 182 0 181 -465 0 -465 0 0 -1625 0 -1625 465 0 464 0 3 847 3 848 23 79 c12 44 40 117 62 161 l39 82 71 76 c110 118 237 189 409 228 l86 20 163 6 162 6 0 473 0 474 -137 -1 c-76 0 -169 -7 -207 -15z"/></g>
+    <g id="e-lockup-e"><path transform="translate(0,485) scale(0.1,-0.1)" fill="var(--onGround)" d="M3875 3484 c-124 -12 -231 -28 -320 -49 -289 -69 -530 -193 -749 -389 -234 -209 -406 -494 -487 -809 -35 -138 -49 -254 -49 -430 l0 -167 16 -98 c29 -187 77 -339 153 -491 96 -191 199 -330 348 -471 192 -182 415 -315 658 -391 231 -72 403 -99 630 -99 325 0 602 61 882 195 194 93 378 222 516 362 l68 69 -128 110 c-70 61 -210 182 -311 269 l-184 158 -71 -70 c-81 -79 -131 -115 -232 -166 -143 -72 -283 -109 -465 -122 -89 -7 -211 5 -315 31 -90 23 -232 95 -307 158 -36 30 -89 83 -118 118 -46 57 -130 209 -145 266 l-6 22 1214 0 1214 0 7 61 c11 114 6 386 -9 491 -35 231 -108 444 -215 629 -124 212 -313 410 -522 546 -191 124 -461 223 -688 252 -94 12 -322 21 -385 15z m234 -805 c239 -38 432 -183 546 -409 23 -45 65 -153 65 -167 0 -1 -329 -3 -731 -3 l-731 0 7 33 c4 17 29 78 56 135 l50 103 77 81 c42 45 109 102 148 128 72 47 168 84 259 99 72 12 180 12 254 0z"/></g>
+    <g id="e-lockup-l"><path transform="translate(0,485) scale(0.1,-0.1)" fill="var(--onGround)" d="M6473 4753 l-223 -3 0 -2295 0 -2295 463 0 462 0 -3 2300 -2 2300 -238 -2 c-130 -2 -337 -4 -459 -5z"/></g>
+    <g id="e-lockup-o"><path transform="translate(0,485) scale(0.1,-0.1)" fill="var(--onGround)" d="M9270 3479 c-334 -38 -623 -150 -889 -346 -100 -74 -241 -216 -321 -325 -164 -221 -259 -449 -311 -751 l-19 -112 0 -155 0 -155 19 -110 c11 -60 29 -148 41 -194 23 -90 76 -234 118 -316 71 -141 192 -306 313 -427 232 -230 530 -388 865 -457 54 -12 165 -26 246 -33 l148 -12 147 12 c266 22 457 74 688 188 354 175 638 479 786 840 51 124 84 244 109 399 l20 120 0 150 0 150 -19 110 c-28 162 -48 239 -86 343 -61 162 -142 309 -243 436 -86 110 -239 256 -347 331 -231 162 -508 269 -798 310 -110 16 -345 18 -467 4z m426 -910 c39 -9 114 -39 165 -64 l94 -47 95 -97 95 -96 42 -85 c23 -47 52 -122 65 -165 l23 -80 0 -145 0 -145 -23 -78 c-24 -85 -74 -192 -120 -259 -41 -59 -146 -158 -212 -200 -75 -47 -190 -93 -275 -109 -92 -17 -251 -15 -350 5 l-79 16 -101 49 -102 50 -76 71 c-117 110 -189 230 -233 390 l-18 65 0 145 -1 145 23 80 c13 43 42 117 65 164 l42 85 73 78 c41 42 104 97 140 121 113 74 241 118 377 131 72 6 218 -6 291 -25z"/></g>
+    </g>
+    <g transform="translate(1304,656)">
+    <g id="e-lockup-by"><path transform="translate(0,145) scale(0.1,-0.1)" fill="var(--onGround)" d="M100 835 l0 -515 55 0 55 0 0 67 0 67 53 -51 c28 -28 66 -58 82 -66 17 -9 58 -20 92 -26 l60 -11 54 11 c113 24 206 99 257 207 l27 57 0 110 0 110 -32 67 c-35 75 -93 137 -157 168 -24 11 -71 25 -104 31 l-61 11 -51 -11 c-68 -15 -131 -52 -180 -108 l-40 -46 0 222 0 221 -55 0 -55 0 0 -515z m461 120 c52 -19 112 -74 142 -130 l20 -40 5 -81 4 -82 -16 -49 c-22 -66 -65 -116 -128 -147 l-52 -26 -60 0 -61 0 -50 24 c-62 29 -107 76 -136 141 l-23 50 0 70 0 70 23 50 c29 65 74 112 136 141 l50 24 51 0 c28 0 71 -7 95 -15z M2101 1303 c0 -5 75 -228 167 -498 l167 -490 95 0 95 0 110 322 c60 178 112 323 115 323 3 0 55 -145 115 -323 l110 -322 95 0 95 0 167 495 c92 272 167 496 168 498 0 1 -50 1 -112 0 l-112 -3 -100 -327 c-55 -181 -103 -328 -106 -328 -4 0 -55 149 -114 330 l-108 331 -96 -3 -96 -3 -111 -337 -110 -338 -104 340 -104 340 -114 0 c-62 0 -113 -3 -112 -7z M3740 815 l0 -495 105 0 105 0 0 153 0 153 60 59 61 60 7 -11 c4 -7 72 -102 152 -213 l145 -200 128 -1 128 0 -10 18 c-5 9 -100 139 -210 287 l-200 270 122 125 c67 69 158 162 202 208 l80 82 -131 0 -130 0 -199 -216 -200 -216 -3 216 -2 216 -105 0 -105 0 0 -495z M4650 1215 l0 -94 153 -3 152 -3 3 -397 2 -398 105 0 105 0 2 398 3 397 153 3 152 3 0 94 0 95 -415 0 -415 0 0 -95z M910 1045 c0 -3 74 -168 165 -366 l165 -361 -20 -37 c-10 -21 -36 -53 -56 -71 l-37 -32 -61 4 c-34 3 -69 8 -79 13 l-17 7 -16 -37 -15 -38 13 -8 c25 -17 84 -29 138 -29 l56 0 44 23 c26 13 59 42 80 69 l34 47 167 408 167 408 -51 3 c-27 2 -53 0 -57 -5 -5 -4 -58 -138 -120 -298 -61 -159 -114 -293 -118 -297 -4 -4 -66 129 -138 295 l-131 302 -57 3 c-31 2 -56 0 -56 -3z"/></g>
+    </g>
+    </svg>
+  </div>
+  <h2 id="e-title" class="hid">Residential Real Estate Bundle</h2>
+  <p id="e-reca" class="hid">Two RECA-recognized courses.</p>
+  <div id="e-bundle" class="hid"><p id="e-bn">The bundle &middot; both courses</p><p id="e-bs">Fundamentals + Practice</p>
+    <a id="e-cta" data-go="https://relo.ca/billing/buy/residential-real-estate-bundle/" target="_blank" rel="noopener">Buy the bundle</a></div>
+  <div id="e-a1" class="e-alt hid"><p class="n">Fundamentals of Real Estate</p><a data-go="https://relo.ca/billing/buy/fundamentals-of-real-estate/" target="_blank" rel="noopener">Buy course</a></div>
+  <div id="e-a2" class="e-alt hid"><p class="n">Practice of Residential Real Estate</p><a data-go="https://relo.ca/billing/buy/practice-of-residential-real-estate/" target="_blank" rel="noopener">Buy course</a></div>
+  <p id="e-url" class="hid">relo.ca</p>
+</div>
+<!-- The return beat is the end frame's card: it runs to 45 so the artwork it
+     already carries is the thing that shrinks, and the host holds no copy. -->
+<!-- The editorial layer runs to the end of the film, not to its last line at
+     37, so a timed clip reaches 45 and no slot reads as blank. It is last so
+     its lines stay above the desk they are set over. -->
+</template>
+
+<template data-layer="ui">
+<div id="poster">
+  <h2>Residential Real Estate Bundle</h2>
+  <p class="sub">Fundamentals of Real Estate<br>Practice of Residential Real Estate<br>Two RECA-recognized courses.</p>
+  <div class="shot" role="img" aria-label="RELO dashboard: Study Navigator recommends practice questions to develop mastery"></div>
+  <a id="poster-cta" class="poster-cta" data-go="https://relo.ca/billing/buy/residential-real-estate-bundle/" target="_blank" rel="noopener">Buy the bundle</a>
+  <p class="url">relo.ca</p>
+</div>
+</template>
+
+<template data-beat="desk">
+<style>
+  /* The default surface: the host paints var(--ground) and this beat paints its
+     own room inside the SVG, which is the relo.html artwork, unaltered. The
+     trace is one flat stack of colour layers, so tmp/seg.py recovers the objects
+     from it and tmp/build_scene.py stamps them here as <g> per object; nothing
+     is redrawn and paint order inside a group is the tracer's own. */
+  #root { overflow: hidden }
+  /* The world is the whole desk, scaled about its own top-left so the camera
+     maths below stays a plain affine map from world to frame. */
+  #stage { position: absolute; inset: 0; overflow: hidden }
+  #w { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0 }
+  /* The artwork is 1672x941, the frame 1920x1080: the same aspect to within half
+     a pixel, so `slice` fills the frame and crops 0.3px top and bottom. */
+  /* Pre-roll lives in the markup, not in the tweens: every tween here is
+     immediateRender:false, so a from-state that is not written down does not
+     exist until its tween starts. The scene's own opacity is the only fade in
+     the reveal -- see the script. */
+  #d-scene { position: absolute; left: 0; top: 0; display: block }
+  #d-title, #d-rule { opacity: 0 }
+
+  /* THE SCREEN. The lid carries the real product capture, as it does in every
+     beat of this film; the artwork's own traced dashboard is not stamped. The
+     aperture is a perspective quad -- measured off the artwork at art
+     (1071.1,386.5) (1531.1,386.5) (1493.6,731) (1028.4,704.3) -- and one skewX
+     lays the capture into it. The clip is that quad expressed BEFORE the skew
+     (clip-path is applied in the element's own space, then transformed) and
+     3px proud on every side, so the capture reaches under the bezel rather
+     than leaving a sliver of wall at the edge. The capture keeps its own 1.6
+     aspect and the lid's page grey fills the last sixth of the drawn screen,
+     which is deeper than the capture -- distorting the product to fit would be
+     worse. As the push flattens the skew to zero the clip flattens with it,
+     ending wider than the frame, and the capture lands 1920 wide with its
+     top-left on the frame's: the frame dash.html opens on, to the pixel. */
+  #d-lid { position: absolute; left: 1229.88px; top: 443.83px; width: 528.23px; height: 400px;
+           transform-origin: 0 0; transform: skewX(-6.923deg); background: #f4f6f9;
+           clip-path: polygon(-3px -3px, 531.2px -3px, 536.2px 398.6px, -7.8px 367.9px) }
+  /* The capture is a 1600x1000 box scaled down, not a small box with a stretched
+     background, because 3.6348181 * 0.3301435 = 1.2 -- the exact scale dash.html
+     holds its own 1600x1000 box at. Same box, same factor, same resampling, so
+     the cut at 8.0 does not change the sharpness of a single glyph. */
+  #d-shot { position: absolute; left: 0; top: 0; width: 1600px; height: 1000px;
+            transform-origin: 0 0; transform: scale(0.3301435);
+            background: var(--img-v01) 0 0 / 100% 100% no-repeat }
+  /* WHY THESE ARE PROMOTED. There is no playback: every frame is a fresh seek,
+     and this beat is one <svg> of 693 traced paths. A change to #w's transform
+     -- the push, then the dive -- or to any group's transform attribute
+     invalidates the whole scene, and Chrome re-rasterizes all 693 paths for the
+     frame. Measured on the shipped bytes: 124 ms per presented frame, 8 fps,
+     against 17 ms everywhere else in the film. will-change gives the scene and
+     each animated group its own composited layer, so the camera composites a
+     cached raster instead of re-rastering it, and a group's own move damages
+     only its own layer. Measured after: 17 ms, 59 fps, and every frame is
+     pixel-identical -- #d-lid and #d-shot are deliberately NOT promoted, so the
+     product capture keeps re-rastering at the true scale and the cut at 8.0
+     still does not change the sharpness of a glyph.
+     Not #d-rule and not the lids: their transforms pass through scale 0, and a
+     degenerate layer is not worth 16 paths and 1 path. */
+  #d-scene, #d-figure, #d-headg, #d-hand, #d-pen, #d-title,
+  #d-plant, #d-mug, #d-books, #d-cal, #d-laptop, #d-notebook,
+  #d-brow, #d-mouth, #d-gaze { will-change: transform }
+</style>
+  <div id="stage" class="clip" data-start="0" data-duration="6" data-track-index="1">
+  <div id="w" data-layout-allow-overflow>
+<!--include desk-scene-->
+    <div id="d-lid"><div id="d-shot" role="img" aria-label="RELO dashboard, day one"></div></div>
+  </div>
+  </div>
+<script>
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+
+  /* THE REVEAL, 0 -> 1.5, carried entirely by travel. Nothing fades: a trace
+     only draws what is visible, so the notebook does not exist under the arms
+     and the plant pot does not exist behind the mug -- fading one group would
+     show the hole it occupies in the group behind it. So the room is whole at
+     the cut (t = 2.0 must be a frame, not a dissolve out of the intro's white)
+     and six props settle down onto it in depth order, each exposing nothing
+     but the desk. The learner does not travel, for the reason above. */
+  var DOWN = { attr: { transform: 'translate(0 18)' } };
+  var SET = { attr: { transform: 'translate(0 0)' }, duration: 0.62, ease: 'power3.out' };
+  t.fromTo('#d-plant', DOWN, SET, 'in+=0.02');
+  t.fromTo('#d-mug', DOWN, SET, 'in+=0.09');
+  t.fromTo('#d-books', DOWN, SET, 'in+=0.15');
+  t.fromTo('#d-cal', DOWN, SET, 'in+=0.21');
+  t.fromTo('#d-laptop', DOWN, SET, 'in+=0.27');
+  t.fromTo('#d-notebook', DOWN, SET, 'in+=0.34');
+
+  /* The headline and its underline are in the artwork, so they are the scene's
+     own type and the camera scales them with it. The question rises; the rule
+     draws left to right, the translate cancelling the scale so its left end
+     stays pinned at x 90. */
+  t.fromTo('#d-title', { opacity: 0, attr: { transform: 'translate(0 22)' } }, { opacity: 1, attr: { transform: 'translate(0 0)' }, duration: 0.66, ease: 'power3.out' }, 'in+=0.70');
+  t.fromTo('#d-rule', { opacity: 0, attr: { transform: 'translate(90 0) scale(0 1)' } }, { opacity: 1, attr: { transform: 'translate(0 0) scale(1 1)' }, duration: 0.52, ease: 'power2.out' }, 'in+=1.02');
+
+  /* BREATH. The whole figure, scaled 0.22% about the hips at (700, 900): 1.6px
+     at the crown, 0.9px at the shoulders, 0.4px at the hands resting on the
+     page -- which is the right gradient, because a person breathing moves their
+     chest and not the hand they are writing with. Three half-cycles across the
+     beat, never a loop: repeat is a count. */
+  var REST = { attr: { transform: 'translate(700 900) scale(1 1) translate(-700 -900)' } };
+  var FILL = { attr: { transform: 'translate(700 900) scale(1 1.0022) translate(-700 -900)' }, duration: 1.9, ease: 'sine.inOut', yoyo: true, repeat: 2 };
+  t.fromTo('#d-figure', REST, FILL, 'in+=0.30');
+
+  /* THE WRITING. The hand and the pencil are two groups -- the tracer paints the
+     sweater's shadow between them -- so they take the SAME rotation about the
+     same wrist and stay locked. Four strokes, then the pencil rests. */
+  function pose(a) { return { attr: { transform: 'rotate(' + a + ' 355 700)' } }; }
+  function held(a, d) { return { attr: { transform: 'rotate(' + a + ' 355 700)' }, duration: d, ease: 'sine.inOut' }; }
+  t.fromTo('#d-hand', pose(0), held(1.15, 0.46), 'in+=1.45');
+  t.fromTo('#d-pen', pose(0), held(1.15, 0.46), 'in+=1.45');
+  t.fromTo('#d-hand', pose(1.15), held(0.12, 0.5), 'in+=1.95');
+  t.fromTo('#d-pen', pose(1.15), held(0.12, 0.5), 'in+=1.95');
+  t.fromTo('#d-hand', pose(0.12), held(1.3, 0.48), 'in+=2.52');
+  t.fromTo('#d-pen', pose(0.12), held(1.3, 0.48), 'in+=2.52');
+  t.fromTo('#d-hand', pose(1.3), held(0, 0.54), 'in+=3.06');
+  t.fromTo('#d-pen', pose(1.3), held(0, 0.54), 'in+=3.06');
+
+  /* THE EYES. #d-lidL and #d-lidR are the only geometry in this beat the tracer
+     did not draw -- an open eye has no lid behind it -- and each is the eye's own
+     opening in the upper-lid skin, scaled from the eye's top edge. A blink is
+     80ms shut and 80ms open, and there are two of them: one over the writing,
+     one on the look up, which is where a person blinks. */
+  function lid(id, y) {
+    var a = 'translate(0 ' + y + ') scale(1 ', b = ') translate(0 -' + y + ')';
+    return [id, { attr: { transform: a + '0' + b } }, { attr: { transform: a + '1' + b }, duration: 0.08, ease: 'sine.inOut', yoyo: true, repeat: 1 }];
+  }
+  var LL = lid('#d-lidL', 196), LR = lid('#d-lidR', 208);
+  t.fromTo(LL[0], LL[1], LL[2], 'in+=0.95');
+  t.fromTo(LR[0], LR[1], LR[2], 'in+=0.95');
+  t.fromTo(LL[0], LL[1], LL[2], 'in+=3.30');
+  t.fromTo(LR[0], LR[1], LR[2], 'in+=3.30');
+
+  /* THE GAZE. 1.05: down to the page being written on. 3.35: up at the screen --
+     the irises lead, the head follows and holds. #d-headg wraps the head, the
+     mouth, the irises and the lids, so the tilt carries all of them. Nothing
+     loops and nothing returns. */
+  t.fromTo('#d-gaze', { attr: { transform: 'translate(0 0)' } }, { attr: { transform: 'translate(-0.9 1.3)' }, duration: 0.5, ease: 'power2.inOut' }, 'in+=1.05');
+  t.fromTo('#d-gaze', { attr: { transform: 'translate(-0.9 1.3)' } }, { attr: { transform: 'translate(1.9 -1.1)' }, duration: 0.46, ease: 'power2.inOut' }, 'in+=3.35');
+  t.fromTo('#d-headg', { attr: { transform: 'rotate(0 706 425)' } }, { attr: { transform: 'rotate(1.35 706 425)' }, duration: 0.9, ease: 'power2.inOut' }, 'in+=3.42');
+
+  /* THE WORRY. "Am I ready?" is on the wall in front of him, so the face has to
+     mean it. Two groups carry it and both are the artwork's own. The near brow
+     rotates about a point under its own arch, so the outer tail drops and the
+     inner end lifts -- the oblique brow of concern, not the level one of a frown
+     -- and comes a pixel closer to the eye. The lips flatten: 3% narrower and 7%
+     shallower is enough to take out the smile the artwork is drawn with and
+     leave them pressed. It arrives with the question and deepens on the look up
+     at the screen, and it never resolves here, because the film answers it at
+     the other end (see return.html). Both sit inside #d-headg so the head's tilt
+     carries them, and both have the skin they were cut out of stamped behind
+     them -- #d-bfill and #d-mfill -- because, like the lips, the brow is a HOLE
+     in the face, and one that moves would show the wall through the gap. Only
+     the NEAR brow moves: the far one's body is drawn in the same contour as the
+     hair falling between the brows, and no box separates them. */
+  function brow(a, dx, dy) { return { attr: { transform: 'rotate(' + a + ' 706 178) translate(' + dx + ' ' + dy + ')' } }; }
+  function lips(sx, sy, dy) { return { attr: { transform: 'translate(723 292) scale(' + sx + ' ' + sy + ') translate(-723 -292) translate(0 ' + dy + ')' } }; }
+  function over(o, d) { o.duration = d; o.ease = 'power2.inOut'; return o; }
+  t.fromTo('#d-brow', brow(0, 0, 0), over(brow(-1.35, 0.85, 0.8), 0.8), 'in+=0.75');
+  t.fromTo('#d-mouth', lips(1, 1, 0), over(lips(0.982, 0.965, 0.6), 0.8), 'in+=0.85');
+  t.fromTo('#d-brow', brow(-1.35, 0.85, 0.8), over(brow(-2.3, 1.5, 1.4), 0.66), 'in+=3.30');
+  t.fromTo('#d-mouth', lips(0.982, 0.965, 0.6), over(lips(0.97, 0.93, 1.2), 0.66), 'in+=3.30');
+
+  /* The question has been asked; it clears before the camera enters the laptop. */
+  t.fromTo('#d-title', { opacity: 1 }, { opacity: 0, duration: 0.34, ease: 'power1.in' }, 'in+=4.06');
+  t.fromTo('#d-rule', { opacity: 1 }, { opacity: 0, duration: 0.34, ease: 'power1.in' }, 'in+=4.06');
+
+  /* CAMERA. A slow push, 1 -> 1.045 about (1100,520), under the whole think; its
+     end is the from-state of the move into the screen, so the two read as one
+     continuous move. Then the film's strongest move (film 6.5 -> 8.0): the world
+     scales by k = 1920 / 528.23 -- the aperture's own width -- and translates so
+     the capture's top-left lands on the frame's, resolving into the flat
+     1920x1200 product view dash.html continues from, while the lid's skew --
+     the drawn perspective the capture was laid into -- flattens on the same
+     ease. Nothing crossfades: the screen is the real product from frame one.
+
+     The dive is power2.inOut, not power3. Over 1.5s and 3.5x, power3's peak is
+     twice as fast and it has to shed all of it in the last third, and that is
+     the brake you feel at the cut; power2 covers the same distance in the same
+     time at half the peak, so the arrival is gentle. dash.html's reframe now
+     leaves on the next frame instead of holding for 0.6s, so the two are one
+     gesture with the joint at zero velocity rather than a dive, a freeze and a
+     restart. The lid's skew flattens on the SAME ease and duration as the world
+     scales, or the drawn perspective desyncs from the move undoing it. */
+  t.fromTo('#w', { scale: 1, x: 0, y: 0 }, { scale: 1.045, x: -49.5, y: -23.4, duration: 4.48, ease: 'sine.inOut' }, 'in');
+  t.fromTo('#w', { scale: 1.045, x: -49.5, y: -23.4 }, { scale: 3.634817, x: -4470.51, y: -1613.24, duration: 1.5, ease: 'power2.inOut' }, 'in+=4.5');
+  t.fromTo('#d-lid', { skewX: -6.923 }, { skewX: 0, duration: 1.5, ease: 'power2.inOut' }, 'in+=4.5');
+</script>
+</template>
+
+<template data-beat="dash">
+<style>
+  /* Default surface. The pane's own light grey is the product's, not ours; the
+     ground it sits on when it is not full-bleed is the host's white. */
+  #root { overflow: hidden }
+  /* #stage is the timed element and never leaves the frame. #w inside it is
+     the zoomed world and is DECLARED to overflow (data-layout-allow-overflow):
+     a camera that pushes into a screen renders the screen larger than the
+     frame on purpose, and the audit's opt-out is how that intent is stated. It is
+     capture space -- 1600x1000, the product's own viewport -- and the camera is
+     translate(x, y) scale(k) of it about its top-left, clipped by #stage. Every
+     coordinate in the script below is a capture coordinate straight from the
+     product. The landing frame F0 (1.2 at 0,0) is the markup's own transform:
+     it is the exact state desk.html's move ends in. */
+  #stage { position: absolute; inset: 0; overflow: hidden }
+  #w { position: absolute; left: 0; top: 0; width: 1600px; height: 1000px; overflow: hidden; transform-origin: 0 0; transform: translate(0px, 0px) scale(1.2); border-radius: 6px; box-shadow: 0 18px 50px rgba(5,16,71,0.14) }
+  .shot { position: absolute; background-repeat: no-repeat; background-size: 100% 100% }
+  .base { left: 0; top: 0; width: 1600px; height: 1000px }
+  .hid { opacity: 0; visibility: hidden }
+  #v01 { background-image: var(--img-v01) }
+  #v10 { background-image: var(--img-v10) }
+  /* The captured hover state of the one control this beat clicks, cropped from
+     the same 2x capture so it registers to the pixel. */
+  #hL { left: 0px; top: 100px; width: 56px; height: 44px; background-image: var(--img-h-lessons) }
+  /* The pointer: 44 frame px tall at this zoom, tip at (2,2) of its own box,
+     parked off-frame bottom until it is needed. */
+  #cur { position: absolute; left: 0; top: 0; width: 20px; height: 29px; transform-origin: 2px 2px; transform: translate(430px, 500px) scale(0.7585); filter: drop-shadow(0 2px 3px rgba(0,0,0,0.35)) }
+</style>
+  <div id="stage" class="clip" data-start="0" data-duration="4.4" data-track-index="1">
+    <div id="w" data-layout-allow-overflow>
+      <div id="v01" class="shot base" role="img" aria-label="RELO dashboard, day one: Study Navigator recommends practice questions to develop mastery, 20 to 30 minutes, 0 of 20 questions"></div>
+      <div id="hL" class="shot hid"></div>
+      <div id="v10" class="shot base hid" role="img" aria-label="Lessons: Professional Responsibilities, 5 concepts, 5 hours 26 minutes, 44 videos, with a Watch Lessons button"></div>
+      <svg id="cur" class="hid" viewBox="0 0 20 29" aria-hidden="true"><path d="M1.6 1.2 L1.6 24.3 L7.3 18.8 L11 27.4 L14.6 25.8 L11 17.4 L18.6 17 Z" fill="#111" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+<script>
+  /* Film 8.0: land flat on the day-one dashboard, exactly where desk.html left
+     it. 8.1 -> 9.4: reframe so the Study Navigator IS the frame -- the card
+     centred and 63% of the width, the sidebar down to its icon rail alone (the
+     product's own collapsed state, 57 capture px), and a white band above for
+     the editorial line. 10.2 the pointer comes in from off-frame bottom on a
+     curved path; 250ms dwell on the rail's Lessons icon with its real hover
+     state; click at 11.4; the lessons index replaces the dashboard in 120ms --
+     a page change, not a dissolve -- and the camera eases back to L1, the frame
+     lesson.html opens on. Initial states are all markup; nothing is set at 0. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+  var F0 = { scale: 1.2, x: 0, y: 0 }, F1 = { scale: 2.0, x: 189, y: 212 }, L1 = { scale: 1.35, x: 0, y: 200 };
+  /* The pointer is 44 frame px tall whatever the world is scaled to, so its own
+     scale is the inverse of the camera's and has to travel when the camera does. */
+  var C1 = 1.517 / F1.scale, CL = 1.517 / L1.scale;
+  /* The reframe leaves on the frame after the cut, not 0.6s later, and takes the
+     whole 1.3s to land where it always landed, at 9.4. desk.html's dive arrives
+     at zero velocity and this starts at zero velocity, so the join is smooth and
+     there is no held frame between them: one continuous push from the room into
+     the card, instead of a dive, a freeze, and a second move that restarts it.
+     0.1s of settle is left in, which is what a camera operator would leave. */
+  t.fromTo('#w', F0, { scale: F1.scale, x: F1.x, y: F1.y, duration: 1.3 }, 'in+=0.1');
+
+  /* Approach: x and y on different eases and lengths, so the path bows and the
+     pointer decelerates into the icon rather than sliding on a rail. */
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.06, ease: 'none' }, 'in+=2.2');
+  t.fromTo('#cur', { x: 430 }, { x: 28, duration: 0.82, ease: 'power2.inOut' }, 'in+=2.24');
+  t.fromTo('#cur', { y: 500 }, { y: 122, duration: 0.74, ease: 'power3.out' }, 'in+=2.24');
+  t.fromTo('#hL', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 'in+=3.06');
+  /* Click at 11.4: one press on the pointer, in place; the product answers. */
+  t.fromTo('#cur', { scale: C1 }, { scale: C1 * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=3.4');
+  /* A PRODUCT STATE SWAP IS A CUT, SO ITS EASE IS A STEP. The shipped runtime
+     sets no __HF_EXPORT_RENDER_SEEK_CONFIG, so it falls back to canonicalFps 30
+     and a frame is 33ms. These swaps are 20-40ms and ease:'none', so at 30fps a
+     sample lands about 83% of the way through one of them and that frame shows
+     the two pages blended -- a ghost frame, measured as a second interframe diff
+     ~20% the size of the cut's own. steps(1) rounds progress, so the swap lands
+     within half its own length of the authored click time and no sample can ever
+     catch a fractional opacity, at ANY render rate. The authored times are
+     untouched, so STORYBOARD.md's duration table is untouched.
+     The hover crops keep ease:'none': they dissolve near-identical crops of the
+     same rectangle over 2-4 frames, which is what releasing a hover looks like,
+     and they measured clean. */
+  t.fromTo('#v10', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'steps(1)' }, 'in+=3.4');
+  /* The rail item the pointer is on is the ACTIVE item on the page it opened,
+     so the hover crop -- which is the dashboard's -- goes with the dashboard. */
+  t.fromTo('#hL', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.1, ease: 'none' }, 'in+=3.4');
+  t.fromTo('#w', { scale: F1.scale, x: F1.x, y: F1.y }, { scale: L1.scale, x: L1.x, y: L1.y, duration: 0.7 }, 'in+=3.4');
+  t.fromTo('#cur', { scale: C1 }, { scale: CL, duration: 0.54 }, 'in+=3.56');
+  /* Still from 12.1, so the cut into lesson.html lands on a held frame with the
+     pointer in the place that beat picks it up from. */
+</script>
+</template>
+
+<template data-beat="lesson">
+<style>
+  #root { overflow: hidden }
+  /* Same capture space and the same camera algebra as every other product beat:
+     1600x1000, translated and scaled about its top-left inside #stage. L1 -- the
+     lessons index with a white band above it for the editorial line -- is the
+     frame dash.html hands over on, so it is the markup's own transform. */
+  #stage { position: absolute; inset: 0; overflow: hidden }
+  #w { position: absolute; left: 0; top: 0; width: 1600px; height: 1000px; overflow: hidden; transform-origin: 0 0; transform: translate(0px, 200px) scale(1.35); border-radius: 6px; box-shadow: 0 18px 50px rgba(5,16,71,0.14) }
+  .shot { position: absolute; background-repeat: no-repeat; background-size: 100% 100% }
+  .base { left: 0; top: 0; width: 1600px; height: 1000px }
+  .hid { opacity: 0; visibility: hidden }
+  #v10 { background-image: var(--img-v10) }
+  #v11 { background-image: var(--img-v11) }
+  /* WATCH LESSONS and the player's own play control, hovered, cropped from the
+     same 2x captures so they register to the pixel. */
+  #hW { left: 1207px; top: 100px; width: 158px; height: 38px; background-image: var(--img-h-watch) }
+  #hP { left: 67px; top: 673px; width: 36px; height: 36px; background-image: var(--img-h-play) }
+  /* THE PLAYBACK, and both moving things are the product's own pixels. The
+     played part of the scrub bar is the bar at the END of the video, cropped and
+     revealed left to right: exactly the pixels the product paints as it plays.
+     The transport row cannot be interpolated, because a clock counts -- so it is
+     four captures of the real control, playing, at 0, 1, 2 and 3 seconds, cut on
+     the second, which is what the product does. The controls stay up because the
+     pointer stays inside the player, which is also why they are up in the
+     captures: ArtPlayer hides them when the pointer leaves. */
+  #pbar { left: 67px; top: 661px; width: 1163px; height: 8px; background-image: var(--img-p-bar); clip-path: inset(0 100% 0 0) }
+  .tr { left: 67px; top: 673px; width: 163px; height: 36px }
+  #t0 { background-image: var(--img-p-t0) }
+  #t1 { background-image: var(--img-p-t1) }
+  #t2 { background-image: var(--img-p-t2) }
+  #t3 { background-image: var(--img-p-t3) }
+  /* The pointer arrives where dash.html parked it: on the rail's Lessons icon,
+     at the size that reads 44 frame px at L1. */
+  #cur { position: absolute; left: 0; top: 0; width: 20px; height: 29px; transform-origin: 2px 2px; transform: translate(28px, 122px) scale(1.1237); filter: drop-shadow(0 2px 3px rgba(0,0,0,0.35)) }
+</style>
+  <div id="stage" class="clip" data-start="0" data-duration="6.2" data-track-index="1">
+    <div id="w" data-layout-allow-overflow>
+      <div id="v10" class="shot base" role="img" aria-label="Lessons: Professional Responsibilities, 5 concepts, 5 hours 26 minutes, 44 videos, with a Watch Lessons button"></div>
+      <div id="hW" class="shot hid"></div>
+      <div id="v11" class="shot base hid" role="img" aria-label="Lesson video: Who Must Hold a Licence, from Licensing and Practice, with the twelve lessons of that concept listed beside it and a notes field below"></div>
+      <div id="pbar" class="shot hid" aria-hidden="true"></div>
+      <div id="t0" class="shot tr hid" aria-hidden="true"></div>
+      <div id="t1" class="shot tr hid" aria-hidden="true"></div>
+      <div id="t2" class="shot tr hid" aria-hidden="true"></div>
+      <div id="t3" class="shot tr hid" aria-hidden="true"></div>
+      <div id="hP" class="shot hid"></div>
+      <svg id="cur" viewBox="0 0 20 29" aria-hidden="true"><path d="M1.6 1.2 L1.6 24.3 L7.3 18.8 L11 27.4 L14.6 25.8 L11 17.4 L18.6 17 Z" fill="#111" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+<script>
+  /* Film 12.4 -> 18.6. dash.html ends on this frame, with this pointer in this
+     place and nothing moving, so the cut at 12.4 cannot be seen. 12.55 -> 13.18
+     to WATCH LESSONS, 270ms dwell on its real hover state, click 13.45: the
+     lesson player replaces the index in 120ms and the camera eases back to P1 --
+     the whole player page, the lesson list beside it, the notes field under it.
+     14.3 -> 15.02 down to the play control, dwell, click 15.25; the video runs
+     for three seconds, the scrub bar filling with the product's own played
+     pixels and the clock counting 0, 1, 2, 3. The pointer stays in the player,
+     because that is what keeps a video's controls on screen. Held from 18.25.
+     Initial states are all markup; nothing is set at 0. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+  var L1 = { scale: 1.35, x: 0, y: 200 }, P1 = { scale: 1.2, x: 0, y: 200 };
+  var CL = 1.517 / L1.scale, CP = 1.517 / P1.scale;
+  /* Three seconds of an 84.39s video, as a percentage of the bar's own width. */
+  var END = 100 - 3 * 100 / 84.39;
+
+  t.fromTo('#cur', { x: 28 }, { x: 1286, duration: 0.63, ease: 'power2.inOut' }, 'in+=0.15');
+  t.fromTo('#cur', { y: 122 }, { y: 119, duration: 0.58, ease: 'power3.out' }, 'in+=0.15');
+  t.fromTo('#hW', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 'in+=0.78');
+  /* Click 13.45. */
+  t.fromTo('#cur', { scale: CL }, { scale: CL * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=1.05');
+  /* A PRODUCT STATE SWAP IS A CUT, SO ITS EASE IS A STEP. The shipped runtime
+     sets no __HF_EXPORT_RENDER_SEEK_CONFIG, so it falls back to canonicalFps 30
+     and a frame is 33ms. These swaps are 20-40ms and ease:'none', so at 30fps a
+     sample lands about 83% of the way through one of them and that frame shows
+     the two pages blended -- a ghost frame, measured as a second interframe diff
+     ~20% the size of the cut's own. steps(1) rounds progress, so the swap lands
+     within half its own length of the authored click time and no sample can ever
+     catch a fractional opacity, at ANY render rate. The authored times are
+     untouched, so STORYBOARD.md's duration table is untouched.
+     The hover crops keep ease:'none': they dissolve near-identical crops of the
+     same rectangle over 2-4 frames, which is what releasing a hover looks like,
+     and they measured clean. */
+  t.fromTo('#v11', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'steps(1)' }, 'in+=1.05');
+  t.fromTo('#hW', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.1, ease: 'none' }, 'in+=1.05');
+  t.fromTo('#w', { scale: L1.scale, x: L1.x, y: L1.y }, { scale: P1.scale, x: P1.x, y: P1.y, duration: 0.7 }, 'in+=1.05');
+  t.fromTo('#cur', { scale: CL }, { scale: CP, duration: 0.54 }, 'in+=1.21');
+
+  /* Down to the transport: x and y on different lengths and eases, so the path
+     bows and the pointer decelerates onto the control. */
+  t.fromTo('#cur', { x: 1286 }, { x: 85, duration: 0.72, ease: 'power2.inOut' }, 'in+=1.9');
+  t.fromTo('#cur', { y: 119 }, { y: 691, duration: 0.66, ease: 'power3.out' }, 'in+=1.9');
+  t.fromTo('#hP', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 'in+=2.58');
+  /* Click 15.25: the transport flips to pause and the video runs. */
+  t.fromTo('#cur', { scale: CP }, { scale: CP * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=2.85');
+  t.fromTo('#hP', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.08, ease: 'none' }, 'in+=2.88');
+  t.fromTo('#t0', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.04, ease: 'steps(1)' }, 'in+=2.88');
+  t.fromTo('#pbar', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.04, ease: 'steps(1)' }, 'in+=2.88');
+  t.fromTo('#pbar', { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 ' + END + '% 0 0)', duration: 3.2, ease: 'none' }, 'in+=2.88');
+  t.fromTo('#t1', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'steps(1)' }, 'in+=3.88');
+  t.fromTo('#t2', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'steps(1)' }, 'in+=4.88');
+  t.fromTo('#t3', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'steps(1)' }, 'in+=5.88');
+  /* Off the control and out of the way, but still inside the player. */
+  t.fromTo('#cur', { x: 85 }, { x: 660, duration: 0.62, ease: 'power2.inOut' }, 'in+=3.1');
+  t.fromTo('#cur', { y: 691 }, { y: 402, duration: 0.66, ease: 'power2.inOut' }, 'in+=3.1');
+</script>
+</template>
+
+<template data-beat="quiz">
+<style>
+  #root { overflow: hidden }
+  /* #stage is the timed element and never leaves the frame; #w is the zoomed
+     capture space inside it. F2 -- the whole quiz page in view at 1.15 with a
+     band above -- is the markup's own transform. */
+  #stage { position: absolute; inset: 0; overflow: hidden }
+  #w { position: absolute; left: 0; top: 0; width: 1600px; height: 1000px; overflow: hidden; transform-origin: 0 0; transform: translate(0px, 204px) scale(1.15); border-radius: 6px; box-shadow: 0 18px 50px rgba(5,16,71,0.14) }
+  .shot { position: absolute; background-repeat: no-repeat; background-size: 100% 100% }
+  .base { left: 0; top: 0; width: 1600px; height: 1000px }
+  .hid { opacity: 0; visibility: hidden }
+  #s03 { background-image: var(--img-s03) }
+  #s05 { background-image: var(--img-s05) }
+  #v06 { background-image: var(--img-v06) }
+  /* The dashboard it comes back to is the day-one page plus the one
+     rectangle the practice set changed: the counter now reads 12 / 20. */
+  #v07 { background-image: var(--img-v01) }
+  #d07 { left: 80px; top: 348px; width: 612px; height: 174px; background-image: var(--img-d07) }
+  /* State crops from the 2x captures, registered to the pixel: the first
+     answer's row (hover, selected+hover, selected), SUBMIT (enabled, hovered),
+     PROCEED and CONTINUE hovered. A layout the product re-renders whole -- the
+     answered question, the scored set, the dashboard it returns to -- is a whole
+     capture, because that is what the product actually swaps. */
+  .row { left: 65px; top: 234px; width: 1470px; height: 55px }
+  .btn { left: 56px; top: 458px; width: 100px; height: 56px }
+  #oH { background-image: var(--img-opt1-hover) }
+  #oSH { background-image: var(--img-opt1-sel-hover) }
+  #oS { background-image: var(--img-opt1-sel) }
+  #bOn { background-image: var(--img-submit-on) }
+  #bH { background-image: var(--img-submit-hover) }
+  #hPr { left: 60px; top: 500px; width: 102px; height: 48px; background-image: var(--img-h-proceed) }
+  #hCo { left: 1340px; top: 356px; width: 144px; height: 48px; background-image: var(--img-h-continue) }
+  #cur { position: absolute; left: 0; top: 0; width: 20px; height: 29px; transform-origin: 2px 2px; transform: translate(328px, 638px) scale(1.319); filter: drop-shadow(0 2px 3px rgba(0,0,0,0.35)) }
+</style>
+  <div id="stage" class="clip" data-start="0" data-duration="11.4" data-track-index="1">
+    <div id="w" data-layout-allow-overflow>
+      <div id="s03" class="shot base" role="img" aria-label="Question 1 of 12: a licensee is asked by a neighbour whether a particular fence sits on the property line. Which source most directly answers a question about the registered boundaries of a parcel?"></div>
+      <div id="oH" class="shot row hid"></div>
+      <div id="oSH" class="shot row hid"></div>
+      <div id="oS" class="shot row hid" role="img" aria-label="Selected: the land titles record and the survey registered against it"></div>
+      <div id="bOn" class="shot btn hid"></div>
+      <div id="bH" class="shot btn hid"></div>
+      <div id="s05" class="shot base hid" role="img" aria-label="Correct. Explanation: registered boundaries come from the land titles record and the survey attached to it. A listing sheet and a municipal tax notice describe the property for other purposes and are not authoritative on boundaries, and the seller's recollection is not a record at all."></div>
+      <div id="hPr" class="shot hid"></div>
+      <div id="v06" class="shot base hid" role="img" aria-label="Results saved. Your score: 100 percent, 12 of 12, with the question review below and a Continue button"></div>
+      <div id="hCo" class="shot hid"></div>
+      <div id="v07" class="shot base hid" aria-hidden="true"></div>
+      <div id="d07" class="shot hid" role="img" aria-label="Back on the dashboard: the Study Navigator now reads 12 of 20 questions"></div>
+      <svg id="cur" class="hid" viewBox="0 0 20 29" aria-hidden="true"><path d="M1.6 1.2 L1.6 24.3 L7.3 18.8 L11 27.4 L14.6 25.8 L11 17.4 L18.6 17 Z" fill="#111" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+<script>
+  /* Film 18.6 -> 30.0, and nothing in it waits. Pointer in 19.2; the first
+     answer 19.5 -> 20.05 with one 3px correction, dwell, click 20.35 -- the row
+     shows its real selected state and SUBMIT lights. 20.55 -> 21.15 to SUBMIT,
+     dwell, click 21.45; the answered layout replaces the question in 100ms and
+     21.6 -> 22.25 the camera pushes to F3, which holds the green answer and the
+     explanation together with the explanation's first sentence on the frame's
+     centre line. That is the one hold in the beat, and it is 2.4s, the length of
+     the line set over it. 24.75 the pointer comes back for PROCEED, click 25.65:
+     the set is scored -- 100%, 12 of 12, results saved -- and the camera widens
+     to R1 to take the whole card. CONTINUE 27.5 goes back to the dashboard, and
+     the camera lands on the Study Navigator at the framing dash.html used, where
+     the counter it read 0 / 20 on now reads 12 / 20. rating.html opens on that
+     exact frame. Initial states are all markup; nothing is set at 0. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+  var F2 = { scale: 1.15, x: 0, y: 204 }, F3 = { scale: 1.22, x: 2, y: 190 };
+  var R1 = { scale: 1.25, x: 0, y: 150 }, FN = { scale: 2.0, x: 189, y: 212 };
+  var C2 = 1.517 / F2.scale, C3 = 1.517 / F3.scale, CR = 1.517 / R1.scale, CN = 1.517 / FN.scale;
+
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.22, ease: 'power1.out' }, 'in+=0.6');
+  t.fromTo('#cur', { x: 328 }, { x: 96, duration: 0.55, ease: 'power3.inOut' }, 'in+=0.9');
+  t.fromTo('#cur', { y: 638 }, { y: 261, duration: 0.5, ease: 'power2.out' }, 'in+=0.9');
+  /* The one correction: 3px right, 2px up, into the radio's centre. */
+  t.fromTo('#cur', { x: 96, y: 261 }, { x: 99, y: 259, duration: 0.11, ease: 'power1.out' }, 'in+=1.47');
+  t.fromTo('#oH', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 'in+=1.45');
+  /* Click 20.35. */
+  t.fromTo('#cur', { scale: C2 }, { scale: C2 * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=1.75');
+  t.fromTo('#oSH', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 'in+=1.75');
+  t.fromTo('#bOn', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.1, ease: 'none' }, 'in+=1.76');
+  /* To SUBMIT: a longer, flatter travel. The row's hover ends as the pointer
+     leaves it, so the selected-only crop takes over. */
+  t.fromTo('#cur', { x: 99 }, { x: 104, duration: 0.6, ease: 'power2.inOut' }, 'in+=1.95');
+  t.fromTo('#cur', { y: 259 }, { y: 484, duration: 0.58, ease: 'power3.inOut' }, 'in+=1.95');
+  t.fromTo('#oS', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.1, ease: 'none' }, 'in+=2.02');
+  t.fromTo(['#oH', '#oSH'], { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.1, ease: 'none' }, 'in+=2.02');
+  t.fromTo('#bH', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 'in+=2.5');
+  /* Click 21.45. */
+  t.fromTo('#cur', { scale: C2 }, { scale: C2 * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=2.85');
+  /* A PRODUCT STATE SWAP IS A CUT, SO ITS EASE IS A STEP. The shipped runtime
+     sets no __HF_EXPORT_RENDER_SEEK_CONFIG, so it falls back to canonicalFps 30
+     and a frame is 33ms. These swaps are 20-40ms and ease:'none', so at 30fps a
+     sample lands about 83% of the way through one of them and that frame shows
+     the two pages blended -- a ghost frame, measured as a second interframe diff
+     ~20% the size of the cut's own. steps(1) rounds progress, so the swap lands
+     within half its own length of the authored click time and no sample can ever
+     catch a fractional opacity, at ANY render rate. The authored times are
+     untouched, so STORYBOARD.md's duration table is untouched.
+     The hover crops keep ease:'none': they dissolve near-identical crops of the
+     same rectangle over 2-4 frames, which is what releasing a hover looks like,
+     and they measured clean. */
+  t.fromTo('#s05', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'steps(1)' }, 'in+=2.85');
+  /* Out of the way, and gone for the one hold. */
+  t.fromTo('#cur', { x: 104, y: 484 }, { x: 300, y: 620, duration: 0.42, ease: 'power2.inOut' }, 'in+=3.05');
+  t.fromTo('#cur', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.28, ease: 'power1.in' }, 'in+=3.12');
+  t.fromTo('#w', { scale: F2.scale, x: F2.x, y: F2.y }, { scale: F3.scale, x: F3.x, y: F3.y, duration: 0.65 }, 'in+=3.0');
+  t.fromTo('#cur', { scale: C2 }, { scale: C3, duration: 0.63 }, 'in+=3.02');
+
+  /* 24.75: back for PROCEED. */
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.2, ease: 'power1.out' }, 'in+=6.0');
+  t.fromTo('#cur', { x: 300 }, { x: 110, duration: 0.6, ease: 'power2.inOut' }, 'in+=6.15');
+  t.fromTo('#cur', { y: 620 }, { y: 524, duration: 0.56, ease: 'power3.out' }, 'in+=6.15');
+  t.fromTo('#hPr', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 'in+=6.75');
+  /* Click 25.65: eleven more questions have gone by, and the set is scored. */
+  t.fromTo('#cur', { scale: C3 }, { scale: C3 * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=7.05');
+  t.fromTo('#v06', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'steps(1)' }, 'in+=7.05');
+  t.fromTo('#hPr', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.1, ease: 'none' }, 'in+=7.05');
+  t.fromTo('#w', { scale: F3.scale, x: F3.x, y: F3.y }, { scale: R1.scale, x: R1.x, y: R1.y, duration: 0.8 }, 'in+=7.05');
+  t.fromTo('#cur', { scale: C3 }, { scale: CR, duration: 0.64 }, 'in+=7.21');
+  /* Across to CONTINUE. */
+  t.fromTo('#cur', { x: 110 }, { x: 1412, duration: 0.65, ease: 'power2.inOut' }, 'in+=7.95');
+  t.fromTo('#cur', { y: 524 }, { y: 380, duration: 0.6, ease: 'power3.out' }, 'in+=7.95');
+  t.fromTo('#hCo', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 'in+=8.6');
+  /* Click 27.5: back to the dashboard, and the counter has moved. */
+  t.fromTo('#cur', { scale: CR }, { scale: CR * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=8.9');
+  t.fromTo(['#v07', '#d07'], { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02, ease: 'steps(1)' }, 'in+=8.9');
+  t.fromTo('#hCo', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.1, ease: 'none' }, 'in+=8.9');
+  t.fromTo('#cur', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.3, ease: 'power1.in' }, 'in+=8.98');
+  t.fromTo('#w', { scale: R1.scale, x: R1.x, y: R1.y }, { scale: FN.scale, x: FN.x, y: FN.y, duration: 0.8 }, 'in+=8.9');
+  t.fromTo('#cur', { scale: CR }, { scale: CN, duration: 0.64 }, 'in+=9.06');
+</script>
+</template>
+
+<template data-beat="rating">
+<style>
+  #root { overflow: hidden }
+  /* #stage is the timed element and never leaves the frame; #w is the zoomed
+     capture space inside it. This beat opens on the frame quiz.html ends on --
+     the Study Navigator at 2.0, reading 12 / 20 -- so that framing is the
+     markup's own transform, and the beat's first move is the pan down the card
+     stack to ReadyRating. */
+  #stage { position: absolute; inset: 0; overflow: hidden }
+  #w { position: absolute; left: 0; top: 0; width: 1600px; height: 1000px; overflow: hidden; transform-origin: 0 0; transform: translate(189px, 212px) scale(2); border-radius: 6px; box-shadow: 0 18px 50px rgba(5,16,71,0.14) }
+  .shot { position: absolute; background-repeat: no-repeat; background-size: 100% 100% }
+  .base { left: 0; top: 0; width: 1600px; height: 1000px }
+  .hid { opacity: 0; visibility: hidden }
+  /* Day one plus the rectangle the practice set changed; see quiz.html. */
+  #v07 { background-image: var(--img-v01) }
+  #d07 { left: 80px; top: 348px; width: 612px; height: 174px; background-image: var(--img-d07) }
+  /* ReadyRating's header with its hover, and the expanded card twice: with the
+     header still hovered (the pointer is on it when it opens) and at rest. The
+     expanded crop includes the card's shadow, so it covers the collapsed one.
+     The opening one starts fully clipped and is revealed top-down. */
+  #rH { left: 79px; top: 436px; width: 614px; height: 80px; background-image: var(--img-rr-down-hover) }
+  .open { left: 79px; top: 436px; width: 614px; height: 190px }
+  #rOH { background-image: var(--img-rr-open-hover); clip-path: inset(0 0 100% 0) }
+  #rO { background-image: var(--img-rr-open) }
+  #cur { position: absolute; left: 0; top: 0; width: 20px; height: 29px; transform-origin: 2px 2px; transform: translate(700px, 620px) scale(0.7984); filter: drop-shadow(0 2px 3px rgba(0,0,0,0.35)) }
+</style>
+  <div id="stage" class="clip" data-start="0" data-duration="5" data-track-index="1">
+    <div id="w" data-layout-allow-overflow>
+      <div id="v07" class="shot base" aria-hidden="true"></div>
+      <div id="d07" class="shot" role="img" aria-label="RELO dashboard after the practice set: 12 of 20 questions, with the ReadyRating panel collapsed"></div>
+      <div id="rH" class="shot hid"></div>
+      <div id="rOH" class="shot open hid"></div>
+      <div id="rO" class="shot open hid" role="img" aria-label="ReadyRating, readiness to pass the exam: level 1 of 5. Not ready yet, but you'll get there!"></div>
+      <svg id="cur" class="hid" viewBox="0 0 20 29" aria-hidden="true"><path d="M1.6 1.2 L1.6 24.3 L7.3 18.8 L11 27.4 L14.6 25.8 L11 17.4 L18.6 17 Z" fill="#111" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+<script>
+  /* Film 30.0: no cut to hide -- this beat opens on the frame quiz.html held, on
+     the same dashboard, and the camera keeps moving: 30.15 -> 31.05 down the
+     card stack from the Study Navigator to ReadyRating, widening a little as it
+     goes. Pointer in at 30.5, 30.75 -> 31.25 to the card's expansion control,
+     250ms dwell on its real hover state, click 31.55: the card's own expansion
+     is the movement, revealed top-down over 280ms. The framing is set so the
+     card the click is about to grow ends up filling the bottom of the frame
+     rather than floating over empty page -- it is the last card in that column,
+     and there is nothing under it to look at -- with the Study Navigator above
+     holding the top. 31.65 -> 32.4 the camera settles 35px onto it; the pointer
+     leaves and the header's hover ends. Then the product's own words hold to 35.0. Initial
+     states are markup. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+  var FN = { scale: 2.0, x: 189, y: 212 }, F4 = { scale: 1.9, x: 227.5, y: -170 };
+  var C = 1.517 / F4.scale;
+  t.fromTo('#w', FN, { scale: F4.scale, x: F4.x, y: F4.y, duration: 0.9, ease: 'power2.inOut' }, 'in+=0.15');
+
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.22, ease: 'power1.out' }, 'in+=0.5');
+  t.fromTo('#cur', { x: 700 }, { x: 650, duration: 0.5, ease: 'power2.inOut' }, 'in+=0.75');
+  t.fromTo('#cur', { y: 620 }, { y: 473, duration: 0.46, ease: 'power3.out' }, 'in+=0.75');
+  t.fromTo('#rH', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 'in+=1.3');
+  /* Click 31.55. */
+  t.fromTo('#cur', { scale: C }, { scale: C * 0.88, duration: 0.08, ease: 'power1.inOut', yoyo: true, repeat: 1 }, 'in+=1.55');
+  /* A PRODUCT STATE SWAP IS A CUT, SO ITS EASE IS A STEP. The shipped runtime
+     sets no __HF_EXPORT_RENDER_SEEK_CONFIG, so it falls back to canonicalFps 30
+     and a frame is 33ms. These swaps are 20-40ms and ease:'none', so at 30fps a
+     sample lands about 83% of the way through one of them and that frame shows
+     the two pages blended -- a ghost frame, measured as a second interframe diff
+     ~20% the size of the cut's own. steps(1) rounds progress, so the swap lands
+     within half its own length of the authored click time and no sample can ever
+     catch a fractional opacity, at ANY render rate. The authored times are
+     untouched, so STORYBOARD.md's duration table is untouched.
+     The hover crops keep ease:'none': they dissolve near-identical crops of the
+     same rectangle over 2-4 frames, which is what releasing a hover looks like,
+     and they measured clean. */
+  t.fromTo('#rOH', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.04, ease: 'steps(1)' }, 'in+=1.55');
+  t.fromTo('#rOH', { clipPath: 'inset(0 0 100% 0)' }, { clipPath: 'inset(0 0 0% 0)', duration: 0.28, ease: 'power2.out' }, 'in+=1.55');
+  t.fromTo('#w', { y: F4.y }, { y: F4.y - 35, duration: 0.75 }, 'in+=1.65');
+  /* The pointer steps off the header and fades; the header's hover goes with it. */
+  t.fromTo('#cur', { x: 650, y: 473 }, { x: 700, y: 640, duration: 0.5 }, 'in+=1.9');
+  t.fromTo('#cur', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.35, ease: 'power1.in' }, 'in+=2.1');
+  t.fromTo('#rO', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.12, ease: 'none' }, 'in+=1.96');
+  t.fromTo(['#rOH', '#rH'], { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.12, ease: 'none' }, 'in+=1.96');
+</script>
+</template>
+
+<template data-beat="portrait">
+<style>
+  /* Navy surface, stated. #root is transparent and #bg carries the ground so
+     the navy can rise over the dashboard during the 0.2s this beat overlaps the
+     one before it. */
+  #root { overflow: hidden }
+  #bg { position: absolute; inset: 0; background: var(--ground); opacity: 0; visibility: hidden }
+  .hid { opacity: 0; visibility: hidden }
+  /* The photograph's frame starts as the ReadyRating card's rectangle in the
+     previous frame -- (468,358) 984x323 -- and resolves to a 520px square at
+     (300,260). Position is a transform (x,y from that origin); only the box's
+     size is a layout tween, and the photo is a cover background, so the move is
+     a gentle crop adjustment and nothing on the face is animated. */
+  #pf { position: absolute; left: 378px; top: 623px; width: 1167px; height: 361px; overflow: hidden; border-radius: 8px; box-shadow: 0 24px 60px rgba(0,0,0,0.30) }
+  #photo { position: absolute; inset: 0; background: var(--img-angela) 50% 28% / cover no-repeat }
+  /* Type arrives by opacity and a 12px rise, not a wipe: a wipe over an opaque
+     ground reads to the occlusion audit as text hidden under the ground. */
+  #h { position: absolute; left: 900px; top: 300px; font-family: var(--display); font-weight: 700; font-size: 96px; line-height: 1.05; letter-spacing: -0.02em; color: var(--onGround); margin: 0 }
+  #nm { position: absolute; left: 900px; top: 470px; font-family: var(--text); font-weight: 600; font-size: 44px; line-height: 1.2; color: var(--onGround); margin: 0 }
+  #rl { position: absolute; left: 900px; top: 536px; font-family: var(--text); font-weight: 500; font-size: 30px; line-height: 1.3; color: var(--brand); margin: 0 }
+</style>
+  <div id="bg" class="clip" data-start="0" data-duration="5.2" data-track-index="1"></div>
+  <div id="pf" class="clip hid" data-start="0" data-duration="5.2" data-track-index="2"><div id="photo" role="img" aria-label="Angela Detmold"></div></div>
+  <h2 id="h" class="clip hid" data-start="0" data-duration="5.2" data-track-index="3">Live Office Hours</h2>
+  <p id="nm" class="clip hid" data-start="0" data-duration="5.2" data-track-index="4">Angela Detmold</p>
+  <p id="rl" class="clip hid" data-start="0" data-duration="5.2" data-track-index="4">Senior Industry Advisor, Real Estate</p>
+<script>
+  /* Film 34.8 -> 40.0. The navy and the photograph arrive together over the
+     open ReadyRating card (34.8 -> 35.2); the frame moves to its portrait
+     position 35.05 -> 35.85; headline at 35.4, name and role 180ms after. Hold. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power3.out', immediateRender: false } });
+  t.addLabel('in', 0);
+  t.fromTo('#bg', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.16, ease: 'power2.out' }, 'in');
+  t.fromTo('#pf', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.16, ease: 'power1.inOut' }, 'in+=0.16');
+  t.fromTo('#pf', { x: 0, y: 0, width: 1167, height: 361, borderRadius: 8 }, { x: -78, y: -363, width: 520, height: 520, borderRadius: 16, duration: 0.8, ease: 'power3.inOut' }, 'in+=0.25');
+  t.fromTo('#h', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.44 }, 'in+=0.6');
+  t.fromTo('#nm', { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.36 }, 'in+=0.78');
+  t.fromTo('#rl', { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.36 }, 'in+=0.78');
+</script>
+</template>
+
+<template data-beat="return">
+<style>
+  /* Same room and same artwork as desk.html, stamped by tmp/build_scene.py with
+     an r- prefix so no id collides once the packager inlines both beats into one
+     document. Two differences, both story: the opening question is gone -- the
+     editorial layer is on "A clearer way forward." here -- and the laptop shows
+     the real product rather than the artwork's drawn one, so the traced screen
+     is not stamped at all. This beat is also the end frame's card: it runs to
+     the end of the film and the host shrinks it, so the artwork ships once. */
+  /* Both are pinned visible: the runtime hides a clip at t = its end, and this
+     beat has to survive the film's last frame because the host shrinks it into
+     the end frame's card. The host gates the whole beat on opacity instead. */
+  #root { overflow: hidden; visibility: visible !important }
+  #stage { position: absolute; inset: 0; overflow: hidden; visibility: visible !important }
+  #w { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0 }
+  #r-back, #r-front { position: absolute; left: 0; top: 0; display: block }
+  /* The capture sits BETWEEN the two halves of the scene -- everything behind
+     the laptop, then this, then the laptop itself -- so the lid's own bezel
+     masks it and the fit into the aperture needs no clip path. It is drawn a
+     little larger than the aperture on every side for exactly that reason. */
+  #r-lid { position: absolute; left: 1224px; top: 441px; width: 545px; height: 340.6px;
+           transform-origin: 0 0; transform: skewX(-6.923deg) scaleY(1.2);
+           background: var(--img-v01-small) 0 0 / 100% 100% no-repeat }
+  /* Promoted for the same reason as desk.html's scene, and measured the same
+     way: the push is a transform on #w over two traced svgs, and the breath,
+     the turn and the smile are transform attributes inside #r-front. As shipped
+     that was 110 ms per presented frame, 9 fps; promoted it is 18 ms, 57 fps,
+     and the frames are pixel-identical -- including the end frame's card, where
+     the host shrinks this beat to 0.3125. #r-lid is NOT promoted, so the
+     capture in the screen keeps its own resampling. */
+  #r-back, #r-front, #r-figure, #r-headg, #r-mouth, #r-gaze { will-change: transform }
+</style>
+  <div id="stage" class="clip" data-start="0" data-duration="11.5" data-track-index="1">
+  <div id="w" data-layout-allow-overflow>
+<!--include return-back-->
+    <div id="r-lid" role="img" aria-label="RELO dashboard"></div>
+<!--include return-front-->
+  </div>
+  </div>
+<script>
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+
+  /* Film 40.0 -> 51.5. The camera does the handing back: one slow push,
+     1 -> 1.03 about (760,420), the learner's shoulders and face, ending at 43.5
+     -- the frame the host shrinks into the end card. A tween at its end state
+     holds, so the pose is still from 43.5 on and the artwork ships once.
+     The learner is alive under it and does almost nothing: one breath, one
+     blink, and then -- at 42.35, a second before the room becomes a card -- he
+     stops, looks up out of the frame at you, and smiles. */
+  /* sine.inOut, not sine.out: the portrait before this is dead still for four
+     seconds, and sine.out starts at its fastest, so the cut used to hand a
+     frozen frame straight to a moving one. Starting from rest matches the frame
+     it cuts from, and it still arrives at rest for the card shrink at 43.5. */
+  t.fromTo('#w', { scale: 1, x: 0, y: 0 }, { scale: 1.03, x: -22.8, y: -12.6, duration: 3.5, ease: 'sine.inOut' }, 'in');
+
+  /* One breath, in and out, and then the chest is still: yoyo returns the group
+     to the from-state, so there is nothing left running when he looks up. */
+  t.fromTo('#r-figure', { attr: { transform: 'translate(700 900) scale(1 1) translate(-700 -900)' } }, { attr: { transform: 'translate(700 900) scale(1 1.0022) translate(-700 -900)' }, duration: 1.2, ease: 'sine.inOut', yoyo: true, repeat: 1 }, 'in+=0.2');
+
+  /* The lids are the only geometry here the tracer did not draw; see
+     tmp/build_scene.py. 80ms shut, 80ms open. The second one rides the turn,
+     which is where a person blinks. */
+  function lid(id, y) {
+    var a = 'translate(0 ' + y + ') scale(1 ', b = ') translate(0 -' + y + ')';
+    return [id, { attr: { transform: a + '0' + b } }, { attr: { transform: a + '1' + b }, duration: 0.08, ease: 'sine.inOut', yoyo: true, repeat: 1 }];
+  }
+  var LL = lid('#r-lidL', 196), LR = lid('#r-lidR', 208);
+  t.fromTo(LL[0], LL[1], LL[2], 'in+=0.90');
+  t.fromTo(LR[0], LR[1], LR[2], 'in+=0.90');
+  t.fromTo(LL[0], LL[1], LL[2], 'in+=2.40');
+  t.fromTo(LR[0], LR[1], LR[2], 'in+=2.40');
+
+  /* TO CAMERA, 42.35 -> 43.32. The irises lead by 70ms and the head follows,
+     which is the order a real look happens in; the head turns 1.6 degrees about
+     the neck at (706,425), which is as far as a drawn three-quarter head can go
+     before the collar reads as a seam. The mouth is a separate group with the
+     skin it was cut out of left behind it, so the smile is the artwork's own
+     lips, 3% wider and a pixel higher -- no new mouth, and no hole. Then
+     nothing moves again. */
+  t.fromTo('#r-gaze', { attr: { transform: 'translate(0 0)' } }, { attr: { transform: 'translate(-1.7 0.5)' }, duration: 0.55, ease: 'power2.inOut' }, 'in+=2.35');
+  t.fromTo('#r-headg', { attr: { transform: 'rotate(0 706 425)' } }, { attr: { transform: 'rotate(-1.6 706 425)' }, duration: 0.8, ease: 'power2.inOut' }, 'in+=2.42');
+  t.fromTo('#r-mouth', { attr: { transform: 'translate(723 292) scale(1 1) translate(-723 -292)' } }, { attr: { transform: 'translate(723 292) scale(1.03 0.98) translate(-723 -292) translate(0 -1.1)' }, duration: 0.6, ease: 'power2.out' }, 'in+=2.72');
+</script>
+</template>
+
+<template data-beat="copy">
+<style>
+  /* The editorial layer: three lines, each in its own window, hosted in #type so
+     the camera can never scale them. Default surface: navy ink on the host's
+     white and on the desk's warm wall, both of which it clears. */
+  .line { position: absolute; font-family: var(--display); font-weight: 700; letter-spacing: -0.02em; color: var(--onGround); margin: 0; clip-path: inset(0 100% 0 0) }
+  /* In the white band the product frame leaves above itself. */
+  #n { left: 96px; top: 40px; font-size: 84px; line-height: 1.1 }
+  #u { left: 96px; top: 52px; font-size: 56px; line-height: 1.1 }
+  /* Two lines: the learner's head reaches x 653 in the return beat's artwork,
+     and one line of this at 84px would run under the hair. */
+  #c { left: 96px; top: 60px; font-size: 84px; line-height: 1.06 }
+</style>
+  <h2 id="n" class="line clip" data-start="7"    data-duration="5.2" data-track-index="2">Your next step.</h2>
+  <h2 id="u" class="line clip" data-start="20.2" data-duration="3.7" data-track-index="3">Understand why.</h2>
+  <h2 id="c" class="line clip" data-start="37.9" data-duration="4.1" data-track-index="4">A clearer way<br>forward.</h2>
+<script>
+  /* Times are beat-relative; the beat starts at film 0:02.00. Each line wipes in
+     over one pack beat and fades before the frame it sits in changes under it:
+     the next-step line carries the dashboard AND the lesson it sends the learner
+     to, and goes as the player settles; "Understand why." goes before PROCEED
+     scores the set; and the last line goes before the desk shrinks into the end
+     frame. The opening question is NOT here: "Am I ready?" and its rule are
+     drawn into the desk artwork, so the desk beat animates them and the camera
+     scales them with the room they belong to. */
+  /* The fade-outs render at construction, unlike every other tween here. With
+     immediateRender:false a fromTo never writes its start value until the
+     playhead reaches it, so once a line had faded, seeking BACK to before the
+     fade left it at opacity 0 -- the line simply did not come back. Rendering
+     the start state at build fixes the rewind; it is harmless forward, because
+     .line is clipped to zero width until its own wipe runs. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power4.out', immediateRender: false } });
+  t.addLabel('in', 0);
+  t.fromTo('#n', { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 0.52 }, 'in+=7.5');
+  t.fromTo('#n', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.3, ease: 'power1.in', immediateRender: true }, 'in+=11.5');
+  t.fromTo('#u', { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 0.44 }, 'in+=20.7');
+  t.fromTo('#u', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.3, ease: 'power1.in', immediateRender: true }, 'in+=23.1');
+  t.fromTo('#c', { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 0.52 }, 'in+=38.4');
+  t.fromTo('#c', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.3, ease: 'power1.in', immediateRender: true }, 'in+=41.2');
+</script>
+</template>
