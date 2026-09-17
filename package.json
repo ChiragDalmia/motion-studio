@@ -6,12 +6,14 @@
     "node": ">=22"
   },
   "scripts": {
+    "doctor": "node tools/doctor.mjs",
     "guard": "node tools/guard.mjs",
-    "fixtures": "node tools/fixtures.mjs",
     "tokens": "node tools/tokens.mjs",
     "font": "node tools/font.mjs",
+    "fixtures": "node tools/fixtures.mjs",
     "new": "node tools/new.mjs",
-    "pre": "node tools/prepare.mjs",
+    "pre": "node tools/do.mjs pre",
+    "clean": "node tools/clean.mjs",
     "build": "node tools/build.mjs",
     "gate2": "node tools/gate2.mjs",
     "do": "node tools/do.mjs",

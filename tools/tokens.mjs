@@ -1,15 +1,13 @@
 // Brand pack -> composition variables.
 //
-// Emits three generated files per pack, all committed so a film diff shows what
-// actually changed:
+// Emits three generated files per pack, all gitignored:
 //   tokens.json    the OBJECT keyed by id, for --variables-file (override shape)
-//   vars.json      the ARRAY, for data-composition-variables (declaration shape)
-//   surfaces.css   one .s-<name> class per surface
+//   surfaces.css   one .s-<name> class per surface, read by tools/prepare.mjs
+//   gfx.catalog.md one row per token-bound shape in gfx/
 //
-// bundleToSingleHtml takes no variables option, so the values that SHIP are the
-// defaults declared in the film's own <html> tag. A film therefore carries its
-// brand's declaration inline, and `--check` asserts it has not drifted from the
-// pack. That is vendoring, same as every other shared thing in this repo.
+// bundleToSingleHtml takes no variables option, so the values that SHIP are
+// the defaults in the film's own <html> tag. tools/prepare.mjs writes that tag
+// from this module on every run, so a film cannot drift from its pack.
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -71,7 +69,7 @@ function resolve(flat) {
   for (const k of Object.keys(flat)) get(k, [k]);
   // Nothing may survive resolution still looking like a directive. An
   // unresolved value is not a colour, so every contrast check that guards it
-  // is silently SKIPPED rather than failed — the poisoned-green shape again.
+  // is silently SKIPPED rather than failed, the poisoned-green shape again.
   const stuck = Object.entries(out).filter(([, v]) => typeof v === 'string' && /[{}]/.test(v));
   if (stuck.length) {
     const list = stuck.map(([k, v]) => `${k} = ${v}`).join('\n  - ');
@@ -88,25 +86,25 @@ export async function load(slug) {
   const err = [];
 
   // A `_`-prefixed pack is a fixture: it exists to be validated, never to
-  // produce an artifact, so the shipping-slug rule cannot apply to it — the
+  // produce an artifact, so the shipping-slug rule cannot apply to it, the
   // prefix is exactly what that rule forbids.
   const fixture = slug.startsWith('_');
   if (!fixture && pack.slug !== slug) err.push(`brand.ts declares slug "${pack.slug}" but lives in brands/${slug}/`);
-  if (!fixture && !/^[a-z][a-z0-9]{2,11}$/.test(slug)) err.push(`slug "${slug}" must match /^[a-z][a-z0-9]{2,11}$/ — no hyphen, so builds/<brand>-<slug> parses at the first one`);
+  if (!fixture && !/^[a-z][a-z0-9]{2,11}$/.test(slug)) err.push(`slug "${slug}" must match /^[a-z][a-z0-9]{2,11}$/, no hyphen, so builds/<brand>-<slug> parses at the first one`);
 
   for (const k of CORE) {
     if (pack.token?.[k] === undefined || pack.token[k] === '') {
-      err.push(`token.${k} is required — the 14-token core is what every film may assume exists`);
+      err.push(`token.${k} is required, the 14-token core is what every film may assume exists`);
     }
   }
   if (typeof pack.token?.beat !== 'number' || !(pack.token.beat > 0)) {
     err.push('token.beat must be a positive number of ms. There is no house tempo and no fallback: a pack that does not declare its own tempo has not been designed.');
   }
   for (const k of ['strobeMinMs', 'stillnessMinMs', 'cascadeDecay', 'overshoot', 'minTypePx', 'minCameraScale']) {
-    if (typeof pack.craft?.[k] !== 'number') err.push(`craft.${k} is required — lib/craft.mjs holds the predicate and no numbers`);
+    if (typeof pack.craft?.[k] !== 'number') err.push(`craft.${k} is required, lib/craft.mjs holds the predicate and no numbers`);
   }
   for (const k of Object.keys(pack.extra || {})) {
-    if (CORE.includes(k)) err.push(`extra.${k} shadows the core token "${k}" — rename it; both are emitted as --${k}`);
+    if (CORE.includes(k)) err.push(`extra.${k} shadows the core token "${k}", rename it; both are emitted as --${k}`);
     if (!/^[a-z][A-Za-z0-9]*$/.test(k)) err.push(`extra.${k} must be a lowerCamelCase identifier: it becomes the CSS custom property --${k}`);
   }
   if (!Array.isArray(pack.face) || !pack.face.length) err.push('face[] must list at least one face to inline');
@@ -134,7 +132,7 @@ export async function load(slug) {
   }
   if (isColor(R.ground) && isColor(R.line)) {
     const c = contrast(R.ground, R.line);
-    if (c >= AA) bad.push(`line on ground is ${c.toFixed(2)}:1 — that is ink, not a hairline; use it as a token, not as line`);
+    if (c >= AA) bad.push(`line on ground is ${c.toFixed(2)}:1, that is ink, not a hairline; use it as a token, not as line`);
   }
   for (const [name, ov] of Object.entries(pack.surface || {})) {
     const S = resolve({ ...flat, ...ov });
@@ -159,7 +157,7 @@ export async function load(slug) {
  *
  * The 14-token core comes first and is what EVERY film may assume exists. The
  * pack's own `extra` vocabulary follows, because a brand legitimately owns
- * chips the core does not name — the case that forced this was a brand whose
+ * chips the core does not name, the case that forced this was a brand whose
  * body copy needs a mono family for clause numbers, which no 14-slot schema can
  * hold without making every other brand declare a mono it does not have. A
  * film may only reach for an extra where it is being deliberately brand-locked.
@@ -175,12 +173,8 @@ export function declaration(values, extraKeys = []) {
   });
 }
 
-/**
- * The one function that answers "what declaration does a film of this brand
- * carry?". Three callers needed it — emit, new --revars and build's drift
- * check — and when they each rebuilt it themselves they silently disagreed the
- * moment extras were added. There is exactly one source of it now.
- */
+/** What declaration a film of this brand carries. One source, because the
+ *  callers that each rebuilt it silently disagreed once extras were added. */
 export async function declarationFor(slug) {
   const { pack, values } = await load(slug);
   const extraKeys = Object.keys(pack.extra || {});
@@ -210,7 +204,7 @@ export async function emit(slug) {
   const css = surfacesCss(pack, flat);
 
   // One line per shape, so an agent can find one without opening any of them.
-  // Shapes are inlined by hand at authoring time — an SVG loaded through src
+  // Shapes are inlined by hand at authoring time, an SVG loaded through src
   // cannot read the document's custom properties, so a token-bound shape has
   // to be markup in the film.
   const gfx = path.join(dir, 'gfx');
@@ -220,7 +214,7 @@ export async function emit(slug) {
       const first = (src.match(/<!--\s*([\s\S]*?)(?:\.|-->)/) || [, ''])[1].replace(/\s+/g, ' ').trim();
       const toks = [...new Set([...src.matchAll(/var\(--([A-Za-z0-9]+)/g)].map((m) => m[1]))].sort();
       const lines = src.split('\n').length;
-      return `| \`gfx/${n}\` | ${lines} | ${toks.map((t) => '`--' + t + '`').join(' ') || '—'} | ${first} |`;
+      return `| \`gfx/${n}\` | ${lines} | ${toks.map((t) => '`--' + t + '`').join(' ') || ','} | ${first} |`;
     });
     write(path.join(dir, 'gfx.catalog.md'),
       `<!-- GENERATED by tools/tokens.mjs. Do not edit. -->\n# ${pack.name} shapes\n\n`
@@ -229,7 +223,6 @@ export async function emit(slug) {
   }
 
   write(path.join(dir, 'tokens.json'), JSON.stringify(tokens, null, 2) + '\n');
-  write(path.join(dir, 'vars.json'), JSON.stringify(decl, null, 2) + '\n');
   write(path.join(dir, 'surfaces.css'), css || '/* no surfaces declared */\n');
   return { pack, values, decl, tokens };
 }
@@ -237,39 +230,6 @@ export async function emit(slug) {
 function write(f, s) {
   if (fs.existsSync(f) && fs.readFileSync(f, 'utf8') === s) return;
   fs.writeFileSync(f, s);
-}
-
-/**
- * The declaration attribute exactly as it must appear in a film's <html> tag.
- *
- * ONE TOKEN PER LINE, not pretty-printed. composition_file_too_large is an
- * upstream lint error at 300 lines, and a 26-token pack pretty-printed at two
- * spaces is 157 lines of JSON — over half a film's entire structural budget
- * spent on an attribute nobody reads. Compact per line keeps it at 26 and still
- * gives a readable diff when one value changes.
- */
-export function attr(decl) {
-  return decl.map((d) => JSON.stringify(d)).join(',\n').replace(/'/g, '&#39;')
-    .replace(/^/, '[\n').replace(/$/, '\n]');
-}
-
-/** Drift check: the film's inline declaration must still equal the pack's. */
-export function drift(filmHtml, decl) {
-  const m = filmHtml.match(/data-composition-variables\s*=\s*'([\s\S]*?)'/);
-  if (!m) return 'the film declares no data-composition-variables on <html>';
-  let got;
-  try { got = JSON.parse(m[1].replace(/&#39;/g, "'")); } catch (e) { return 'data-composition-variables is not valid JSON: ' + e.message; }
-  if (!Array.isArray(got)) return 'data-composition-variables must be an ARRAY of declarations (the OBJECT shape is the --variables-file override format)';
-  const a = new Map(got.map((d) => [d.id, d]));
-  const out = [];
-  for (const d of decl) {
-    const g = a.get(d.id);
-    if (!g) out.push(`missing token "${d.id}"`);
-    else if (String(g.default) !== String(d.default)) out.push(`"${d.id}" is ${JSON.stringify(g.default)} in the film, ${JSON.stringify(d.default)} in the pack`);
-    else if (g.type !== d.type) out.push(`"${d.id}" is type ${g.type} in the film, ${d.type} in the pack`);
-  }
-  for (const id of a.keys()) if (!decl.some((d) => d.id === id)) out.push(`"${id}" is declared by the film but not by the pack`);
-  return out.length ? out.join('; ') : null;
 }
 
 if (import.meta.filename === process.argv[1] || process.argv[1]?.endsWith('tokens.mjs')) {

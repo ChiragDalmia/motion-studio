@@ -1,93 +1,90 @@
-// Stamp a new film from lib/world.html, with the brand's resolved declaration
-// written in. Never `hyperframes init`: that scaffold injects per-film
-// CLAUDE.md/AGENTS.md routing which contradicts ours, and a per-film
-// package.json that forks the single pinned CLI version.
-//
-// --revars re-stamps only the <html> declaration of an existing film, which is
-// the fix when tools/build.mjs reports token drift.
+// Stamp the three tracked files a film is made of. Never `hyperframes init`:
+// that scaffold writes per-film CLAUDE.md/AGENTS.md routing which contradicts
+// ours, and a per-film package.json that forks the single pinned CLI version.
 import fs from 'node:fs';
 import path from 'node:path';
-import { declarationFor, attr } from './tokens.mjs';
+import { load } from './tokens.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 
 const [brand, slug, ...flags] = process.argv.slice(2);
 if (!brand || !slug) {
-  console.error('usage: node tools/new.mjs <brand> <slug> [--revars] [--duration=12]');
+  console.error('usage: node tools/new.mjs <brand> <slug> [--duration=12]');
   process.exit(2);
 }
-const revars = flags.includes('--revars');
-const duration = Number((flags.find((f) => f.startsWith('--duration=')) || '').split('=')[1] || 12);
+// npm swallows --duration=12 into its own config rather than forwarding it,
+// so `npm run new` and `node tools/new.mjs` would otherwise disagree silently.
+const flagged = (flags.find((f) => f.startsWith('--duration=')) || '').split('=')[1]
+  || flags[flags.indexOf('--duration') + 1]
+  || process.env.npm_config_duration;
+const duration = Number(flagged || 12);
+if (!(duration > 0)) { console.error(`--duration ${flagged} must be a positive number of seconds`); process.exit(2); }
 
-const { pack, decl: declArray } = await declarationFor(brand);
-const decl = attr(declArray);
+const { pack } = await load(brand);
 const film = path.join(ROOT, 'work', brand, slug);
-const index = path.join(film, 'index.html');
-
-if (revars) {
-  if (!fs.existsSync(index)) { console.error(`no film at work/${brand}/${slug}`); process.exit(2); }
-  const src = fs.readFileSync(index, 'utf8');
-  const next = src.replace(/(<html\b[^>]*?data-composition-variables\s*=\s*)'[\s\S]*?'/, `$1'${decl}'`);
-  if (!/data-composition-variables/.test(src)) { console.error('the film declares no data-composition-variables on <html>'); process.exit(1); }
-  if (next === src) { console.log(`  work/${brand}/${slug}/index.html already matches brands/${brand}/`); process.exit(0); }
-  fs.writeFileSync(index, next);
-  console.log(`  re-stamped work/${brand}/${slug}/index.html from brands/${brand}/ (${declArray.length} variables)`);
-  process.exit(0);
-}
-
 if (fs.existsSync(film)) { console.error(`work/${brand}/${slug} already exists`); process.exit(2); }
 if (!/^[a-z][a-z0-9-]{2,31}$/.test(slug)) { console.error(`slug "${slug}" must match /^[a-z][a-z0-9-]{2,31}$/`); process.exit(2); }
+fs.mkdirSync(film, { recursive: true });
 
-fs.mkdirSync(path.join(film, 'compositions'), { recursive: true });
-const tpl = fs.readFileSync(path.join(ROOT, 'lib/world.html'), 'utf8')
-  .replace(/<!--TEMPLATE[\s\S]*?-->\s*/, '')
-  .replace('__VARS__', decl)
-  .replace('__NAME__', `${pack.name} — ${slug}`)
-  .replace('__DURATION__', String(duration));
-fs.writeFileSync(index, tpl);
+const write = (name, text) => fs.writeFileSync(path.join(film, name), text);
 
-fs.writeFileSync(path.join(film, 'BRIEF.md'), `---
-brand: ${brand}
-slug: ${slug}
-surface: web
----
+write('film.json', JSON.stringify({
+  brand,
+  title: `${pack.name} ${slug}`,
+  duration,
+  beats: [{ id: 'b1', layer: 'art', duration, surface: 'default' }],
+  labels: {},
+  images: [],
+  vo: [],
+  motion: { assertions: [] },
+}, null, 2) + '\n');
+
+write('beats.html', `<!-- work/${brand}/${slug}. Every generated file is gitignored; npm run pre writes them.
+
+     One <template data-beat="id"> per beat in film.json, plus one
+     <template data-film> for the master timeline. Beat ids, starts, track
+     indexes and labels all come from film.json, so a retime is one number
+     there and nothing here moves. -->
+
+<template data-film>
+<style>
+</style>
+<script>
+</script>
+</template>
+
+<template data-beat="b1">
+<style>
+</style>
+  <div id="stage" class="clip" data-start="0" data-duration="${duration}" data-track-index="1"></div>
+<script>
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } });
+  t.addLabel('in', 0);
+</script>
+</template>
+`);
+
+write('NOTES.md', `# ${pack.name} ${slug}
 
 ## Intent
 
-<!-- One sentence: what a viewer should believe after watching. Not what the
-     film shows — what it changes. -->
+One sentence: what a viewer should believe after watching. Not what the film
+shows, what it changes.
 
 ## Assets
 
-<!-- Every mark, face, bed and photograph, with where it came from and what
-     licence it ships under. A film with an unlisted asset does not ship. -->
+Every mark, face, bed and photograph, with where it came from and what licence
+it ships under. A film with an unlisted asset does not ship.
 
 ## Customizations
 
-<!-- The device tuple: the three or four specific moves this film owns and no
-     other film in this brand may reuse. The ledger fails a repeat. -->
-
-## Notes
-`);
-
-fs.writeFileSync(path.join(film, 'STORYBOARD.md'), `---
-format: 1920x1080
-duration: ${duration}
-message: ""
-arc: ""
-audience: ""
----
+The three or four specific moves this film owns and no other film in this
+brand may reuse.
 
 ## Beats
 
-<!-- One row per beat. \`start\` is DERIVED from the durations above it — this
-     table is the single authored source, and data-start in index.html is
-     copied from it. Clip references (data-start="intro + 2") are for
-     deliberate overlap only. -->
-
-| # | id | start | duration | scene | transition | voiceover |
-|---|----|-------|----------|-------|------------|-----------|
-| 1 | b1 | 0     |          |       |            |           |
+Per-beat direction goes in beats.html, next to the markup it describes.
 `);
 
-console.log(`  stamped work/${brand}/${slug}/  (index.html, BRIEF.md, STORYBOARD.md) · duration ${duration}s · ${pack.name}`);
+console.log(`  stamped work/${brand}/${slug}/  film.json beats.html NOTES.md  ${duration}s  ${pack.name}`);
+console.log(`  next:   npm run ship ${brand} ${slug}`);

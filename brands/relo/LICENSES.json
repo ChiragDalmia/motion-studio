@@ -49,13 +49,13 @@
       "licence": "owned",
       "permittedUse": ["web", "video", "print"],
       "expires": null,
-      "note": "Mark plus the relo wordmark and the by-WKT signature, as outlines — no font is required to set it and no licensed face is redistributed as geometry. The top-right square is bound to --accent rather than --ground, which is an intro-only departure from logo/mark.svg."
+      "note": "Mark plus the relo wordmark and the by-WKT signature, as outlines, no font is required to set it and no licensed face is redistributed as geometry. The top-right square is bound to --accent rather than --ground, which is an intro-only departure from logo/mark.svg."
     }
   ],
   "missing": [
     {
       "kind": "music",
-      "why": "No music or SFX licence has been purchased, so no film in this brand may ship with audio. See docs/AUDIO.md — the free tiers of the bundled providers are not usable commercially, and both plausible stock licences forbid distributing a track in a form a visitor can extract standalone, which is exactly what view-source on an inlined data URI is."
+      "why": "No music or SFX licence has been purchased, so no film in this brand may ship with audio. See docs/AUDIO.md, the free tiers of the bundled providers are not usable commercially, and both plausible stock licences forbid distributing a track in a form a visitor can extract standalone, which is exactly what view-source on an inlined data URI is."
     }
   ]
 }

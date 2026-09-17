@@ -1,4 +1,4 @@
-/* Player chrome. UI furniture, not film design — the only place in lib/ that
+/* Player chrome. UI furniture, not film design, the only place in lib/ that
    carries its own numbers. Everything here is scoped under .ms- or #ms-. */
 html, body { height: 100%; margin: 0; overflow: hidden; background: #000 }
 body { color: #fff; font: 500 13px/1 ui-sans-serif, system-ui, sans-serif }

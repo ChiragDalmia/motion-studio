@@ -1,4 +1,4 @@
-// GATE 2 — assertions on the SHIPPED BYTES.
+// GATE 2, assertions on the SHIPPED BYTES.
 //
 // Never `hyperframes check` here. Pointed at a built artifact it produces the
 // poisoned green in its purest form: the vendored runtime and GSAP trip
@@ -17,36 +17,30 @@ import http from 'node:http';
 import { chromium } from 'playwright-core';
 import { load } from './tokens.mjs';
 import { build } from './build.mjs';
+import { chrome } from './doctor.mjs';
+import { load as loadFilm, BUDGET } from './film.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 
-const BUDGET = { brotli: 200 * 1024, gzip: 230 * 1024 };
 const THROTTLE = 4;          // CDP CPU throttling rate
 const SEEK_P95_MS = 25;      // best of three rounds; see the note where it is measured
-const DCL_MS = 1500;         // measured 328 at 4x
 const PCM_CAP = 8 * 1024 * 1024;
 
-function chrome() {
-  const cands = [
-    process.env.MS_CHROME,
-    path.join(process.env.USERPROFILE || process.env.HOME || '', '.cache/hyperframes/chrome/chrome-headless-shell/win64-152.0.7977.30/chrome-headless-shell-win64/chrome-headless-shell.exe'),
-    'C:/Program Files/Google/Chrome/Application/chrome.exe',
-    'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
-    '/usr/bin/google-chrome',
-    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-  ].filter(Boolean);
-  const hit = cands.find((p) => { try { return fs.existsSync(p); } catch { return false; } });
-  if (!hit) throw new Error(`no Chrome found. Set MS_CHROME, or run any hyperframes command once to populate its cache. Tried:\n  ${cands.join('\n  ')}`);
-  return hit;
-}
+/** A budget overrun, with the one line that would legitimately fix it. */
+const over = (unit, got, cap, brand, slug) =>
+  `${unit} ${kb(got)} exceeds this film's ${kb(cap)} budget. Take weight out, or, if the film has to carry it, `
+  + `raise "budget": { "${unit}": ${got} } in work/${brand}/${slug}/film.json, where the number sits beside the content that costs it.`;
 
 export async function gate2(brand, slug) {
   const file = path.join(ROOT, 'builds', `${brand}-${slug}.html`);
-  if (!fs.existsSync(file)) throw new Error(`no artifact at builds/${brand}-${slug}.html — run npm run build first`);
+  if (!fs.existsSync(file)) throw new Error(`no artifact at builds/${brand}-${slug}.html, run npm run build first`);
   const html = fs.readFileSync(file, 'utf8');
   const buf = Buffer.from(html);
   const film = path.join(ROOT, 'work', brand, slug);
+  const { budget } = loadFilm(brand, slug);
   const { pack, values } = await load(brand);
+  const shipped = JSON.parse(fs.readFileSync(path.join(film, 'prepared.json'), 'utf8')).faces;
+  const shippedFamilies = [...new Set(pack.face.filter((f) => shipped.includes(f.file)).map((f) => f.family.toLowerCase()))];
   const fail = [];
   const note = [];
   const ok = (cond, msg) => { if (!cond) fail.push(msg); };
@@ -57,15 +51,22 @@ export async function gate2(brand, slug) {
     gzip: zlib.gzipSync(buf, { level: 9 }).length,
     brotli: zlib.brotliCompressSync(buf, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11 } }).length,
   };
-  ok(sizes.brotli <= BUDGET.brotli, `brotli ${kb(sizes.brotli)} exceeds the ${kb(BUDGET.brotli)} wire budget`);
-  ok(sizes.gzip <= BUDGET.gzip, `gzip ${kb(sizes.gzip)} exceeds the ${kb(BUDGET.gzip)} wire budget`);
-  note.push(`raw ${kb(sizes.raw)} (uncapped, reported only) · gzip ${kb(sizes.gzip)} · brotli ${kb(sizes.brotli)} = ${(sizes.brotli / BUDGET.brotli * 100).toFixed(0)}% of budget`);
+  // The wire budget is the film's own, defaulting to the studio number. See
+  // BUDGET in tools/film.mjs for why it is per-film rather than one global cap.
+  ok(sizes.brotli <= budget.brotli, over('brotli', sizes.brotli, budget.brotli, brand, slug));
+  ok(sizes.gzip <= budget.gzip, over('gzip', sizes.gzip, budget.gzip, brand, slug));
+  // A budget raised past what the film needs is a budget nobody is holding to.
+  for (const k of ['brotli', 'gzip']) {
+    ok(!(budget[k] > BUDGET[k] && sizes[k] <= BUDGET[k]),
+      `film.json raises budget.${k} to ${kb(budget[k])} but the artifact is ${kb(sizes[k])}, inside the ${kb(BUDGET[k])} default. Delete the override.`);
+  }
+  note.push(`raw ${kb(sizes.raw)} (uncapped, reported only) · gzip ${kb(sizes.gzip)} · brotli ${kb(sizes.brotli)} = ${(sizes.brotli / budget.brotli * 100).toFixed(0)}% of this film's ${kb(budget.brotli)} budget`);
 
   ok(!/<script[^>]*\ssrc\s*=/i.test(html), 'a <script src=> survived into the artifact');
   ok(!/jsdelivr|cdn\./i.test(html), 'a cdn hostname appears in the artifact');
   ok(/http-equiv="Content-Security-Policy"/i.test(html), 'the artifact carries no <meta> CSP');
   for (const req of ['connect-src data:', 'script-src \'unsafe-inline\' data:', 'media-src data:', 'font-src data:']) {
-    ok(html.includes(req), `CSP is missing "${req}" — omitting it fails SILENTLY (LUT grading dies, or AudioWorklet FX are blocked and misreported as a secure-context problem)`);
+    ok(html.includes(req), `CSP is missing "${req}", omitting it fails SILENTLY (LUT grading dies, or AudioWorklet FX are blocked and misreported as a secure-context problem)`);
   }
 
   // ---- two independent builds must be byte-identical ----------------------
@@ -83,7 +84,7 @@ export async function gate2(brand, slug) {
   await build(brand, slug);
   const second = sha(fs.readFileSync(file));
   ok(first === second, `two consecutive builds are not byte-identical: ${first.slice(0, 12)} then ${second.slice(0, 12)}. Something in the packager depends on the run rather than the input.`);
-  ok(onDisk === first, `builds/${brand}-${slug}.html was STALE — it did not match a fresh build of the current source (${onDisk.slice(0, 12)} on disk, ${first.slice(0, 12)} fresh). This is not nondeterminism: the source changed after the last build. It has been rebuilt, so re-run gate2.`);
+  ok(onDisk === first, `builds/${brand}-${slug}.html was STALE, it did not match a fresh build of the current source (${onDisk.slice(0, 12)} on disk, ${first.slice(0, 12)} fresh). This is not nondeterminism: the source changed after the last build. It has been rebuilt, so re-run gate2.`);
 
   // ---- what the authored source claims, for the browser to be held to -----
   const src = fs.readFileSync(path.join(film, 'index.html'), 'utf8');
@@ -125,20 +126,20 @@ export async function gate2(brand, slug) {
     await page.waitForFunction('window.__player && document.fonts.status === "loaded"', null, { timeout: 20000 })
       .catch(() => {});
 
-    probe = await page.evaluate(async ({ expectIds, authoredDuration, tokens, faceSpecs }) => {
+    probe = await page.evaluate(async ({ expectIds, authoredDuration, tokens }) => {
       const out = { fail: [], info: {} };
       const root = document.querySelector('[data-composition-id]');
 
       // The document matters. Measured on the rejected srcdoc architecture, an
       // outer shell reported an empty resource list while the artifact made a
       // live network call. This runs in the composition document because the
-      // artifact IS the document — that is the whole point of not shipping the
+      // artifact IS the document, that is the whole point of not shipping the
       // player web component.
       const res = performance.getEntriesByType('resource');
       if (res.length) out.fail.push(`${res.length} network request(s): ${res.map((r) => r.name.slice(0, 70)).join(', ')}`);
       out.info.resources = res.length;
 
-      if (!window.__player) { out.fail.push('window.__player is absent — the artifact has no transport'); return out; }
+      if (!window.__player) { out.fail.push('window.__player is absent, the artifact has no transport'); return out; }
       const d = window.__player.getDuration();
       out.info.duration = d;
       if (Math.abs(d - authoredDuration) > 0.001) out.fail.push(`getDuration() is ${d}, the authored root data-duration is ${authoredDuration}`);
@@ -150,22 +151,11 @@ export async function gate2(brand, slug) {
       const want = [...expectIds].sort();
       const missing = want.filter((k) => !got.includes(k));
       const extra = got.filter((k) => !want.includes(k));
-      if (missing.length) out.fail.push(`timeline(s) missing: ${missing.join(', ')} — that beat is gone and every other gate is green`);
+      if (missing.length) out.fail.push(`timeline(s) missing: ${missing.join(', ')}, that beat is gone and every other gate is green`);
       if (extra.length) out.info.extraTimelines = extra;
 
       out.info.fonts = document.fonts.size;
       out.info.fontStatus = document.fonts.status;
-      // fonts.size counts DECLARED faces and stays at 5 even when every one of
-      // them failed. Per-face status is the real answer, and it separates the
-      // two cases that matter: a face the film paints with resolves to
-      // "loaded", and a face nothing references stays "unloaded" — which is
-      // not a failure, it is dead weight the author should delete.
-      const faces = [...document.fonts].map((f) => ({ family: f.family.replace(/^['"]|['"]$/g, ''), weight: String(f.weight), status: f.status }));
-      out.info.facesLoaded = faces.filter((f) => f.status === 'loaded').length;
-      out.info.facesUnused = faces.filter((f) => f.status === 'unloaded').map((f) => `${f.family} ${f.weight}`);
-      const broken = faces.filter((f) => f.status === 'error' || f.status === 'loading');
-      if (broken.length) out.fail.push(`face(s) failed to load: ${broken.map((f) => `${f.family} ${f.weight} (${f.status})`).join(', ')}`);
-      if (!out.info.facesLoaded) out.fail.push('no declared face loaded at all — the film is rendering entirely in fallback type');
       if (document.fonts.status !== 'loaded') out.fail.push(`document.fonts.status is "${document.fonts.status}"`);
 
       // A missing aspect-ratio gives a zero-height film that is invisible with
@@ -188,7 +178,7 @@ export async function gate2(brand, slug) {
       const media = [...document.querySelectorAll('audio,video')];
       out.info.media = media.length;
       for (const m of media) {
-        if (!m.id) out.fail.push('a media element has no id — the mixer never sees it and the render is silent');
+        if (!m.id) out.fail.push('a media element has no id, the mixer never sees it and the render is silent');
         if (m.readyState !== 4) out.fail.push(`${m.tagName.toLowerCase()}#${m.id} readyState is ${m.readyState}, expected 4`);
       }
 
@@ -218,20 +208,15 @@ export async function gate2(brand, slug) {
       out.info.seekRounds = rounds.map((r) => +r.p95.toFixed(1));
       window.__player.seek(0);
       return out;
-    }, { expectIds: [...expectIds], authoredDuration, faceSpecs: faceSpecs(pack), tokens: pick(values, ['ground', 'onGround', 'brand', 'onBrand', 'accent', 'line', 'muted']) });
+    }, { expectIds: [...expectIds], authoredDuration, tokens: pick(values, ['ground', 'onGround', 'brand', 'onBrand', 'accent', 'line', 'muted']) });
 
     probe.info.dcl = dcl;
     probe.info.dclRuns = dclRuns;
     fail.push(...probe.fail);
-    ok(dcl != null && dcl <= DCL_MS, `domContentLoaded ${dcl}ms at ${THROTTLE}x CPU throttle exceeds ${DCL_MS}ms`);
+    ok(dcl != null && dcl <= budget.dclMs, `domContentLoaded ${dcl}ms at ${THROTTLE}x CPU throttle exceeds this film's ${budget.dclMs}ms budget`);
+    ok(!(budget.dclMs > BUDGET.dclMs && dcl != null && dcl <= BUDGET.dclMs),
+      `film.json raises budget.dclMs to ${budget.dclMs} but the artifact parses in ${dcl}ms, inside the ${BUDGET.dclMs}ms default. Delete the override.`);
     ok(probe.info.seekP95 <= SEEK_P95_MS, `seek p95 ${probe.info.seekP95}ms at ${THROTTLE}x exceeds ${SEEK_P95_MS}ms`);
-    ok(probe.info.fonts === pack.face.length, `document.fonts.size is ${probe.info.fonts}, the pack declares ${pack.face.length} face(s)`);
-    if (probe.info.facesUnused?.length) {
-      const bytes = pack.face
-        .filter((f) => probe.info.facesUnused.includes(`${f.family} ${f.weight}`))
-        .reduce((a, f) => a + fs.statSync(path.join(ROOT, 'brands', brand, f.file)).size, 0);
-      note.push(`${probe.info.facesUnused.length} inlined face(s) are never painted with — ${kb(bytes)} of dead weight in every artifact: ${probe.info.facesUnused.join(', ')}. Delete them from brands/${brand}/brand.ts or use them.`);
-    }
     ok(errors.length === 0, `console error(s): ${errors.slice(0, 3).join(' | ')}`);
 
     // Decoded PCM: what the browser actually holds in memory, not the encoded size.
@@ -245,15 +230,16 @@ export async function gate2(brand, slug) {
     // reported `layout: 0 errors` under check --strict --at-transitions,
     // because both elements carried a clip-path and the audit sees the clipped
     // box. Since "clipped reveals as the primary verb" is a house rule, that
-    // blindness is systematic rather than incidental — so measure the layout
+    // blindness is systematic rather than incidental, so measure the layout
     // the type actually occupies, with every clip forced off.
-    const overlaps = await page.evaluate((times) => {
+    const pass = await page.evaluate(({ times, families }) => {
       const off = document.createElement('style');
       off.textContent = '*{clip-path:none !important;-webkit-clip-path:none !important}';
       document.head.appendChild(off);
       const name = (el) => (el.id ? '#' + el.id : el.tagName.toLowerCase() + (el.className ? '.' + String(el.className).split(/\s+/)[0] : ''));
       const ownText = (el) => [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim().length > 1);
       const seen = new Map();
+      const fellBack = new Map();
       for (const t of times) {
         window.__player.seek(t);
         const els = [...document.querySelectorAll('[data-composition-id] *')].filter((el) => {
@@ -261,13 +247,17 @@ export async function gate2(brand, slug) {
           if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) < 0.05) return false;
           // Block-level only. An <em> inside a headline is not an independent
           // text block, and with line-height below 1 its inline box genuinely
-          // does overlap the previous line's box while no glyph does — which
+          // does overlap the previous line's box while no glyph does, which
           // reported a 172x27px collision between a line and the emphasis on
           // the line after it. The question is whether two text BLOCKS collide.
           if (/^inline/.test(cs.display) || cs.display === 'contents') return false;
           const r = el.getBoundingClientRect();
           return r.width > 1 && r.height > 1 && ownText(el);
         });
+        for (const el of els) {
+          const first = getComputedStyle(el).fontFamily.split(',')[0].trim().replace(/^['"]|['"]$/g, '');
+          if (!families.includes(first.toLowerCase())) fellBack.set(name(el), `${name(el)} is set in "${first}"`);
+        }
         for (let i = 0; i < els.length; i++) {
           for (let j = i + 1; j < els.length; j++) {
             const A = els[i], B = els[j];
@@ -286,16 +276,45 @@ export async function gate2(brand, slug) {
       }
       off.remove();
       window.__player.seek(0);
-      return [...seen.values()].sort((x, y) => y.area - x.area);
-    }, sampleTimes(probe.info.duration));
+      // Per-face status, read here rather than at load: a face stays
+      // "unloaded" until something is painted in it, and the sweep above is
+      // the first moment every beat has been on screen. fonts.size alone
+      // counts DECLARED faces and stays put even when every one of them failed.
+      const faces = [...document.fonts].map((f) => ({ family: f.family.replace(/^['\"]|['\"]$/g, ''), weight: String(f.weight), status: f.status }));
+      return {
+        overlaps: [...seen.values()].sort((x, y) => y.area - x.area),
+        fellBack: [...fellBack.values()],
+        faces,
+      };
+    }, { times: sampleTimes(probe.info.duration), families: shippedFamilies });
+    // What the packager inlined and what the browser painted must be the same
+    // set. tools/prepare.mjs ships the faces whose family the film names, so
+    // both directions are real defects: a missing face is fallback type, an
+    // extra one is dead bytes in every copy of the artifact.
+    probe.info.fellBack = pass.fellBack;
+    probe.info.facesLoaded = pass.faces.filter((f) => f.status === 'loaded').length;
+    probe.info.facesUnused = pass.faces.filter((f) => f.status !== 'loaded').map((f) => `${f.family} ${f.weight} (${f.status})`);
+    ok(probe.info.fonts === shipped.length, `document.fonts.size is ${probe.info.fonts}, this film ships ${shipped.length} face(s) (${shipped.join(', ') || 'none, it sets no type'})`);
+    if (probe.info.facesUnused.length) {
+      const bytes = pack.face
+        .filter((f) => probe.info.facesUnused.some((u) => u.startsWith(`${f.family} ${f.weight} `)))
+        .reduce((a, f) => a + fs.statSync(path.join(ROOT, 'brands', brand, f.file)).size, 0);
+      ok(false, `${probe.info.facesUnused.length} inlined face(s) are never painted with across the whole film, ${kb(bytes)} of dead weight in every artifact: ${probe.info.facesUnused.join(', ')}. Either the film should set that weight, or brands/${brand}/brand.ts should not declare it.`);
+    }
+    // Every block of type resolves to a face this film ships. Stronger than
+    // "at least one face loaded", which passes while nine blocks in ten fall
+    // back, and correct for a film that sets no type at all.
+    ok(!pass.fellBack.length,
+      `type painted in a fallback face: ${pass.fellBack.slice(0, 4).join('; ')}. The first family in the computed stack is not one this film inlined, so it renders in whatever the viewer's machine happens to have.`);
+    const overlaps = pass.overlaps;
     for (const o of overlaps) {
-      fail.push(`text overlap ${o.key} — ${o.ox}x${o.oy}px at t=${o.t}s with clips off. Upstream's content_overlap does not see this: it measures the clipped box, and a clipped reveal is this studio's default entrance.`);
+      fail.push(`text overlap ${o.key}, ${o.ox}x${o.oy}px at t=${o.t}s with clips off. Upstream's content_overlap does not see this: it measures the clipped box, and a clipped reveal is this studio's default entrance.`);
     }
     if (!overlaps.length) note.push(`no unclipped text overlap across ${sampleTimes(probe.info.duration).length} samples`);
 
     // ---- the film as a person actually opens it ---------------------------
     // A separate, unthrottled, UNDRIVEN page. Everything above talks to
-    // window.__player directly, which exists by then — so it validated the
+    // window.__player directly, which exists by then, so it validated the
     // RUNTIME and never once checked that our own chrome wired up. It did not,
     // and the artifact opened to a blank white screen with every assertion
     // above passing. This is the assertion that would have caught it.
@@ -343,30 +362,30 @@ export async function gate2(brand, slug) {
       finally { await pg.close(); }
     })();
 
-    ok(opened.chromeWired, 'the player chrome never initialised — window.__ms.player is absent. The runtime installs window.__player ASYNCHRONOUSLY and sets window.__playerReady beside it; a chrome that reads it once at parse time finds nothing. Every assertion that talks to window.__player directly still passes, and the film ships blank.');
-    ok(opened.transport, 'the transport DOM is absent — #ms-seek was never appended');
+    ok(opened.chromeWired, 'the player chrome never initialised, window.__ms.player is absent. The runtime installs window.__player ASYNCHRONOUSLY and sets window.__playerReady beside it; a chrome that reads it once at parse time finds nothing. Every assertion that talks to window.__player directly still passes, and the film ships blank.');
+    ok(opened.transport, 'the transport DOM is absent, #ms-seek was never appended');
     ok(opened.ink && opened.ink.offModal >= 0.5,
-      `the frame a person opens to is effectively blank: ${opened.ink ? opened.ink.offModal : '?'}% of pixels differ from the modal colour, across ${opened.ink ? opened.ink.distinct : '?'} distinct colours. t=0 is blank BY CONSTRUCTION — every entrance starts from opacity 0 or a fully clipped box — so a film that has not started, or that rests on t=0, shows nothing at all.`);
+      `the frame a person opens to is effectively blank: ${opened.ink ? opened.ink.offModal : '?'}% of pixels differ from the modal colour, across ${opened.ink ? opened.ink.distinct : '?'} distinct colours. t=0 is blank BY CONSTRUCTION, every entrance starts from opacity 0 or a fully clipped box, so a film that has not started, or that rests on t=0, shows nothing at all.`);
     ok(opened.t > 0 || /ms-poster/.test(opened.body || ''),
-      `1.5s after a plain open the film is at t=${opened.t} and body is "${opened.body}" — neither running nor deliberately showing its poster`);
+      `1.5s after a plain open the film is at t=${opened.t} and body is "${opened.body}", neither running nor deliberately showing its poster`);
     ok(!opened.errors?.length, `console error(s) on a plain open: ${(opened.errors || []).slice(0, 2).join(' | ')}`);
     if (opened.ink) note.push(`opened undriven: t=${opened.t}s playing=${opened.playing} poster=${opened.poster?.toFixed?.(2)}s · ${opened.ink.offModal}% of pixels off-modal over ${opened.ink.distinct} colours`);
 
     // ---- the embed contract, measured, not assumed ------------------------
     // "Needs nothing from the consuming website" is false. A srcdoc embed
-    // inherits the host CSP, and under default-src 'self' — the most common
-    // marketing-site policy — its inline scripts and styles are both blocked,
+    // inherits the host CSP, and under default-src 'self', the most common
+    // marketing-site policy, its inline scripts and styles are both blocked,
     // so the embed is a live frame containing a black rectangle. CSP policies
     // only intersect, so the artifact's own <meta> can never grant them back.
     // Embedded as its own document it carries its own policy. Prove it.
-    const e = await embedTest(browser, file, faceSpecs(pack));
+    const e = await embedTest(browser, file, faceSpecs(pack, shipped));
     ok(e.ownDoc.ok, `embedded as <iframe src> under a host default-src 'self' with no CSP header on the artifact's own path, it did not run: ${e.ownDoc.why || 'height ' + e.ownDoc.h}`);
-    ok(e.ownDoc.faces > 0, 'embedded as its own document, not one declared face loaded — the film is entirely in fallback type');
-    note.push(`embed, host default-src 'self': own document ${verdict(e.ownDoc)} · host CSP header on the artifact path ${verdict(e.hostHeader)} · inline-allowed but no font data: ${verdict(e.fontsOnly, pack.face.length)} · srcdoc ${verdict(e.srcdoc)}`);
-    if (e.hostHeader.ok) note.push('NOTE: the host CSP header did not block the artifact here — do not weaken host requirement 2 on one measurement');
+    ok(e.ownDoc.faces === shipped.length, `embedded as its own document, ${e.ownDoc.faces} of ${shipped.length} shipped face(s) loaded; the film is painting in fallback type`);
+    note.push(`embed, host default-src 'self': own document ${verdict(e.ownDoc)} · host CSP header on the artifact path ${verdict(e.hostHeader)} · inline-allowed but no font data: ${verdict(e.fontsOnly, shipped.length)} · srcdoc ${verdict(e.srcdoc)}`);
+    if (e.hostHeader.ok) note.push('NOTE: the host CSP header did not block the artifact here, do not weaken host requirement 2 on one measurement');
     if (e.srcdoc.ok) note.push('NOTE: srcdoc ran here; it is still banned, because it inherits the host policy and breaks on any stricter host');
-    if (e.fontsOnly.ok && e.fontsOnly.faces < pack.face.length) {
-      note.push(`the fontless-CSP case is the dangerous one: the film RAN with ${e.fontsOnly.faces}/${pack.face.length} faces — it looks wrong and reports nothing`);
+    if (e.fontsOnly.ok && e.fontsOnly.faces < shipped.length) {
+      note.push(`the fontless-CSP case is the dangerous one: the film RAN with ${e.fontsOnly.faces}/${shipped.length} faces, it looks wrong and reports nothing`);
     }
   } finally {
     await browser.close();
@@ -390,7 +409,7 @@ export async function gate2(brand, slug) {
  *              script and style are both blocked and the embed is a live frame
  *              containing a black rectangle.
  *   fontsOnly  a host CSP that does allow inline script and style but not
- *              `data:` fonts. The film RUNS and looks wrong — every face falls
+ *              `data:` fonts. The film RUNS and looks wrong, every face falls
  *              back silently, with nothing the host would ever notice.
  *   srcdoc     inherits the host policy entirely. Always banned.
  */
@@ -435,8 +454,10 @@ async function embedTest(browser, file, specs) {
         const w = document.getElementById('f').contentWindow;
         const root = w.document.querySelector('[data-composition-id]');
         try { await w.document.fonts.ready; } catch (e) {}
-        // Whether the real faces can actually be painted with, not whether the
-        // script ran and not whether they were merely declared.
+        // Ask for each face by name. Whether the real faces CAN be painted
+        // with, which is the CSP question, rather than whether the resting
+        // frame happens to have painted them already.
+        await Promise.all(specs.map((s) => w.document.fonts.load(s).catch(() => {})));
         const faces = [...w.document.fonts].filter((f) => f.status === 'loaded').length;
         return { ok: root.offsetHeight > 0, h: root.offsetHeight, d: w.__player.getDuration(), faces, fontStatus: w.document.fonts.status };
       }, specs);
@@ -475,9 +496,10 @@ function sampleTimes(duration) {
 }
 
 const kb = (n) => (n / 1024).toFixed(1) + ' KB';
+/** A CSS font shorthand per face this film ships, for document.fonts.load(). */
+const faceSpecs = (pack, shipped) => pack.face.filter((f) => shipped.includes(f.file))
+  .map((f) => `${f.style || 'normal'} ${f.weight} 100px "${f.family}"`);
 const verdict = (r, faces) => (r.ok ? (faces != null ? `runs, ${r.faces} face(s) painted` : 'runs') : 'blocked');
-/** A CSS font shorthand per declared face, for document.fonts.check(). */
-const faceSpecs = (pack) => pack.face.map((f) => `${f.style || 'normal'} ${f.weight} 100px "${f.family}"`);
 const pick = (o, ks) => Object.fromEntries(ks.filter((k) => k in o).map((k) => [k, o[k]]));
 
 if (process.argv[1]?.endsWith('gate2.mjs')) {

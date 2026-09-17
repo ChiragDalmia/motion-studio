@@ -1,8 +1,26 @@
+# LF in the index everywhere. A CRLF source makes a clean checkout generate
+# different bytes from the tree it was built in, which breaks the one
+# guarantee this repo sells. tools/guard.mjs fails on a CR in tracked text.
 * text=auto eol=lf
+
 *.woff2 binary
+*.woff  binary
+*.ttf   binary
+*.otf   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.webp  binary
+*.gif   binary
+*.ico   binary
 *.mp3   binary
 *.wav   binary
 *.mp4   binary
-*.png   binary
-*.jpg   binary
+*.mov   binary
+
+# Built films are one long generated line. A diff of one is unreadable and a
+# language breakdown that counts them describes the packager, not this repo.
 builds/*.html -diff linguist-generated
+
+# Vendored, unmodified, and not ours to be measured on.
+lib/vendor/* linguist-vendored

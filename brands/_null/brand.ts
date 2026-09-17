@@ -1,7 +1,7 @@
 import type { Pack } from '../pack.ts';
 
 /**
- * FIXTURE — this pack MUST NOT build. Every field below is wrong in a specific,
+ * FIXTURE, this pack MUST NOT build. Every field below is wrong in a specific,
  * named way, and tools/fixtures.mjs asserts the validator says so. If this pack
  * ever loads cleanly, a validator has been weakened.
  *
@@ -13,11 +13,11 @@ const nul = {
 
   token: {
     ground: '#ffffff',
-    onGround: '#e8e8e8',         // 2. 1.19:1 — an on- partner that fails AA
+    onGround: '#e8e8e8',         // 2. 1.19:1, an on- partner that fails AA
     surface: '#ffffff',
     onSurface: '#111111',
     brand: '#34bde8',
-    onBrand: '#ffffff',          // 3. 2.19:1 — the mistake of putting white on a mid tone
+    onBrand: '#ffffff',          // 3. 2.19:1, the mistake of putting white on a mid tone
     accent: '#ffde17',
     onAccent: '#ffffff',         // 4. also fails
     line: '#000000',             // 5. that is ink, not a hairline

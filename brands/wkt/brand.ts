@@ -2,12 +2,12 @@ import type { Pack } from '../pack.ts';
 
 /**
  * We Know Training. Safety training. Dark-first: the brand's real ground is
- * navy, and white is the exception. Its red exists in three contextual values —
- * `red` for fills, `red-ink` for text on white, `red-lift` for text on navy —
- * which is the case that killed the idea of a fixed colour-slot schema. Here it
- * is a surface, not a mode and not a second palette.
+ * navy, and white is the exception. Its red exists in three contextual
+ * values: `red` for fills, `red-ink` for text on white, `red-lift` for text
+ * on navy. That is the case that killed the idea of a fixed colour-slot
+ * schema. Here it is a surface, not a mode and not a second palette.
  *
- * Palette and type taken from the live site's globals.css and layout.tsx —
+ * Palette and type taken from the live site's globals.css and layout.tsx:
  * Montserrat display, Roboto body, Roboto Mono for codes and clause numbers.
  * A mono role at small sizes, four sub-brand chips and a slower tempo make this
  * the least similar pack to relo that a real brand supplies.

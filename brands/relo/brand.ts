@@ -3,7 +3,7 @@ import type { Pack } from '../pack.ts';
 /**
  * RELO. Exam prep. Cyan on white, navy ink, a yellow that is a signal and never
  * a surface. Palette and type taken from the live site's globals.css and
- * layout.tsx — Poppins body, Oswald 700 display only.
+ * layout.tsx: Poppins body, Oswald 700 display only.
  */
 const relo: Pack = {
   slug: 'relo',
@@ -75,7 +75,7 @@ const relo: Pack = {
   // Only faces that are actually painted with belong here: every one is inlined
   // into every artifact of this brand. gate2 measures per-face status and
   // reports the byte cost of any that nothing references, which is how
-  // Poppins 400 and 700 came off this list — 15.3 KB of dead weight in each
+  // Poppins 400 and 700 came off this list, 15.3 KB of dead weight in each
   // film. Their .woff2 files stay in font/ because the brand owns those
   // weights; adding one back is a single line here.
   face: [

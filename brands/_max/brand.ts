@@ -1,7 +1,7 @@
 import type { Pack } from '../pack.ts';
 
 /**
- * FIXTURE — this pack MUST build. It is the maximal shape: every optional field
+ * FIXTURE, this pack MUST build. It is the maximal shape: every optional field
  * present, a mono role, five surfaces including one that inverts every partner,
  * a dozen extras, and every value form ({ref}, {mix} with a token operand and
  * with a hex literal, and plain literals). If this pack stops building, the

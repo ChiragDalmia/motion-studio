@@ -1,7 +1,7 @@
 // The formatting law. The one thing the deleted DSL was actually buying:
 // one row per tween, so a retime is one number on one line and a diff of a
 // re-cut is readable. Enforced as a lint over the file that runs, not as a
-// grammar over a file that gets compiled — a compiler would put a translation
+// grammar over a file that gets compiled. A compiler would put a translation
 // layer between every upstream finding and the line an agent has to edit.
 //
 // Node only. Runs in tier 1, on every film, on every commit.
@@ -33,7 +33,7 @@ export function law(file) {
       if (/gsap\.timeline\s*\(/.test(line)) {
         timelines++;
         if (!/paused\s*:\s*true/.test(line)) {
-          add(n, 'gsap.timeline() must be created paused — the runtime drives it by seeking, and an unpaused timeline runs on its own clock');
+          add(n, 'gsap.timeline() must be created paused. The runtime drives it by seeking, and an unpaused timeline runs on its own clock');
         }
       }
 
@@ -41,7 +41,7 @@ export function law(file) {
       // a re-cut diff unreadable, which is the entire point of the rule.
       const calls = [...line.matchAll(new RegExp(`\\.\\s*(${METHODS.join('|')})\\s*\\(`, 'g'))];
       if (calls.length > 1) {
-        add(n, `${calls.length} timeline calls on one line (${calls.map((c) => '.' + c[1]).join(' ')}) — one per line`);
+        add(n, `${calls.length} timeline calls on one line (${calls.map((c) => '.' + c[1]).join(' ')}). One per line`);
       }
       if (!calls.length) return;
 
@@ -55,27 +55,27 @@ export function law(file) {
       const tail = args.replace(/\s*\)\s*;?\s*$/, '');
       const pos = lastArg(tail);
       if (pos == null || /^[{[]/.test(pos)) {
-        add(n, `.${method}() has no position parameter — every tween states where it starts, always as a label expression`);
+        add(n, `.${method}() has no position parameter. Every tween states where it starts, always as a label expression`);
       } else if (/^-?[\d.]+$/.test(pos)) {
-        add(n, `.${method}() starts at the bare time ${pos} — use a label expression ("b2", "b2+=0.25") so a retime is one number in the storyboard`);
+        add(n, `.${method}() starts at the bare time ${pos}. Use a label expression ("b2", "b2+=0.25") so a retime is one number in the storyboard`);
       } else if (!/^["'][a-z][\w-]*(\s*\+=\s*[\d.]+|\s*-=\s*[\d.]+)?["']$/i.test(pos) && !/^</.test(pos)) {
         add(n, `.${method}() position ${pos} is not a label expression`);
       }
 
       if (method === 'from') {
-        add(n, '.from() on a CSS transform conflicts with the runtime\'s own set — use fromTo and state the initial value inside the tween');
+        add(n, '.from() on a CSS transform conflicts with the runtime\'s own set. Use fromTo and state the initial value inside the tween');
       }
       if (BANNED_EASE.test(line) && !/ease:\s*['"]none['"]\s*}\s*,\s*['"]/.test(line)) {
         // linear is almost always an unfinished decision rather than a choice.
-        add(n, 'ease "none"/"linear" — state a real curve, or say in a comment why this one move is linear');
+        add(n, 'ease "none" or "linear". State a real curve, or say in a comment why this one move is linear');
       }
     });
 
-    if (timelines > 1) add(offset, `${timelines} timelines in one script — one composition, one paused timeline`);
+    if (timelines > 1) add(offset, `${timelines} timelines in one script. One composition, one paused timeline`);
   }
 
   if (!/window\.__timelines\s*\[/.test(src)) {
-    add(1, 'nothing is assigned to window.__timelines["<composition-id>"] — anything not on that timeline does not exist');
+    add(1, 'nothing is assigned to window.__timelines["<composition-id>"]. Anything not on that timeline does not exist');
   }
   return out;
 }

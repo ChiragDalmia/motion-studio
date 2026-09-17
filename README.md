@@ -1,125 +1,202 @@
 # motion-studio
 
-One repo that produces every animation for any number of brands, and ships each
-one as a single portable `builds/<brand>-<slug>.html` that plays by itself with
-zero network requests.
+One repository that produces every animation for any number of brands, and
+ships each one as a single file you can drop on a website. The file plays by
+itself, makes no network requests, and needs no library on the page.
 
-Built on [HyperFrames](https://www.npmjs.com/package/hyperframes) for
-composition, seeking, validation, preview and optional MP4. Designed to be
-maintained by an agent — if you are an agent, read [`ai.md`](ai.md) and stop
-there.
+Built on [HyperFrames](https://www.npmjs.com/package/hyperframes).
+
+If you are a coding agent, read [AGENTS.md](AGENTS.md) instead. It is the full
+contract and it is shorter than this.
+
+## Set up
+
+You need [Node.js](https://nodejs.org) 22 or newer. Nothing else.
+
+```bash
+npm ci
+```
+
+```bash
+npm run doctor
+```
+
+`doctor` tells you whether your machine can run everything, and names the fix
+for anything it cannot. Run it first whenever something misbehaves. The first
+command that needs a browser downloads one by itself.
 
 ## Make a film
 
 ```bash
-node tools/new.mjs relo my-film --duration=12   # stamp it from lib/world.html
-npm run ship relo my-film                       # gates, build, verify
-npx hyperframes preview work/relo/my-film --background   # watch it
+npm run new relo my-film --duration=12
 ```
 
-`ship` runs the whole chain and stops at the first failure:
+That creates `work/relo/my-film/` with three files and nothing else:
 
-| | |
+| file | what goes in it |
 |---|---|
-| `npm run lint` | tier 1 — guard, tokens, the formatting law, upstream lint. Every film, every commit. ~130 ms per film. |
-| `npm run check <brand> <slug>` | tier 2 — **gate 1**: `check --strict --at-transitions`, in a real browser, against the source. ~25 s per film. With no arguments, only the films in the current diff's blast radius. |
-| `npm run build <brand> <slug>` | bundle to one file, inline the faces, add the player, assert self-containment. |
-| `npm run gate2 <brand> <slug>` | **gate 2** — assertions on the shipped bytes. |
-| `npm run do all` | tier 3 — everything, with snapshots. Nightly, never on the commit path. |
+| `film.json` | how long it is, and the list of beats in order |
+| `beats.html` | the shapes and the movement, one block per beat |
+| `NOTES.md` | what the film is for, and where its assets came from |
 
-## The two gates are different programs
+`relo` is the brand. The brands that exist are the directories in `brands/`.
 
-Gate 1 validates the **source project**. Gate 2 validates the **shipped bytes**.
-Everything the packager adds after gate 1 — the typefaces, the player, the CSP,
-the attribution — is covered only by gate 2.
+## Watch it
 
-Never point `hyperframes check` at a file in `builds/`. The vendored runtime
-trips `non_deterministic_code`, `template_literal_selector` and
-`requestanimationframe_in_composition`, so lint fails, the browser never boots,
-and every audit then reports clean-and-zero. HyperFrames' own lint calls the
-HyperFrames runtime non-deterministic; the divergence is structural and gate 2
-exists to close it.
-
-Both gates assert on **counts**, never on `ok` flags. There are at least four
-ways to get a passing verdict on a run that never happened, and every one of
-them reports `ok: true` next to a zero.
-
-One seam is worth naming, because it was measured rather than guessed. Gate 1's
-`content_overlap` is blind to a headline running straight through its own body
-copy when both carry a `clip-path` — it measures the clipped box, and a clipped
-reveal is this studio's default entrance, so the blindness is systematic. Gate 2
-re-measures the layout with every clip forced off and fails on the real
-geometry. Two defects in the first two films were found this way and neither was
-visible to any upstream rule.
-
-Gate 2 also opens the artifact the way a person does — one unthrottled page,
-nothing driven — and measures real pixels. It exists because everything else in
-that gate talks to `window.__player` directly, which by then exists, so it
-validated the *runtime* and never checked that our own player chrome wired up.
-It had not: the runtime installs `window.__player` asynchronously, a chrome that
-reads it once at parse time finds nothing, and **t=0 is blank by construction**
-because every entrance starts from opacity 0 or a fully clipped box. The
-artifact opened to a blank white screen with every other assertion green. Four
-assertions now cover it, the strictest being that the opening frame must not be
-a single flat colour.
-
-## Layout
-
-```
-ai.md                   the agent's entry point. The HyperFrames contract, as a digest.
-CLAUDE.md               load-bearing. Suppresses the skill tree; see ai.md §12 rationale.
-lib/                    shared. Zero colours, zero families, zero thresholds.
-  world.html            the film template: the four-layer world and the pan clamp
-  craft.mjs             craft predicates. Every threshold arrives as an argument.
-  chrome/               the player, over window.__player
-brands/<slug>/
-  brand.ts              the pack: 14-token core, extras, surfaces, craft, faces
-  tokens.json vars.json surfaces.css font/coverage.json   all GENERATED
-  font/master/          the untouched faces; font/ holds what ships
-  gfx/                  token-bound shapes, inlined by hand at authoring time
-work/<brand>/<slug>/    ONE HYPERFRAMES PROJECT. index.html + compositions/*.html
-builds/                 the deliverables, committed. See builds/EMBED.md.
-tools/                  do · new · prepare · build · gate2 · guard · tokens · law · font
+```bash
+npx hyperframes preview work/relo/my-film --background
 ```
 
-`lib/` and `brands/` are sources; the copies inside a film are generated and
-gitignored. Sharing is by **materializing, never referencing** — `../` in an
-asset path is a hard upstream lint error and a runtime 404, a symlink into
-`compositions/` passes `check` and is then silently dropped from the upload zip,
-and no shipped asset may live under a dot directory.
+A browser window opens and plays the film. Leave it open: edit `beats.html`,
+save, and it reloads.
+
+## Check it
+
+```bash
+npm run ship relo my-film
+```
+
+This runs everything in order and stops at the first problem: it generates the
+project, checks the repository rules, runs the linter, opens a real browser and
+audits the film frame by frame, builds the single file, then re-checks the
+built file. Green means every gate passed.
+
+A failure names the exact line of `beats.html` to look at. Paste the whole
+message somewhere rather than summarising it.
+
+The finished film is `builds/relo-my-film.html`. Open it by double-clicking.
+
+## Start over
+
+```bash
+npm run clean
+```
+
+Most of the files in a film's directory are generated and can be thrown away.
+`clean` removes all of them; the next command puts them back exactly as they
+were. Your three files are never touched.
+
+## Put it on a website
+
+Every file in `builds/` is one complete animation.
+
+```html
+<iframe src="/motion/relo-brand-logo.html"
+        title="RELO brand logo"
+        loading="lazy"
+        allow="autoplay"
+        style="width:100%; aspect-ratio:16/9; border:0"></iframe>
+```
+
+The film starts when it scrolls into view, pauses when it scrolls out, and
+holds a still frame for visitors who have asked for reduced motion.
+
+Three things the host page has to get right. All three fail silently, and each
+was measured rather than assumed.
+
+1. **Serve it as its own file. Never `srcdoc`, never a `data:` URL.** A
+   `srcdoc` frame inherits the host page's Content-Security-Policy, and those
+   policies only ever intersect, so the film's own policy can never grant back
+   what the host denied. The embed becomes a frame containing a black
+   rectangle.
+2. **Do not apply a restrictive CSP header to the film's own path.** Same
+   failure by another route. Either exclude that path from the site policy, or
+   make sure the policy it receives allows `script-src 'unsafe-inline'`,
+   `style-src 'unsafe-inline'`, `font-src data:`, `img-src data:`,
+   `media-src data:` and `connect-src data:`. Miss only `font-src data:` and
+   the worst case happens: the film runs and every letter renders in the wrong
+   typeface.
+3. **`frame-src` must permit the path.** `frame-src 'none'` stops the frame
+   being created at all.
+
+Serve it compressed. gzip or brotli on `.html` for that path makes the biggest
+single difference to how the film loads.
+
+The film posts `play`, `pause`, `progress` and `complete` to the parent window
+and talks to no third party.
+
+```js
+addEventListener('message', (e) => {
+  if (e.data?.source !== 'motion-studio') return;
+  // e.data = { film, event, t, d }
+});
+```
+
+Drive it with `frame.contentWindow.postMessage({motionStudio:'play'}, '*')`,
+also `'pause'` or `{motionStudio:{seek:4.5}}`. With the frame focused: space or
+`k` play and pause, arrows step a frame (hold shift for a second), `Home` and
+`End` jump, `f` fullscreen.
 
 ## Add a brand
 
-Copy a `brands/<slug>/` directory, edit `brand.ts`, drop the faces into
+Copy a `brands/<slug>/` directory, edit `brand.ts`, drop the typefaces into
 `font/`, then:
 
 ```bash
-node tools/font.mjs <slug>    # subset the faces (needs python + fonttools)
-npm run tokens                # resolve, validate contrast, emit
+npm run font <slug>
 ```
 
-`brand.ts` fails to build unless it declares all fourteen core tokens, its own
-tempo (there is no house default and no fallback), its craft thresholds, and at
-least one face — and unless every `on-` partner and every surface clears WCAG AA
-against its own ground. That check has already caught real defects in both
-packs here.
+```bash
+npm run tokens
+```
 
-## Prerequisites
+`brand.ts` refuses to build unless it declares all fourteen core colours, its
+own tempo, its craft thresholds and at least one typeface, and unless every
+text colour clears WCAG AA against the background it sits on. That check has
+already caught real defects in both packs here.
 
-Node ≥ 22 and nothing else for the normal path. Chrome is downloaded and cached
-by HyperFrames on first use, and both gates find it there.
+`npm run font` is the one step that needs Python with `fonttools` and
+`brotli`. Nothing else does, and no check does.
 
-- **MP4** needs FFmpeg on `PATH`. It is not required to ship a film.
-- **`tools/font.mjs`** needs Python with `fonttools` and `brotli`. It is a pack
-  authoring step, run when a pack's faces change — never by `build` or a gate.
+## What is where
+
+```
+AGENTS.md               the contract, for people and for coding agents
+CLAUDE.md               imports AGENTS.md, plus what is specific to Claude Code
+brands/<slug>/          the brand: colours, typefaces, shapes, shared scenes
+media/<brand>/          screenshots and illustrations, shared across films
+work/<brand>/<slug>/    a film: film.json, beats.html, NOTES.md
+builds/                 the finished films, one file each
+lib/                    shared templates and the player
+tools/                  every command
+docs/AUDIO.md           why sound is not in the web build
+```
+
+`lib/`, `brands/` and `media/` are sources. The copies that appear inside a
+film are generated and ignored by git.
+
+## Why two checks and not one
+
+`npm run check` validates the project before it is packaged. `npm run gate2`
+validates the finished file. Everything the packager adds after the first check
+(the typefaces, the player, the security policy, the attribution) is covered
+only by the second one.
+
+Both assert on counts rather than on pass flags. There are at least four ways
+to get a green verdict on a check that never actually ran, and every one of
+them reports success next to a zero.
+
+Never point `npx hyperframes check` at a file in `builds/`. It reports clean
+and zero for a run that never happened.
 
 ## What this deliberately does not do
 
-No framework, no bundler config, no dev server, no test framework, no runtime
-dependencies. `hyperframes init` is never run for a film: it writes per-film
-routing files that contradict `CLAUDE.md` and a per-film `package.json` that
-forks the one pinned CLI version. There is exactly one `package.json` and
-`npm run guard` asserts it.
+No framework, no bundler configuration, no dev server, no test framework, no
+runtime dependencies. There is exactly one `package.json` and `npm run guard`
+asserts it. `hyperframes init` is never run for a film: it writes per-film
+routing files and a per-film `package.json` that forks the one pinned CLI
+version.
 
-Audio is not shipped in the web build. [`docs/AUDIO.md`](docs/AUDIO.md) has the
-three independent reasons and the licence that has to be bought first.
+Sound is not in the web build. [docs/AUDIO.md](docs/AUDIO.md) has the three
+independent reasons and the licence that would have to be bought first.
+
+## Contributing and reporting problems
+
+[CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
+
+## Licence
+
+This repository has no licence file, so it is all rights reserved by default
+and nobody outside the project may copy, modify or redistribute it. The
+typefaces and media inside it are separately licensed: every one is listed in
+`brands/<slug>/LICENSES.json` with its source and terms.

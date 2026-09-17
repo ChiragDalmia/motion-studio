@@ -1,18 +1,18 @@
 /**
  * The brand pack schema. One file per brand at brands/<slug>/brand.ts.
  *
- * Every type here is erased at runtime — Node strips it, nothing compiles it.
+ * Every type here is erased at runtime. Node strips it, nothing compiles it.
  * The authority on what is *valid* is tools/tokens.mjs, which validates the
  * loaded object and prints the rule it broke. Types are for the editor; the
  * validator is for correctness.
  *
  * Two classes of value, and the split is load-bearing:
  *
- *   Class A — `token` and `surface`. Colours, lengths, font stacks, durations.
+ *   Class A is `token` and `surface`: colours, lengths, font stacks, durations.
  *     These become composition variables and `--custom-properties`. A film
  *     reads them as `var(--brand)`. They can be overridden per render.
  *
- *   Class B — `craft`, `face`, `defaults`, `legal`. Anything the *build*
+ *   Class B is `craft`, `face`, `defaults` and `legal`: anything the *build*
  *     computes with, and anything GSAP interpolates. These never become CSS
  *     variables, because there is no variable type that can express a curve and
  *     Node has no CSS cascade to resolve one with.
@@ -22,7 +22,7 @@
 export type Value = string | number;
 
 export type Pack = {
-  /** Must equal the directory name and match /^[a-z][a-z0-9]{2,11}$/ — no hyphen. */
+  /** Must equal the directory name and match /^[a-z][a-z0-9]{2,11}$/, no hyphen. */
   slug: string;
   /** Display name, as written in copy. */
   name: string;
@@ -32,7 +32,7 @@ export type Pack = {
    * nothing more. A pack that omits one does not build.
    *
    * Each of ground/surface/brand/accent has an `on-` partner, and the partner
-   * must clear WCAG AA against its base — tools/tokens.mjs computes it and
+   * must clear WCAG AA against its base. tools/tokens.mjs computes it and
    * fails the pack, not the film.
    */
   token: {
@@ -56,7 +56,7 @@ export type Pack = {
   };
 
   /**
-   * Brand chips the core does not name — a third red, a sub-brand accent, a
+   * Brand chips the core does not name: a third red, a sub-brand accent, a
    * chart ramp. Open by design: a fixed slot list cannot survive a brand whose
    * primary exists in three contextual values. Films reference these through a
    * surface or a brand shape, never directly.
@@ -100,7 +100,7 @@ export type Pack = {
    * Optional. The codepoints tools/font.mjs keeps when it subsets this brand's
    * faces, as a CSS unicode-range list. Defaults to printable ASCII plus the
    * punctuation a film actually sets. Override it for a brand whose copy needs
-   * more — accents, a currency symbol, a second script.
+   * more: accents, a currency symbol, a second script.
    *
    * font/master/ holds the untouched originals; font/ holds what ships; and
    * font/coverage.json records what survived, so tools/guard.mjs can fail a

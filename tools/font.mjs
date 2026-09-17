@@ -2,12 +2,12 @@
 //
 // Not a build dependency. It runs when a pack's faces change, writes the
 // shipped .woff2 files and a coverage record, and both are committed. Needs
-// Python with fonttools + brotli, the same way MP4 needs FFmpeg — an authoring
+// Python with fonttools + brotli, the same way MP4 needs FFmpeg: an authoring
 // prerequisite, never something `build` or `gate2` reaches for.
 //
 // Why it exists: Google's "latin" subset is ~250 glyphs and a film sets about
 // sixty. Measured on one real pack, subsetting cut 36-61% per face and 44 KB
-// off the artifact — the difference between that brand fitting the wire budget
+// off the artifact: the difference between that brand fitting the wire budget
 // and missing it by 13%.
 //
 //   brands/<slug>/font/master/*.woff2   the untouched masters, committed

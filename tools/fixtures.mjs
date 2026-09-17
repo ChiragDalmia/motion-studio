@@ -2,8 +2,8 @@
 // validators rather than the films: a gate nobody has watched fail is not a
 // gate. `_null` must be rejected for every named reason; `_max` must load.
 //
-// Run it when a validator changes. It is not on the commit path — the validators
-// themselves are, and this is what proves they still say no.
+// Run it when a validator changes. It is not on the commit path; the
+// validators themselves are, and this is what proves they still say no.
 import path from 'node:path';
 import { load, declarationFor } from './tokens.mjs';
 
@@ -36,7 +36,7 @@ try {
   nullErr = String(e.message);
   for (const [what, needle] of NULL_MUST_REJECT) {
     if (nullErr.includes(needle)) ok.push(`_null rejected for ${what}`);
-    else fails.push(`brands/_null was rejected, but NOT for ${what} — no message contained "${needle}". The validator for it is gone or its wording changed.\n       got: ${nullErr.split('\n').slice(0, 12).join('\n            ')}`);
+    else fails.push(`brands/_null was rejected, but NOT for ${what}, no message contained "${needle}". The validator for it is gone or its wording changed.\n       got: ${nullErr.split('\n').slice(0, 12).join('\n            ')}`);
   }
 }
 
@@ -54,7 +54,7 @@ try {
   };
   for (const [what, held] of Object.entries(want)) {
     if (held) ok.push(`_max has ${what}`);
-    else fails.push(`brands/_max loaded but lost ${what} — the core has dropped a capability a real brand depends on`);
+    else fails.push(`brands/_max loaded but lost ${what}, the core has dropped a capability a real brand depends on`);
   }
 } catch (e) {
   fails.push(`brands/_max FAILED to load. It is the maximal valid shape, so this is a core regression:\n       ${String(e.message).split('\n').join('\n       ')}`);
@@ -66,7 +66,7 @@ for (const [what, needle] of NULL_MUST_ALSO_REJECT) {
   // Not a failure on its own: load() reports structural errors first and stops,
   // so a dangling reference is only reached once the shape is valid. Say so
   // rather than pretending the check ran.
-  else ok.push(`${what} not reached — structural errors are reported first and stop the load`);
+  else ok.push(`${what} not reached, structural errors are reported first and stop the load`);
 }
 
 for (const m of ok) console.log(`  ok   ${m}`);
