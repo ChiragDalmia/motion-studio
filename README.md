@@ -196,7 +196,9 @@ independent reasons and the licence that would have to be bought first.
 
 ## Licence
 
-This repository has no licence file, so it is all rights reserved by default
-and nobody outside the project may copy, modify or redistribute it. The
-typefaces and media inside it are separately licensed: every one is listed in
-`brands/<slug>/LICENSES.json` with its source and terms.
+MIT. The full text is in [LICENSE](LICENSE).
+
+That covers the code. It does not cover the typefaces and media, which are
+third-party works this project cannot relicense: every one is listed in
+`brands/<slug>/LICENSES.json` with its source and terms. Brand names and logos
+belong to their owners, and MIT grants no trademark rights.
