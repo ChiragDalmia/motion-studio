@@ -92,7 +92,11 @@ need('lockfile', () => {
 
 need('git', () => {
   const v = execFileSync('git', ['--version'], { encoding: 'utf8' }).trim();
-  const eol = execFileSync('git', ['config', '--get', 'core.autocrlf'], { cwd: ROOT, encoding: 'utf8' }).trim();
+  // `git config --get` exits 1 on an unset key, and unset is the answer on
+  // every machine that is not Windows. .gitattributes pins eol=lf regardless,
+  // so this line is informational and must never be the thing that blocks.
+  let eol = '';
+  try { eol = execFileSync('git', ['config', '--get', 'core.autocrlf'], { cwd: ROOT, encoding: 'utf8' }).trim(); } catch {}
   return `${v}${eol ? `, core.autocrlf=${eol} (.gitattributes overrides it for this repo)` : ''}`;
 });
 

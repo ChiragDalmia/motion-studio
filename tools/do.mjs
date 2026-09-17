@@ -24,15 +24,6 @@ const ROOT = path.resolve(import.meta.dirname, '..');
 const CLI = path.join(ROOT, 'node_modules/hyperframes/dist/cli.js');
 // Each Chrome is 256 MB+, so this is a memory cap, not a throughput knob.
 const MAX_FAN = Math.max(1, Math.min(12, os.cpus().length));
-// CPU time, not wall clock, and the two are not the same quantity. Wall clock
-// measured 221ms per film on a quiet machine and 357ms on the same machine
-// while a 12-way gate 1 ran beside it, so the old budget reported the
-// neighbours as often as the films. It also charged the guard subprocess's
-// wait to fixed cost, which flattered the marginal number. This is the
-// parent process's own CPU, which is what the tier actually costs to run:
-// measured 650-810ms per film, including the lint library's one-time warm-up.
-const LINT_BUDGET_MS = 900;
-
 const dirs = (d) => (fs.existsSync(d) ? fs.readdirSync(d, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name) : []);
 const films = () => {
   const out = [];
@@ -127,9 +118,13 @@ async function tier1(list, prep) {
   // Fixed and marginal are reported apart because only the marginal number
   // scales. guard and tokens cost the same at two films or two hundred.
   const ms = Date.now() - t;
+  // CPU time, not wall clock: wall measured 221ms per film on a quiet machine
+  // and 357ms on the same machine with a 12-way gate 1 running beside it, so
+  // it reported the neighbours as often as the films. Reported, never gated:
+  // the number tracks the machine as much as the code, so a ceiling set on one
+  // desk fails a slower runner on code that did not change.
   const perFilm = (cpuMs(cpu0) - fixedCpu) / Math.max(1, list.length);
-  console.log(`tier 1  prepare + guard + law + lint · ${list.length} film(s) · ${(prep.ms / 1000).toFixed(1)}s prepare + ${(ms / 1000).toFixed(1)}s wall · ${fixedCpu}ms fixed + ${perFilm.toFixed(0)}ms per film of CPU (budget ${LINT_BUDGET_MS})`);
-  if (perFilm > LINT_BUDGET_MS) problems.push(`  tier 1 costs ${perFilm.toFixed(0)}ms of CPU per film, over the ${LINT_BUDGET_MS}ms budget. This tier runs on every film on every commit.`);
+  console.log(`tier 1  prepare + guard + law + lint · ${list.length} film(s) · ${(prep.ms / 1000).toFixed(1)}s prepare + ${(ms / 1000).toFixed(1)}s wall · ${fixedCpu}ms fixed + ${perFilm.toFixed(0)}ms per film of CPU`);
   for (const p of problems) console.log(p);
   return problems.length;
 }
@@ -300,9 +295,21 @@ const pick = () => {
 
 let code = 0;
 switch (cmd) {
-  case 'list':
-    for (const f of films()) console.log(`  ${f.id}`);
+  // --since <ref> narrows the list to what that ref changed, for a CI job that
+  // should not gate every film on every commit. The reason goes to stderr so
+  // stdout stays nothing but ids for a shell loop to read.
+  case 'list': {
+    const i = rest.indexOf('--since');
+    if (i < 0) { for (const f of films()) console.log(`  ${f.id}`); break; }
+    const ref = rest[i + 1];
+    // Without this, changed() would fall back to its HEAD default and select
+    // nothing on a clean checkout, which reads as a pass over zero films.
+    if (!ref) { console.error('list --since needs a ref'); process.exit(2); }
+    const c = await changed(ref);
+    console.error(`  selection: ${c.why}`);
+    for (const f of c.list) console.log(`  ${f.id}`);
     break;
+  }
   case 'pre': {
     const list = pick();
     const p = await ensure(list, { motion: rest.includes('--motion') });
