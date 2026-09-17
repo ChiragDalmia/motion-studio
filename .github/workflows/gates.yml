@@ -1,0 +1,51 @@
+name: gates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: gates-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Gate 1 and gate 2 need a real browser and the heaviest film takes about
+  # twenty-five minutes of it. Deliberately NOT on the critical path: nothing
+  # here is a required check, so a merge never waits on it. Read it after the
+  # fact, or before shipping a film to someone.
+  #
+  # It still reports honestly. A red gates check means a real finding, not a
+  # slow runner, and it is never dressed up as a pass.
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      # Full history, because the selection below diffs against the base and a
+      # shallow clone has nothing to diff against.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+      - run: npx playwright-core install --with-deps chromium
+
+      # Only the films this change can reach, so one film is one film of gate
+      # time instead of all of them. do.mjs widens the selection to every film
+      # when lib/ or tools/ moves, and an unresolvable ref widens it too, so
+      # the way this fails is "gate everything", never "gate nothing".
+      - name: gate 1 and gate 2, the films this change can reach
+        shell: bash
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}...HEAD', github.base_ref) || github.event.before }}
+        run: |
+          node tools/do.mjs list --since "$BASE" | while read -r id; do
+            npm run ship "${id%%/*}" "${id##*/}"
+          done
