@@ -1,0 +1,90 @@
+{
+  "brand": "bcc",
+  "reviewed": "2026-09-15",
+  "assets": [
+    {
+      "asset": "font/master/Inter-400.woff2",
+      "kind": "typeface",
+      "family": "Inter",
+      "source": "businesscareercollege.com self-hosted webfont",
+      "licence": "SIL Open Font License 1.1",
+      "url": "https://openfontlicense.org",
+      "permittedUse": ["web", "video", "print"],
+      "expires": null,
+      "note": "The site ships Inter as one variable face (wght 100-900) per unicode-range. This is that face's latin range, instanced to a static wght with fontTools. Outlines are the brand's own bytes."
+    },
+    {
+      "asset": "font/master/Inter-600.woff2",
+      "kind": "typeface",
+      "family": "Inter",
+      "source": "businesscareercollege.com self-hosted webfont",
+      "licence": "SIL Open Font License 1.1",
+      "url": "https://openfontlicense.org",
+      "permittedUse": ["web", "video", "print"],
+      "expires": null
+    },
+    {
+      "asset": "font/master/Inter-700.woff2",
+      "kind": "typeface",
+      "family": "Inter",
+      "source": "businesscareercollege.com self-hosted webfont",
+      "licence": "SIL Open Font License 1.1",
+      "url": "https://openfontlicense.org",
+      "permittedUse": ["web", "video", "print"],
+      "expires": null
+    },
+    {
+      "asset": "font/master/Jost-400.woff2",
+      "kind": "typeface",
+      "family": "Jost",
+      "source": "businesscareercollege.com self-hosted webfont",
+      "licence": "SIL Open Font License 1.1",
+      "url": "https://openfontlicense.org",
+      "permittedUse": ["web", "video", "print"],
+      "expires": null
+    },
+    {
+      "asset": "font/master/Jost-500.woff2",
+      "kind": "typeface",
+      "family": "Jost",
+      "source": "businesscareercollege.com self-hosted webfont",
+      "licence": "SIL Open Font License 1.1",
+      "url": "https://openfontlicense.org",
+      "permittedUse": ["web", "video", "print"],
+      "expires": null
+    },
+    {
+      "asset": "logo/mark.svg",
+      "kind": "mark",
+      "source": "businesscareercollege.com/images/BCC_Logo_Two-Colour_RGB.svg",
+      "licence": "owned",
+      "permittedUse": ["web", "video", "print"],
+      "expires": null,
+      "note": "The canonical two-colour lockup, byte-for-byte as published. The mark reads bcc + BUSINESS CAREER COLLEGE + by WKT; 'by WKT' is part of the artwork and is not a second logo. Fills are literal attributes (#004E74, #F15D2A) already, so nothing inherited can recolour it."
+    },
+    {
+      "asset": "logo/reversed.svg",
+      "kind": "mark",
+      "source": "businesscareercollege.com/images/BCC_Logo_Two-Colour_Reversed_RGB.svg",
+      "licence": "owned",
+      "permittedUse": ["web", "video", "print"],
+      "expires": null,
+      "note": "The published reversed variant, for dark grounds. Geometry identical to mark.svg at a 1600x700 artboard. It carries its fills as a <defs> style block on .cls-1/.cls-2; a film that inlines it rewrites those two class fills to literal fill attributes of the same values and drops the style block, because generic class names collide once every beat is inlined into one document. No path data is touched."
+    },
+    {
+      "asset": "compositions/img/*.webp",
+      "kind": "screenshot",
+      "source": "businesscareercollege.com/images/CIRO_web_*.webp",
+      "licence": "owned",
+      "permittedUse": ["web", "video"],
+      "expires": null,
+      "note": "Product captures BCC publishes on its own CIRE Exam Prep and ReadyEngine pages. Learner data in them is the vendor's own demo data."
+    }
+  ],
+  "missing": [
+    {
+      "kind": "music",
+      "why": "No music or SFX licence purchased. No film in this brand may ship with audio. See docs/AUDIO.md."
+    }
+  ]
+}
