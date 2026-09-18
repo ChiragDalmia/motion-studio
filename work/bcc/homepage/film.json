@@ -1,0 +1,150 @@
+{
+  "brand": "bcc",
+  "title": "Business Career College on ReadyEngine",
+  "duration": 88.5,
+  "budget": { "brotli": 229376, "gzip": 261120 },
+  "chrome": { "poster": 3.8 },
+  "beats": [
+    { "id": "open", "layer": "art", "duration": 12, "surface": "navy" },
+    { "id": "rating", "layer": "art", "duration": 13, "surface": "navy" },
+    { "id": "quiz", "layer": "art", "duration": 8.1, "surface": "navy" },
+    { "id": "plan", "layer": "art", "start": 32.6, "duration": 8.6, "surface": "navy" },
+    { "id": "exams", "layer": "art", "start": 40.7, "duration": 6.1, "surface": "navy" },
+    { "id": "riley", "layer": "art", "start": 46.3, "duration": 7.2, "surface": "navy" },
+    { "id": "again", "layer": "art", "start": 53, "duration": 7.4, "surface": "navy" },
+    { "id": "update", "layer": "art", "start": 59.9, "duration": 8.1, "surface": "navy" },
+    { "id": "focus", "layer": "art", "start": 67.5, "duration": 9.2, "surface": "navy" },
+    { "id": "note", "layer": "type", "start": 0, "duration": 77.3, "surface": "navy" },
+    { "id": "cap", "layer": "ui", "start": 0, "duration": 88.5, "surface": "navy" }
+  ],
+  "labels": {
+    "end": 77.3
+  },
+  "images": [
+    "mastery",
+    "rating"
+  ],
+  "vo": [
+    {
+      "start": 0.9,
+      "end": 4,
+      "text": "Prepare for your licensing exams with Business Career College."
+    },
+    {
+      "start": 4.6,
+      "end": 11.5,
+      "text": "Powered by ReadyEngine, our securities and insurance programs combine personalized preparation with a clear view of exam readiness."
+    },
+    {
+      "start": 12.1,
+      "end": 20.7,
+      "text": "Your ReadyRating shows exam readiness on a scale of one to five, based on your demonstrated understanding of the concepts your exam requires."
+    },
+    {
+      "start": 21.3,
+      "end": 24.5,
+      "text": "The breakdown shows which concepts need more practice."
+    },
+    {
+      "start": 25.2,
+      "end": 26.7,
+      "text": "Here’s how it works."
+    },
+    {
+      "start": 27.4,
+      "end": 32.3,
+      "text": "As you answer practice questions, ReadyEngine identifies where you need more support."
+    },
+    {
+      "start": 33,
+      "end": 40.7,
+      "text": "It builds a plan around your needs and exam date, with lessons and practice to guide what you work on next."
+    },
+    {
+      "start": 41.7,
+      "end": 46.1,
+      "text": "Practice exams are aligned to the concepts covered on your exam."
+    },
+    {
+      "start": 47,
+      "end": 52.4,
+      "text": "You can ask questions and get explanations through Riley, your 24/7 study assistant."
+    },
+    {
+      "start": 53.4,
+      "end": 59.2,
+      "text": "ReadyEngine keeps checking. It looks for understanding you can demonstrate more than once, without help."
+    },
+    {
+      "start": 59.8,
+      "end": 63.4,
+      "text": "As you practise, your study plan and ReadyRating update."
+    },
+    {
+      "start": 63.9,
+      "end": 67.4,
+      "text": "Concepts that need more attention return to your plan."
+    },
+    {
+      "start": 68.4,
+      "end": 76,
+      "text": "With Business Career College, you can see where you stand and what to work on next, with focused preparation for your exams."
+    },
+    {
+      "start": 77.65,
+      "end": 80.15,
+      "text": "Know when you’re ready."
+    },
+    {
+      "start": 81.3,
+      "end": 84.9,
+      "text": "Explore securities and insurance training with Business Career College."
+    }
+  ],
+  "motion": {
+    "assertions": [
+      { "kind": "appearsBy", "selector": "#o-fam", "bySec": 1.0 },
+      { "kind": "appearsBy", "selector": "#h1", "bySec": 2.2 },
+      { "kind": "appearsBy", "selector": "#o-rr", "bySec": 7.2 },
+      { "kind": "appearsBy", "selector": "#o-pb", "bySec": 8.4 },
+      { "kind": "appearsBy", "selector": "#r-cm", "bySec": 19.9 },
+      { "kind": "appearsBy", "selector": "#r-lbl2", "bySec": 23.5 },
+      { "kind": "appearsBy", "selector": "#q-qt", "bySec": 27.5 },
+      { "kind": "appearsBy", "selector": "#q-ex", "bySec": 31.1 },
+      { "kind": "appearsBy", "selector": "#p-ed", "bySec": 35.1 },
+      { "kind": "appearsBy", "selector": "#p-l1", "bySec": 36.7 },
+      { "kind": "appearsBy", "selector": "#x-h1", "bySec": 43.1 },
+      { "kind": "appearsBy", "selector": "#y-a1", "bySec": 50.1 },
+      { "kind": "appearsBy", "selector": "#a-m3", "bySec": 56.9 },
+      { "kind": "appearsBy", "selector": "#u-rr", "bySec": 62.1 },
+      { "kind": "appearsBy", "selector": "#u-n1", "bySec": 65.7 },
+      { "kind": "appearsBy", "selector": "#f-s4", "bySec": 70.1 },
+      { "kind": "appearsBy", "selector": "#f-n1", "bySec": 72.3 },
+      { "kind": "appearsBy", "selector": "#e-fam", "bySec": 77.5 },
+      { "kind": "appearsBy", "selector": "#e-name", "bySec": 78.8 },
+      { "kind": "appearsBy", "selector": "#e-lock", "bySec": 83.4 },
+      { "kind": "appearsBy", "selector": "#e-url1", "bySec": 84.0 },
+      { "kind": "appearsBy", "selector": "#e-url2", "bySec": 84.6 },
+      { "kind": "before", "a": "#o-fam", "b": "#h1" },
+      { "kind": "before", "a": "#h1", "b": "#o-rr" },
+      { "kind": "before", "a": "#o-rr", "b": "#o-pb" },
+      { "kind": "before", "a": "#r-cm", "b": "#r-lbl2" },
+      { "kind": "before", "a": "#q-qt", "b": "#q-ex" },
+      { "kind": "before", "a": "#q-ex", "b": "#p-ed" },
+      { "kind": "before", "a": "#p-ed", "b": "#p-l1" },
+      { "kind": "before", "a": "#a-m3", "b": "#u-rr" },
+      { "kind": "before", "a": "#u-rr", "b": "#u-n1" },
+      { "kind": "before", "a": "#e-fam", "b": "#e-name" },
+      { "kind": "before", "a": "#e-name", "b": "#e-lock" },
+      { "kind": "before", "a": "#e-lock", "b": "#e-url1" },
+      { "kind": "staysInFrame", "selector": "#e-fam" },
+      { "kind": "staysInFrame", "selector": "#e-name" },
+      { "kind": "staysInFrame", "selector": "#e-cta" },
+      { "kind": "staysInFrame", "selector": "#e-lock" },
+      { "kind": "staysInFrame", "selector": "#e-url1" },
+      { "kind": "staysInFrame", "selector": "#e-url2" },
+      { "kind": "staysInFrame", "selector": "#mark" },
+      { "kind": "keepsMoving", "maxStaticSec": 5.4 }
+    ]
+  }
+}

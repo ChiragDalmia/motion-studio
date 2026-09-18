@@ -1,0 +1,874 @@
+<!-- work/bcc/homepage. Beat ids, starts, tracks and labels come from film.json,
+     so a retime is one number there and nothing here moves. Every generated
+     file is gitignored: npm run pre writes them. -->
+
+<template data-film>
+<style>
+  /* ------------------------------------------------------------------ *
+   * The film's type scale. Declared once here because every beat is
+   * inlined into this document, so a beat only states what is its own.
+   * 22px is the pack's floor and nothing in this film goes under it.
+   * ------------------------------------------------------------------ */
+  .dsp { font-family: var(--display); font-weight: 700; letter-spacing: -0.025em; line-height: 1.08; margin: 0 }
+  /* Secondary display: an annotation or a destination beside something bigger,
+     where 700 at annotation size is heavier than the thing it annotates. */
+  .sub { font-family: var(--display); font-weight: 600; letter-spacing: -0.015em; line-height: 1.14; margin: 0 }
+  /* The film speaking in its own voice, as opposed to product or plan content:
+     the display family at text weight, which is what separates the two. */
+  .say { font-family: var(--display); font-weight: 400; letter-spacing: -0.005em; line-height: 1.4; color: #cfdae2 }
+  .lbl { font-family: var(--text); font-weight: 500; font-size: 22px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--brand) }
+  .mic { font-family: var(--text); font-weight: 500; font-size: 22px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.64) }
+  .bdy { font-family: var(--text); font-weight: 400; line-height: 1.44; color: #dde5ea }
+
+  /* The stage ground, and it has to be stated here. #root defaults to
+     var(--ground), which for this light-first pack is the product's white, and
+     `.s-navy` only reaches a beat's own root: the end card is untimed host
+     markup with no beat under it, so it would sit on white. Everything outside
+     a beat reads the pack DEFAULTS for the same reason, which is why the marks
+     below take var(--orangeLift) by name rather than var(--brand). */
+  #root { background: var(--dark); color: #ffffff }
+
+  /* A product capture is a screen, not a card: the published artwork already
+     carries its own plate and corner, so the film adds one hairline and one
+     soft drop and nothing else. */
+  .pane { position: absolute; overflow: hidden; border-radius: 10px;
+          box-shadow: 0 30px 80px rgba(0,0,0,0.50), 0 0 0 1px rgba(255,255,255,0.10) }
+  .shot { background-repeat: no-repeat; background-size: 100% 100% }
+
+  /* ------------------------------------------------------------------ *
+   * The end card. Untimed host elements: a sub-composition is shown for
+   * start <= t < end, so a beat ending at 88.5 is already gone at t = 88.5.
+   * Two program families close the film exactly as they opened it: one
+   * kicker naming both, then two peer rows, not a ranked primary/secondary
+   * pair, because the brief asks for two legible choices, not one.
+   * ------------------------------------------------------------------ */
+  #end { position: absolute; inset: 0 }
+  #e-fam { position: absolute; left: 164px; top: 262px; opacity: 0 }
+  #e-name { position: absolute; left: 160px; top: 306px; width: 1080px; font-size: 86px; color: #ffffff; opacity: 0 }
+  #e-rule { position: absolute; left: 166px; top: 448px; width: 640px; height: 8px; background: var(--orangeLift);
+            transform-origin: 0% 50%; transform: scaleX(0) }
+  #e-cta { position: absolute; left: 164px; top: 496px; width: 980px; font-size: 38px; opacity: 0 }
+  .link { position: absolute; left: 164px; width: 1200px; font-family: var(--display); font-weight: 600;
+          font-size: 32px; letter-spacing: -0.005em; opacity: 0 }
+  .link .k { color: var(--orangeLift) }
+  .link .u { color: #ffffff; font-weight: 400; margin-left: 0.6em }
+  #e-url1 { top: 560px }
+  #e-url2 { top: 610px }
+  #e-pb { position: absolute; left: 164px; top: 672px; opacity: 0 }
+  #e-lock { position: absolute; left: 1300px; top: 372px; width: 500px; opacity: 0 }
+  #e-lock svg { display: block; width: 100%; height: auto }
+
+  /* #ui is immune to the camera. */
+  #mark { position: absolute; left: 72px; top: 912px; width: 268px }
+  #mark svg { display: block; width: 100%; height: auto }
+  /* One line, and sized so its box cannot reach the caption column: gate 2
+     re-measures the layout with every clip forced off, and two pieces of
+     chrome sharing the bottom band is exactly what that catches. */
+  #eg { position: absolute; right: 64px; top: 62px; width: 340px; text-align: right;
+        font-size: 22px; letter-spacing: 0.1em; line-height: 1.45; opacity: 0 }
+
+  #grain {
+    position: absolute; inset: 0;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 140px 140px;
+  }
+
+  /* Reduced motion. The timeline is the film and cannot be removed, but the
+     global camera push is decoration on top of it: neutralising #cam with
+     !important outranks the inline transform GSAP writes, so the frame stops
+     travelling while every framing that carries meaning is untouched. */
+  @media (prefers-reduced-motion: reduce) {
+    #cam { transform: none !important }
+    #grain { display: none }
+  }
+</style>
+<script>
+  /* One camera move in the whole film, and it is the opening: 1.03 -> 1.00
+     over the title, arriving at rest exactly as the product does. Every later
+     reframe is a world transform inside its own beat, so display type never
+     rides a scale. minCameraScale for this pack is 0.92; 1.03 is well inside. */
+  tl.fromTo('#cam', camera(1.03, 0, 0), { scale: 1, xPercent: 0, yPercent: 0, duration: 7.4, ease: 'sine.inOut' }, 'open');
+
+  /* Chrome. Business Career College leads this film, so its lockup is on
+     screen from the first frame and leaves only for the end card, which
+     carries the mark at full size. */
+  tl.fromTo('#mark', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.5, immediateRender: true }, 'focus+=7.6');
+  /* The demonstration note is on whenever fictional learner data is on screen
+     AND the stage is still. It leaves for every push, because a pushed line of
+     type sweeps the whole frame and there is no band of it a fixed piece of
+     chrome can hide in: gate 2 re-measures the layout with clipping off and
+     catches exactly that. Only the first of these may write its from-state at
+     construction; the rest would stamp autoAlpha 1 and open the film with the
+     note already up. */
+  tl.fromTo('#eg', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.6 }, 'open+=6.6');
+  tl.fromTo('#eg', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.45, immediateRender: false }, 'quiz+=6.6');
+  tl.fromTo('#eg', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.6, immediateRender: false }, 'plan+=1.9');
+  tl.fromTo('#eg', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.45, immediateRender: false }, 'plan+=7.5');
+  tl.fromTo('#eg', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.6, immediateRender: false }, 'update+=1.3');
+  tl.fromTo('#eg', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.45, immediateRender: false }, 'update+=7.1');
+  tl.fromTo('#eg', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.6, immediateRender: false }, 'focus+=4.6');
+  tl.fromTo('#eg', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.45, immediateRender: false }, 'focus+=7.3');
+
+  /* The end card. Untimed elements, so every state below is authored in the
+     markup and only ever moves forward from it. #e-fam leads at end-0.7,
+     clear of focus's own exit (focus clears exactly at label 'end'), so the
+     two never share a frame; see NOTES.md. */
+  tl.fromTo('#e-fam', { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.6, ease: 'power2.out' }, 'end-=0.7');
+  tl.fromTo('#e-name', { autoAlpha: 0, y: 26 }, { autoAlpha: 1, y: 0, duration: 0.88, ease: 'power2.out' }, 'end+=0.35');
+  tl.fromTo('#e-rule', { scaleX: 0 }, { scaleX: 1, duration: 0.88, ease: 'power4.inOut' }, 'end+=0.95');
+  tl.fromTo('#e-cta', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.7 }, 'end+=4.1');
+  tl.fromTo('#e-pb', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.6 }, 'end+=4.9');
+  tl.fromTo('#e-lock', { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 0.9, ease: 'power2.out' }, 'end+=5.0');
+  tl.fromTo('#e-url1', { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.7, ease: 'power2.out' }, 'end+=5.8');
+  tl.fromTo('#e-url2', { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.7, ease: 'power2.out' }, 'end+=6.4');
+  /* Settled at 83.7 and held to 88.5. Narration ends 84.9, so the last 3.6s are
+     an unnarrated hold on the finished card. */
+</script>
+</template>
+
+<template data-layer="type">
+<!--hosts-->
+<div id="end">
+  <div id="e-fam" class="lbl">Securities &#183; Insurance</div>
+  <h1 id="e-name" class="dsp">Know when you&#8217;re ready.</h1>
+  <div id="e-rule"></div>
+  <div id="e-cta" class="say">Explore securities and insurance training.</div>
+  <div id="e-url1" class="link"><span class="k">Securities</span><span class="u">businesscareercollege.com/securities</span></div>
+  <div id="e-url2" class="link"><span class="k">Insurance</span><span class="u">businesscareercollege.com/insurance</span></div>
+  <div id="e-pb" class="mic">Powered by ReadyEngine&#8482;</div>
+  <div id="e-lock">
+    <!-- brands/bcc/logo/reversed.svg, geometry unaltered, fills literal, so
+         nothing inherited, currentColor or surface-bound can recolour a part
+         of the mark. "by WKT" is part of the artwork, not a second logo. -->
+    <!--include mark-reversed-->
+  </div>
+</div>
+</template>
+
+<template data-layer="ui">
+<!--hosts-->
+<div id="mark">
+  <!-- The same canonical artwork, same fills, at chrome size. -->
+  <!--include mark-reversed-->
+</div>
+<div id="eg" class="mic">Fictional learner data</div>
+</template>
+
+<template data-layer="grade">
+<div id="grain"></div>
+</template>
+
+<template data-beat="open">
+<style>
+  /* The beat states its surface: this film sits on the brand's navy ground
+     from the first frame. #root stays transparent and #stage paints, so a
+     later beat can push over this one without two opaque roots fighting. */
+  #stage { position: absolute; inset: 0; overflow: hidden; background: var(--dark) }
+
+  /* Business Career College leads with both families it is known for, named
+     once before the headline commits to the generic "licensing exams": the
+     film does not pick a side, and neither claims the other's exam or score. */
+  #o-fam { position: absolute; left: 152px; top: 210px; opacity: 0 }
+
+  /* The readiness scale, unread. Five cells is the whole spine of this film:
+     it opens as a question, the product answers it, and it returns at the
+     close. Drawn at rest in the markup so the first frame is never one flat
+     colour. */
+  .sc { position: absolute; top: 440px; width: 104px; height: 104px; box-sizing: border-box;
+        border: 3px solid rgba(255,255,255,0.30); border-radius: 4px;
+        font-family: var(--display); font-weight: 700; font-size: 38px; line-height: 98px;
+        text-align: center; color: rgba(255,255,255,0.55); opacity: 0.42 }
+  #o-s1 { left: 1120px } #o-s2 { left: 1244px } #o-s3 { left: 1368px }
+  #o-s4 { left: 1492px } #o-s5 { left: 1616px }
+
+  .hl { position: absolute; left: 152px; width: 900px; font-size: 74px; color: #ffffff; opacity: 0 }
+  #h1 { top: 288px } #h2 { top: 374px }
+  #h3 { top: 490px; color: var(--brand) }
+
+  /* Capture space is the published card's own pixels, 900x369. W is the
+     film's wide framing and the rating beat opens on the same three numbers. */
+  #o-w { position: absolute; left: 0; top: 0; width: 900px; height: 369px; transform-origin: 0 0;
+         transform: translate(434px, 270px) scale(1.28); opacity: 0 }
+  #o-rr { left: 0; top: 0; width: 900px; height: 369px; background-image: var(--img-rating) }
+  #o-pb { position: absolute; left: 434px; top: 774px; color: rgba(255,255,255,0.74); opacity: 0 }
+</style>
+  <div id="stage" class="clip" data-layout-allow-overflow data-start="0" data-duration="12" data-track-index="1">
+    <!-- The world is first so it paints UNDER the type: the headline clears
+         off a screen that is rising, instead of vanishing behind it, and no
+         frame has display type hidden by an opaque sibling. -->
+    <div id="o-w" data-layout-allow-overflow>
+      <div id="o-rr" class="pane shot" role="img" aria-label="ReadyRating card: readiness to pass the exam, level 4, on a track marked one to four of five"></div>
+    </div>
+
+    <div id="o-fam" class="lbl">Securities &#183; Insurance</div>
+
+    <div id="o-s1" class="sc">1</div>
+    <div id="o-s2" class="sc">2</div>
+    <div id="o-s3" class="sc">3</div>
+    <div id="o-s4" class="sc">4</div>
+    <div id="o-s5" class="sc">5</div>
+
+    <h1 id="h1" class="hl dsp">Prepare for your</h1>
+    <h1 id="h2" class="hl dsp">licensing exams.</h1>
+    <h1 id="h3" class="hl dsp">Know where you stand.</h1>
+
+    <div id="o-pb" class="mic">Powered by ReadyEngine&#8482;</div>
+  </div>
+<script>
+  /* Verb: settle, then hand over. The scale is already drawn at t = 0 and
+     lifts to full as a decaying cascade, 0.76 per step for this pack. The
+     kicker names both program families first, so the headline is free to
+     stay generic. The headline lands on the scale; then the scale clears and
+     the product answers it, rising on the same current. ReadyEngine is named
+     UNDER the interface, as the endorsement it is, rather than getting a
+     reveal of its own. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power3.out', immediateRender: false } });
+  t.addLabel('in', 0);
+
+  t.fromTo('#o-fam', { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.6 }, 'in+=0.10');
+
+  t.fromTo('#o-s1', { autoAlpha: 0.42 }, { autoAlpha: 1, duration: 0.88 }, 'in+=0.30');
+  t.fromTo('#o-s2', { autoAlpha: 0.42 }, { autoAlpha: 1, duration: 0.88 }, 'in+=0.52');
+  t.fromTo('#o-s3', { autoAlpha: 0.42 }, { autoAlpha: 1, duration: 0.88 }, 'in+=0.74');
+  t.fromTo('#o-s4', { autoAlpha: 0.42 }, { autoAlpha: 1, duration: 0.88 }, 'in+=0.96');
+  t.fromTo('#o-s5', { autoAlpha: 0.42 }, { autoAlpha: 1, duration: 0.88 }, 'in+=1.18');
+
+  /* Type over an opaque ground arrives by opacity and travel, never by a
+     clip-path wipe: elementFromPoint mid-wipe returns the ground and the
+     layout audit calls that occluded text. */
+  t.fromTo('#h1', { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: 0.88, ease: 'power2.out' }, 'in+=0.95');
+  t.fromTo('#h2', { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: 0.88, ease: 'power2.out' }, 'in+=1.20');
+  t.fromTo('#h3', { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 0.88, ease: 'power2.out' }, 'in+=1.80');
+
+  t.fromTo('#o-fam', { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -14, duration: 0.55, ease: 'power2.in' }, 'in+=4.05');
+  t.fromTo('#h1', { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -26, duration: 0.62, ease: 'power2.in' }, 'in+=4.15');
+  t.fromTo('#h2', { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -26, duration: 0.62, ease: 'power2.in' }, 'in+=4.23');
+  t.fromTo('#h3', { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -26, duration: 0.62, ease: 'power2.in' }, 'in+=4.31');
+
+  /* The scale clears and the product takes the frame. The card starts 230px
+     low and arrives at W at 6.55 with zero velocity, so the cut into the
+     rating beat lands on a frame that is already still. */
+  t.fromTo('.sc', { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -18, duration: 0.70, stagger: 0.05, ease: 'power1.in' }, 'in+=4.55');
+  t.fromTo('#o-w', { autoAlpha: 0, x: 434, y: 500, scale: 1.28 }, { autoAlpha: 1, x: 434, y: 270, scale: 1.28, duration: 1.80, ease: 'power3.out' }, 'in+=4.75');
+  t.fromTo('#o-pb', { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.70, ease: 'power2.out' }, 'in+=6.90');
+
+  /* A creep the eye does not have to follow, so the seconds under live
+     narration are not a frozen still: this film's opening carries three more
+     seconds of copy than llqp's, so the creep runs longer, not faster. It
+     ends on W2, which is what the rating beat's markup states. */
+  t.fromTo('#o-w', { x: 434, y: 270, scale: 1.28 }, { x: 428.6, y: 265.5, scale: 1.292, duration: 5.00, ease: 'none' }, 'in+=7.00');
+</script>
+</template>
+
+<template data-beat="rating">
+<style>
+  #stage { position: absolute; inset: 0; overflow: hidden; background: var(--dark) }
+
+  /* Two published cards in one world, so every reframe below is one camera
+     move across a single surface rather than a stack of cards being loaded
+     and cleared. Capture space is the artwork's own pixels. The world is
+     DECLARED to overflow: a camera that pushes into a screen renders the
+     screen larger than the frame on purpose. The markup transform is W2, the
+     exact state the opening beat ends on, so the cut is invisible. */
+  #r-w { position: absolute; left: 0; top: 0; width: 1000px; height: 1129px; transform-origin: 0 0;
+         transform: translate(428.6px, 265.5px) scale(1.292) }
+  #r-rr { left: 0; top: 0; width: 900px; height: 369px; background-image: var(--img-rating) }
+  #r-cm { left: 0; top: 700px; width: 1000px; height: 429px; background-image: var(--img-mastery) }
+
+  /* Framed in the product's own space, so it travels with the card. */
+  #r-hl { position: absolute; left: 30px; top: 30px; width: 760px; height: 305px; box-sizing: border-box;
+          border: 3px solid var(--brand); border-radius: 6px; opacity: 0 }
+  #r-mk { position: absolute; left: 89px; top: 941px; width: 37px; height: 37px; box-sizing: border-box;
+          border: 3px solid var(--brand); border-radius: 3px; opacity: 0 }
+
+  /* The annotation is frame space, not world space: a leader that scaled with
+     the camera would change weight, and display type never rides a scale. */
+  #r-lead { position: absolute; left: 590px; top: 534px; width: 126px; height: 2px; background: var(--brand);
+            transform-origin: 100% 50%; transform: scaleX(0) }
+  #r-lbl1 { position: absolute; left: 110px; top: 490px; width: 470px; text-align: right; opacity: 0 }
+  #r-lbl2 { position: absolute; left: 110px; top: 524px; width: 470px; text-align: right;
+            font-size: 36px; color: #ffffff; opacity: 0 }
+</style>
+  <div id="stage" class="clip" data-layout-allow-overflow data-start="0" data-duration="13" data-track-index="1">
+    <div id="r-w" data-layout-allow-overflow>
+      <div id="r-rr" class="pane shot" role="img" aria-label="ReadyRating card: readiness to pass the exam, level 4, well prepared"></div>
+      <div id="r-cm" class="pane shot" role="img" aria-label="Concept Mastery: a grid of concept squares with a key for unknown, basic, intermediate and proficient"></div>
+      <div id="r-hl"></div>
+      <div id="r-mk"></div>
+    </div>
+
+    <div id="r-lead"></div>
+    <div id="r-lbl1" class="mic">Needs more practice</div>
+    <div id="r-lbl2" class="sub">Beneficiary designations</div>
+  </div>
+<script>
+  /* Hold on the frame the opening ended on, then one continuous travel, into
+     the ReadyRating card, down to Concept Mastery, and across into the grid
+     and the key that reads it. Nothing in this beat animates the rating
+     itself: the card is the state the product published and the camera only
+     holds still over it. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+
+  var W2 = { s: 1.292, x: 428.6, y: 265.5 };
+  var R = { s: 1.45, x: 488, y: 261.75 };      /* the level and its track */
+  var R2 = { s: 1.468, x: 481.5, y: 258.4 };   /* the same point, crept in */
+  var G = { s: 1.30, x: 410, y: -648.85 };     /* Concept Mastery, whole */
+  var G2 = { s: 1.318, x: 401, y: -665.3 };
+  var L = { s: 1.36, x: 600, y: -769.4 };      /* the grid beside its key */
+
+  t.fromTo('#r-w', { x: W2.x, y: W2.y, scale: W2.s }, { x: R.x, y: R.y, scale: R.s, duration: 1.40 }, 'in+=0.55');
+  t.fromTo('#r-hl', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.50, ease: 'power2.out' }, 'in+=2.15');
+
+  /* The film's one long look at the rating: 2.8s while the line that defines
+     the scale is spoken. */
+  t.fromTo('#r-w', { x: R.x, y: R.y, scale: R.s }, { x: R2.x, y: R2.y, scale: R2.s, duration: 2.80, ease: 'none' }, 'in+=2.30');
+  t.fromTo('#r-hl', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.45, ease: 'power2.in' }, 'in+=4.40');
+
+  t.fromTo('#r-w', { x: R2.x, y: R2.y, scale: R2.s }, { x: G.x, y: G.y, scale: G.s, duration: 1.80 }, 'in+=5.10');
+  t.fromTo('#r-w', { x: G.x, y: G.y, scale: G.s }, { x: G2.x, y: G2.y, scale: G2.s, duration: 1.60, ease: 'none' }, 'in+=6.90');
+  t.fromTo('#r-w', { x: G2.x, y: G2.y, scale: G2.s }, { x: L.x, y: L.y, scale: L.s, duration: 1.10 }, 'in+=8.60');
+
+  /* One square, named. The product's own key says intermediate is not
+     proficient, so what the marker states is the concept the rest of the
+     film follows, not a score. */
+  t.fromTo('#r-mk', { autoAlpha: 0, scale: 1.5 }, { autoAlpha: 1, scale: 1, duration: 0.45, ease: 'power2.out' }, 'in+=9.90');
+  t.fromTo('#r-lead', { scaleX: 0 }, { scaleX: 1, duration: 0.55, ease: 'power3.inOut' }, 'in+=10.25');
+  t.fromTo('#r-lbl1', { autoAlpha: 0, x: 12 }, { autoAlpha: 1, x: 0, duration: 0.62, ease: 'power2.out' }, 'in+=10.60');
+  t.fromTo('#r-lbl2', { autoAlpha: 0, x: 14 }, { autoAlpha: 1, x: 0, duration: 0.62, ease: 'power2.out' }, 'in+=10.72');
+  /* Still from 11.35, so the cut into the quiz beat is invisible. */
+</script>
+</template>
+
+<template data-beat="quiz">
+<style>
+  #stage { position: absolute; inset: 0; overflow: hidden; background: var(--dark) }
+
+  /* Opens on L with the marker and its annotation exactly where the rating
+     beat left them, so the cut lands on an identical frame. */
+  #q-w { position: absolute; left: 0; top: 0; width: 1000px; height: 1129px; transform-origin: 0 0;
+         transform: translate(600px, -769.4px) scale(1.36) }
+  #q-cm { left: 0; top: 700px; width: 1000px; height: 429px; background-image: var(--img-mastery) }
+  #q-mk { position: absolute; left: 89px; top: 941px; width: 37px; height: 37px; box-sizing: border-box;
+          border: 3px solid var(--brand); border-radius: 3px }
+  #q-lead { position: absolute; left: 590px; top: 534px; width: 126px; height: 2px; background: var(--brand) }
+  #q-lbl1 { position: absolute; left: 110px; top: 490px; width: 470px; text-align: right }
+  #q-lbl2 { position: absolute; left: 110px; top: 524px; width: 470px; text-align: right;
+            font-size: 36px; color: #ffffff }
+
+  /* Editorial, and deliberately not a product window. No approved LLQP
+     practice capture exists, so the beat states the question in the film's
+     own voice rather than drawing an interface. The content is LLQP
+     curriculum; the learner data is fictional. */
+  #q-ql { position: absolute; left: 200px; top: 298px; opacity: 0 }
+  #q-qt { position: absolute; left: 200px; top: 344px; width: 1560px; font-size: 52px; color: #ffffff; opacity: 0 }
+  .opt { position: absolute; left: 236px; width: 1400px; font-family: var(--text); font-weight: 400;
+         font-size: 34px; color: rgba(255,255,255,0.70); opacity: 0 }
+  .opt::before { content: ""; position: absolute; left: -36px; top: 13px; width: 16px; height: 16px;
+                 border: 2px solid rgba(255,255,255,0.42); border-radius: 50% }
+  #q-o1 { top: 514px } #q-o2 { top: 578px } #q-o3 { top: 642px }
+  #q-sel { position: absolute; left: 186px; top: 574px; width: 6px; height: 46px; background: var(--brand);
+           transform-origin: 50% 0%; transform: scaleY(0) }
+  #q-ex { position: absolute; left: 200px; top: 734px; width: 1520px; font-size: 30px; opacity: 0 }
+</style>
+  <div id="stage" class="clip" data-layout-allow-overflow data-start="0" data-duration="8.1" data-track-index="1">
+    <div id="q-w" data-layout-allow-overflow>
+      <div id="q-cm" class="pane shot" role="img" aria-label="Concept Mastery: a grid of concept squares with a key for unknown, basic, intermediate and proficient"></div>
+      <div id="q-mk"></div>
+    </div>
+
+    <div id="q-lead"></div>
+    <div id="q-lbl1" class="mic">Needs more practice</div>
+    <div id="q-lbl2" class="sub">Beneficiary designations</div>
+
+    <div id="q-ql" class="lbl">Practice &#183; Beneficiary designations</div>
+    <div id="q-qt" class="dsp">A policyowner wants to change an irrevocable<br>beneficiary. What has to happen first?</div>
+    <div id="q-o1" class="opt">The insurer approves the change.</div>
+    <div id="q-o2" class="opt">The irrevocable beneficiary consents in writing.</div>
+    <div id="q-o3" class="opt">The change applies at the next policy anniversary.</div>
+    <div id="q-sel"></div>
+    <div id="q-ex" class="say">Every answer tells ReadyEngine&#8482; what you can do unaided, and what to bring back.</div>
+  </div>
+<script>
+  /* The concept the breakdown named is the question the learner now answers.
+     The annotation clears first, then the card leaves upward and the
+     question arrives on the same current, so the handover is one move. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.out', immediateRender: false } });
+  t.addLabel('in', 0);
+
+  /* Every state this beat opens in comes from the markup and nothing earlier
+     wrote it, so each fade-out here needs the from-state stamped at
+     construction or a backward seek past it leaves the element gone. */
+  t.fromTo('#q-lbl2', { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -14, duration: 0.45, ease: 'power2.in', immediateRender: true }, 'in+=0.55');
+  t.fromTo('#q-lbl1', { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -14, duration: 0.45, ease: 'power2.in', immediateRender: true }, 'in+=0.60');
+  t.fromTo('#q-lead', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.35, ease: 'power2.in', immediateRender: true }, 'in+=0.60');
+  t.fromTo('#q-w', { y: -769.4 }, { y: -1849.4, duration: 0.80, ease: 'power2.inOut', immediateRender: true }, 'in+=0.80');
+
+  t.fromTo('#q-ql', { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: 0.62 }, 'in+=1.20');
+  t.fromTo('#q-qt', { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.80 }, 'in+=1.45');
+
+  /* A cascade decays: 22, 16.7, 12.7 is 0.76 per step for this pack. */
+  t.fromTo('#q-o1', { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: 0.60 }, 'in+=2.20');
+  t.fromTo('#q-o2', { autoAlpha: 0, y: 16.7 }, { autoAlpha: 1, y: 0, duration: 0.60 }, 'in+=2.50');
+  t.fromTo('#q-o3', { autoAlpha: 0, y: 12.7 }, { autoAlpha: 1, y: 0, duration: 0.60 }, 'in+=2.80');
+
+  /* The answer is selected and nothing else happens: one response never moves
+     a readiness level, and this film does not let it look as though it does. */
+  t.fromTo('#q-sel', { scaleY: 0 }, { scaleY: 1, duration: 0.42, ease: 'power3.inOut' }, 'in+=4.00');
+  t.fromTo('#q-o2', { color: 'rgba(255,255,255,0.70)' }, { color: '#ffffff', duration: 0.42, ease: 'power2.out' }, 'in+=4.00');
+  t.fromTo('#q-ex', { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 0.80 }, 'in+=4.80');
+
+  /* The seam. The stage leaves upward and the plan arrives on the same
+     current, so the two beats are one move rather than a cut and a restart. */
+  t.fromTo('#stage', { y: 0 }, { y: -1080, duration: 0.50, ease: 'power2.inOut' }, 'in+=7.60');
+</script>
+</template>
+
+<template data-beat="plan">
+<style>
+  /* The stage arrives from below, over the outgoing quiz beat, so the two are
+     one move on one current. #stage is DECLARED to overflow: for half a
+     second this beat is a frame-height outside its parent on purpose. */
+  #stage { position: absolute; inset: 0; overflow: hidden; background: var(--dark); transform: translateY(1080px) }
+
+  /* Editorial. The exam date and the activities the plan puts next are the
+     two things the narration names, stated in the film's own voice because no
+     approved LLQP plan capture exists. Fictional learner data. */
+  #p-el { position: absolute; left: 200px; top: 330px; opacity: 0 }
+  #p-ec { position: absolute; left: 200px; top: 382px; width: 660px; opacity: 0 }
+  #p-ed { position: absolute; left: 196px; top: 428px; font-size: 92px; color: #ffffff; opacity: 0 }
+  #p-en { position: absolute; left: 200px; top: 556px; font-size: 30px; opacity: 0 }
+  #p-lh { position: absolute; left: 980px; top: 330px; opacity: 0 }
+  .row { position: absolute; left: 980px; width: 880px; font-family: var(--text); font-weight: 400;
+         font-size: 32px; color: #dde5ea; opacity: 0 }
+  #p-l1 { top: 386px } #p-l2 { top: 448px } #p-l3 { top: 510px }
+  #p-lm { position: absolute; left: 946px; top: 386px; width: 6px; height: 40px; background: var(--brand);
+          transform-origin: 50% 0%; transform: scaleY(0) }
+</style>
+  <div id="stage" class="clip" data-layout-allow-overflow data-start="0" data-duration="8.6" data-track-index="1">
+    <div id="p-el" class="lbl">Your exam</div>
+    <div id="p-ec" class="mic">LLQP Life Insurance certification</div>
+    <div id="p-ed" class="dsp">14 June</div>
+    <div id="p-en" class="bdy">42 days away</div>
+
+    <div id="p-lh" class="lbl">Next in your plan</div>
+    <div id="p-l1" class="row">Lesson &#183; Beneficiary designations &#183; 12 min</div>
+    <div id="p-l2" class="row">Practice &#183; Beneficiary designations &#183; 10 questions</div>
+    <div id="p-l3" class="row">Lesson &#183; Policy loans and dividends &#183; 9 min</div>
+    <div id="p-lm"></div>
+  </div>
+<script>
+  /* The date the plan is built around, then what the plan puts next, with
+     the concept the film follows at the top of it. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.out', immediateRender: false } });
+  t.addLabel('in', 0);
+
+  t.fromTo('#stage', { y: 1080 }, { y: 0, duration: 0.50, ease: 'power2.inOut' }, 'in');
+  t.fromTo('#p-el', { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.62 }, 'in+=0.70');
+  t.fromTo('#p-ec', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.62 }, 'in+=0.95');
+  t.fromTo('#p-ed', { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: 0.88 }, 'in+=1.20');
+  t.fromTo('#p-en', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.62 }, 'in+=1.80');
+
+  t.fromTo('#p-lh', { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.62 }, 'in+=2.40');
+  t.fromTo('#p-l1', { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 0.60 }, 'in+=2.75');
+  t.fromTo('#p-l2', { autoAlpha: 0, y: 15.2 }, { autoAlpha: 1, y: 0, duration: 0.60 }, 'in+=3.05');
+  t.fromTo('#p-l3', { autoAlpha: 0, y: 11.6 }, { autoAlpha: 1, y: 0, duration: 0.60 }, 'in+=3.35');
+  t.fromTo('#p-lm', { scaleY: 0 }, { scaleY: 1, duration: 0.50, ease: 'power3.inOut' }, 'in+=3.70');
+
+  t.fromTo('#stage', { y: 0 }, { y: -1080, duration: 0.50, ease: 'power2.inOut' }, 'in+=8.10');
+</script>
+</template>
+
+<template data-beat="exams">
+<style>
+  #stage { position: absolute; inset: 0; overflow: hidden; background: var(--dark); transform: translateY(1080px) }
+
+  /* Editorial. The parameters below are the ones Business Career College
+     publishes for the LLQP certification exam, which is what a practice exam
+     is aligned to. Nothing here imitates a product screen. */
+  #x-rule { position: absolute; left: 200px; top: 388px; width: 6px; height: 98px; background: var(--brand);
+            transform-origin: 50% 0%; transform: scaleY(0) }
+  #x-lbl { position: absolute; left: 240px; top: 390px; opacity: 0 }
+  .xh { position: absolute; left: 240px; width: 1500px; font-size: 58px; color: #ffffff; opacity: 0 }
+  #x-h1 { top: 456px } #x-h2 { top: 526px }
+  #x-div { position: absolute; left: 240px; top: 648px; width: 1300px; height: 1px;
+           background: rgba(255,255,255,0.22); transform-origin: 0% 50%; transform: scaleX(0) }
+  #x-p1 { position: absolute; left: 240px; top: 684px; font-size: 30px; opacity: 0 }
+  #x-p2 { position: absolute; left: 240px; top: 736px; opacity: 0 }
+</style>
+  <div id="stage" class="clip" data-layout-allow-overflow data-start="0" data-duration="6.1" data-track-index="1">
+    <div id="x-rule"></div>
+    <div id="x-lbl" class="lbl">Practice exam &#183; Life Insurance</div>
+    <div id="x-h1" class="xh dsp">Timed, full length, and built from</div>
+    <div id="x-h2" class="xh dsp">the concepts your exam covers.</div>
+    <div id="x-div"></div>
+    <div id="x-p1" class="bdy">LLQP Life Insurance certification exam</div>
+    <div id="x-p2" class="mic">20 to 30 questions &#183; 75 minutes &#183; 60% to pass</div>
+  </div>
+<script>
+  /* Arrive, then read. One idea, stated once, and the beat stops moving for
+     the last 1.6s of it. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.out', immediateRender: false } });
+  t.addLabel('in', 0);
+
+  t.fromTo('#stage', { y: 1080 }, { y: 0, duration: 0.50, ease: 'power2.inOut' }, 'in');
+  t.fromTo('#x-rule', { scaleY: 0 }, { scaleY: 1, duration: 0.62, ease: 'power3.inOut' }, 'in+=0.70');
+  t.fromTo('#x-lbl', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.62 }, 'in+=0.80');
+  t.fromTo('#x-h1', { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: 0.80 }, 'in+=1.15');
+  t.fromTo('#x-h2', { autoAlpha: 0, y: 16.7 }, { autoAlpha: 1, y: 0, duration: 0.80 }, 'in+=1.40');
+  t.fromTo('#x-div', { scaleX: 0 }, { scaleX: 1, duration: 0.88, ease: 'power4.inOut' }, 'in+=2.05');
+  t.fromTo('#x-p1', { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.70 }, 'in+=2.55');
+  t.fromTo('#x-p2', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.70 }, 'in+=2.95');
+
+  t.fromTo('#stage', { y: 0 }, { y: -1080, duration: 0.50, ease: 'power2.inOut' }, 'in+=5.60');
+</script>
+</template>
+
+<template data-beat="riley">
+<style>
+  #stage { position: absolute; inset: 0; overflow: hidden; background: var(--dark); transform: translateY(1080px) }
+
+  /* Editorial, and deliberately not a chat surface. Riley is a real feature of
+     the approved deployment and no approved LLQP capture of it exists, so the
+     beat states one study question and its explanation in the film's own
+     voice. Same concept as the practice question. */
+  #y-rule { position: absolute; left: 200px; top: 360px; width: 6px; height: 84px; background: var(--brand);
+            transform-origin: 50% 0%; transform: scaleY(0) }
+  #y-lbl { position: absolute; left: 240px; top: 362px; opacity: 0 }
+  #y-q { position: absolute; left: 240px; top: 416px; width: 1580px; font-size: 44px;
+         color: rgba(255,255,255,0.68); opacity: 0 }
+  #y-div { position: absolute; left: 240px; top: 530px; width: 1400px; height: 1px;
+           background: rgba(255,255,255,0.22); transform-origin: 0% 50%; transform: scaleX(0) }
+  .ans { position: absolute; left: 240px; width: 1520px; font-size: 34px; opacity: 0 }
+  #y-a1 { top: 576px } #y-a2 { top: 642px } #y-a3 { top: 708px }
+</style>
+  <div id="stage" class="clip" data-layout-allow-overflow data-start="0" data-duration="7.2" data-track-index="1">
+    <div id="y-rule"></div>
+    <div id="y-lbl" class="lbl">Riley &#183; 24/7 study assistant</div>
+    <div id="y-q" class="dsp">&#8220;Can the owner take a policy loan if the beneficiary is irrevocable?&#8221;</div>
+    <div id="y-div"></div>
+    <div id="y-a1" class="ans bdy">Not without that beneficiary&#8217;s written consent.</div>
+    <div id="y-a2" class="ans bdy">An irrevocable designation gives them a vested interest in the policy, so a</div>
+    <div id="y-a3" class="ans bdy">loan, a surrender or an assignment all need their signature.</div>
+  </div>
+<script>
+  /* The answer arrives a line at a time on one short rise, which is how
+     reading feels, and then the beat stops moving for 1.4s. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.out', immediateRender: false } });
+  t.addLabel('in', 0);
+
+  t.fromTo('#stage', { y: 1080 }, { y: 0, duration: 0.50, ease: 'power2.inOut' }, 'in');
+  t.fromTo('#y-rule', { scaleY: 0 }, { scaleY: 1, duration: 0.62, ease: 'power3.inOut' }, 'in+=0.80');
+  t.fromTo('#y-lbl', { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.62 }, 'in+=0.90');
+  t.fromTo('#y-q', { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 0.80 }, 'in+=1.30');
+  t.fromTo('#y-div', { scaleX: 0 }, { scaleX: 1, duration: 0.88, ease: 'power4.inOut' }, 'in+=1.90');
+  t.fromTo('#y-a1', { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.70 }, 'in+=2.50');
+  t.fromTo('#y-a2', { autoAlpha: 0, y: 10.6 }, { autoAlpha: 1, y: 0, duration: 0.70 }, 'in+=3.30');
+  t.fromTo('#y-a3', { autoAlpha: 0, y: 8.1 }, { autoAlpha: 1, y: 0, duration: 0.70 }, 'in+=4.10');
+
+  t.fromTo('#stage', { y: 0 }, { y: -1080, duration: 0.50, ease: 'power2.inOut' }, 'in+=6.70');
+</script>
+</template>
+
+<template data-beat="again">
+<style>
+  #stage { position: absolute; inset: 0; overflow: hidden; background: var(--dark); transform: translateY(1080px) }
+
+  /* Editorial. One concept on a time axis, three separated sessions, the
+     middle one drawn hollow and tagged, so what the axis states is repetition
+     WITHOUT assistance. No score, no bar, no terminal tick: nothing here can
+     be read as an inevitable climb. */
+  #a-lbl { position: absolute; left: 260px; top: 316px; opacity: 0 }
+  #a-ax { position: absolute; left: 260px; top: 530px; width: 1400px; height: 2px;
+          background: rgba(255,255,255,0.30); transform-origin: 0% 50%; transform: scaleX(0) }
+  .mk { position: absolute; top: 514px; width: 34px; height: 34px; box-sizing: border-box; opacity: 0 }
+  .on { background: var(--brand) }
+  .off { border: 3px solid rgba(255,255,255,0.55) }
+  #a-m1 { left: 420px } #a-m2 { left: 900px } #a-m3 { left: 1440px }
+  .day { position: absolute; top: 584px; width: 340px; font-family: var(--text); font-weight: 500;
+         font-size: 24px; color: rgba(255,255,255,0.64); opacity: 0 }
+  #a-d1 { left: 420px } #a-d2 { left: 900px } #a-d3 { left: 1440px }
+</style>
+  <div id="stage" class="clip" data-layout-allow-overflow data-start="0" data-duration="7.4" data-track-index="1">
+    <div id="a-lbl" class="lbl">One concept &#183; Beneficiary designations</div>
+    <div id="a-ax"></div>
+    <div id="a-m1" class="mk on"></div>
+    <div id="a-m2" class="mk off"></div>
+    <div id="a-m3" class="mk on"></div>
+    <div id="a-d1" class="day">Day 1 &#183; unaided</div>
+    <div id="a-d2" class="day">Day 8 &#183; with help</div>
+    <div id="a-d3" class="day">Day 21 &#183; unaided</div>
+  </div>
+<script>
+  /* The rule the product applies, stated as the only thing that counts:
+     understanding the learner can produce twice without help. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.out', immediateRender: false } });
+  t.addLabel('in', 0);
+
+  t.fromTo('#stage', { y: 1080 }, { y: 0, duration: 0.50, ease: 'power2.inOut' }, 'in');
+  t.fromTo('#a-lbl', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.62 }, 'in+=0.70');
+  t.fromTo('#a-ax', { scaleX: 0 }, { scaleX: 1, duration: 0.88, ease: 'power4.inOut' }, 'in+=0.90');
+  t.fromTo('#a-m1', { autoAlpha: 0, scale: 0.7 }, { autoAlpha: 1, scale: 1, duration: 0.44 }, 'in+=1.30');
+  t.fromTo('#a-d1', { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 0.52 }, 'in+=1.45');
+  t.fromTo('#a-m2', { autoAlpha: 0, scale: 0.7 }, { autoAlpha: 1, scale: 1, duration: 0.44 }, 'in+=2.10');
+  t.fromTo('#a-d2', { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 0.52 }, 'in+=2.25');
+  t.fromTo('#a-m3', { autoAlpha: 0, scale: 0.7 }, { autoAlpha: 1, scale: 1, duration: 0.44 }, 'in+=2.90');
+  t.fromTo('#a-d3', { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 0.52 }, 'in+=3.05');
+
+  t.fromTo('#stage', { y: 0 }, { y: -1080, duration: 0.50, ease: 'power2.inOut' }, 'in+=6.90');
+</script>
+</template>
+
+<template data-beat="update">
+<style>
+  #stage { position: absolute; inset: 0; overflow: hidden; background: var(--dark); transform: translateY(1080px) }
+
+  /* The published ReadyRating card returns, at the level it was published at.
+     Nothing in this film ever moves it: a rating is recalculated from evidence
+     and can go either way, which is what the line under it says and what an
+     animated climb would contradict. */
+  #u-w { position: absolute; left: 0; top: 0; width: 900px; height: 369px; transform-origin: 0 0;
+         transform: translate(506px, 300px) scale(1.12); opacity: 0 }
+  #u-rr { left: 0; top: 0; width: 900px; height: 369px; background-image: var(--img-rating) }
+  #u-note { position: absolute; left: 506px; top: 752px; width: 1100px; font-size: 30px; opacity: 0 }
+
+  #u-lh { position: absolute; left: 300px; top: 330px; opacity: 0 }
+  .nrow { position: absolute; left: 300px; width: 1400px; font-family: var(--text); font-weight: 400;
+          font-size: 36px; color: #dde5ea; opacity: 0 }
+  #u-n1 { top: 392px } #u-n2 { top: 458px }
+  #u-n3 { top: 524px; color: rgba(255,255,255,0.64) }
+</style>
+  <div id="stage" class="clip" data-layout-allow-overflow data-start="0" data-duration="8.1" data-track-index="1">
+    <!-- The world is first so it paints UNDER the type that replaces it. -->
+    <div id="u-w" data-layout-allow-overflow>
+      <div id="u-rr" class="pane shot" role="img" aria-label="ReadyRating card: readiness to pass the exam, level 4, well prepared"></div>
+    </div>
+    <div id="u-note" class="say">Recalculated after every session, and it can move either way.</div>
+
+    <div id="u-lh" class="lbl">Your plan now</div>
+    <div id="u-n1" class="nrow">Taxation of life insurance &#183; back in your plan</div>
+    <div id="u-n2" class="nrow">Policy loans and dividends &#183; next</div>
+    <div id="u-n3" class="nrow">Beneficiary designations &#183; returns for a retention check</div>
+  </div>
+<script>
+  /* The rating, then the plan behind it, and the plan is a different plan.
+     The concept the film followed has left the top of it and another has
+     come back to it. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.out', immediateRender: false } });
+  t.addLabel('in', 0);
+
+  var K = { s: 1.12, x: 506, y: 300 };
+  var K2 = { s: 1.134, x: 499.7, y: 294 };
+
+  t.fromTo('#stage', { y: 1080 }, { y: 0, duration: 0.50, ease: 'power2.inOut' }, 'in');
+  t.fromTo('#u-w', { autoAlpha: 0, x: K.x, y: K.y + 170, scale: K.s }, { autoAlpha: 1, x: K.x, y: K.y, scale: K.s, duration: 1.20, ease: 'power3.out' }, 'in+=0.70');
+  t.fromTo('#u-note', { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.70 }, 'in+=2.10');
+  t.fromTo('#u-w', { x: K.x, y: K.y, scale: K.s }, { x: K2.x, y: K2.y, scale: K2.s, duration: 1.40, ease: 'none' }, 'in+=2.60');
+
+  t.fromTo('#u-w', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.55, ease: 'power2.in' }, 'in+=4.10');
+  t.fromTo('#u-note', { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -20, duration: 0.55, ease: 'power2.in' }, 'in+=4.10');
+  t.fromTo('#u-lh', { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.62 }, 'in+=4.40');
+  t.fromTo('#u-n1', { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 0.60 }, 'in+=4.75');
+  t.fromTo('#u-n2', { autoAlpha: 0, y: 15.2 }, { autoAlpha: 1, y: 0, duration: 0.60 }, 'in+=5.10');
+  t.fromTo('#u-n3', { autoAlpha: 0, y: 11.6 }, { autoAlpha: 1, y: 0, duration: 0.60 }, 'in+=5.45');
+
+  t.fromTo('#stage', { y: 0 }, { y: -1080, duration: 0.50, ease: 'power2.inOut' }, 'in+=7.60');
+</script>
+</template>
+
+<template data-beat="focus">
+<style>
+  #stage { position: absolute; inset: 0; overflow: hidden; background: var(--dark); transform: translateY(1080px) }
+
+  /* The scale the film opened on, now read, joined to the activity it points
+     at. That join is the whole personal benefit, stated once. The filled cell
+     is authored filled: nothing here fills, because a rating is not a bar. */
+  #f-l1 { position: absolute; left: 200px; top: 398px; opacity: 0 }
+  .cell { position: absolute; top: 458px; width: 104px; height: 104px; box-sizing: border-box;
+          border: 3px solid rgba(255,255,255,0.32); border-radius: 4px;
+          font-family: var(--display); font-weight: 700; font-size: 38px; line-height: 98px;
+          text-align: center; color: rgba(255,255,255,0.55); opacity: 0 }
+  #f-s1 { left: 200px } #f-s2 { left: 324px } #f-s3 { left: 448px }
+  #f-s4 { left: 572px; background: var(--brand); border-color: var(--brand); color: var(--dark) }
+  #f-s5 { left: 696px }
+  #f-arrow { position: absolute; left: 848px; top: 508px; width: 234px; height: 4px; background: var(--brand);
+             transform-origin: 0% 50%; transform: scaleX(0) }
+  #f-l2 { position: absolute; left: 1130px; top: 398px; opacity: 0 }
+  .nx { position: absolute; left: 1130px; width: 720px; font-family: var(--text); font-weight: 400;
+        font-size: 36px; color: #dde5ea; opacity: 0 }
+  #f-n1 { top: 452px } #f-n2 { top: 518px }
+</style>
+  <div id="stage" class="clip" data-layout-allow-overflow data-start="0" data-duration="9.2" data-track-index="1">
+    <div id="f-l1" class="lbl">Where you stand</div>
+    <div id="f-s1" class="cell">1</div>
+    <div id="f-s2" class="cell">2</div>
+    <div id="f-s3" class="cell">3</div>
+    <div id="f-s4" class="cell">4</div>
+    <div id="f-s5" class="cell">5</div>
+    <div id="f-arrow"></div>
+    <div id="f-l2" class="lbl">What to work on next</div>
+    <div id="f-n1" class="nx">Practice &#183; Taxation of life insurance</div>
+    <div id="f-n2" class="nx">Lesson &#183; Policy loans and dividends</div>
+  </div>
+<script>
+  /* The readiness the learner can see, and the activity it sends them to,
+     drawn as one line between the two. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.out', immediateRender: false } });
+  t.addLabel('in', 0);
+
+  t.fromTo('#stage', { y: 1080 }, { y: 0, duration: 0.50, ease: 'power2.inOut' }, 'in');
+  t.fromTo('#f-l1', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.62 }, 'in+=0.70');
+  t.fromTo('#f-s1', { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 0.56 }, 'in+=1.00');
+  t.fromTo('#f-s2', { autoAlpha: 0, y: 13.7 }, { autoAlpha: 1, y: 0, duration: 0.56 }, 'in+=1.15');
+  t.fromTo('#f-s3', { autoAlpha: 0, y: 10.4 }, { autoAlpha: 1, y: 0, duration: 0.56 }, 'in+=1.30');
+  t.fromTo('#f-s4', { autoAlpha: 0, y: 7.9 }, { autoAlpha: 1, y: 0, duration: 0.56 }, 'in+=1.45');
+  t.fromTo('#f-s5', { autoAlpha: 0, y: 6 }, { autoAlpha: 1, y: 0, duration: 0.56 }, 'in+=1.60');
+
+  t.fromTo('#f-arrow', { scaleX: 0 }, { scaleX: 1, duration: 0.70, ease: 'power3.inOut' }, 'in+=2.40');
+  t.fromTo('#f-l2', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.62 }, 'in+=3.00');
+  t.fromTo('#f-n1', { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 0.62 }, 'in+=3.50');
+  t.fromTo('#f-n2', { autoAlpha: 0, y: 13.7 }, { autoAlpha: 1, y: 0, duration: 0.62 }, 'in+=3.95');
+
+  /* Out BEFORE the end card, not under it: the stage clears exactly as the
+     end card's own first element begins, and the two never share a frame.
+     Split, because immediateRender writes the from-state at CONSTRUCTION:
+     with y in the same tween it would stamp y = 0 on a stage the markup
+     holds a frame-height below, and this beat would cover the one it pushes
+     over for the whole of its first frame. */
+  t.fromTo('#stage', { autoAlpha: 1 }, { autoAlpha: 0, duration: 1.10, ease: 'power2.in', immediateRender: true }, 'in+=7.90');
+  t.fromTo('#stage', { y: 0 }, { y: -70, duration: 1.10, ease: 'power2.in' }, 'in+=7.90');
+</script>
+</template>
+
+<template data-beat="note">
+<style>
+  #stage { position: absolute; inset: 0 }
+
+  /* The editorial callouts, and the only place they are written. One at a
+     time, never a restatement of the narration underneath, and always on
+     their own opaque plate so a callout stays legible over a white product
+     screen without tinting the screen itself. None of the five names a
+     program: they hold for the combined film exactly as they held for the
+     single-program one.
+
+     visibility: hidden is stated here, not left to autoAlpha alone: opacity
+     does not inherit into a child's computed style, so before a callout's own
+     tween ever touches it, an untouched .v span reports its OWN default
+     opacity of 1 to anything measuring computed style, even while its opaque
+     parent sits at opacity 0. visibility DOES inherit, so stating it hidden
+     here and letting autoAlpha's inline visibility:inherit override it once a
+     callout's tween fires is what keeps an unstarted callout's text out of a
+     layout audit that checks visibility rather than trusting an ancestor's
+     opacity. Gate 2's unclipped-text-overlap pass caught this: at one film
+     time n5 had never been touched, and its "Focus your preparation." span,
+     still at the shared (112, 104) position, reported as visible layout next
+     to exams' own on-screen text. */
+  .n { position: absolute; left: 112px; top: 104px; padding: 22px 40px 26px 30px;
+       background: rgba(8,26,50,0.94); border-left: 6px solid var(--brand); opacity: 0; visibility: hidden }
+  .n .k { display: block; margin-bottom: 12px }
+  .n .v { display: block; font-family: var(--display); font-weight: 700; letter-spacing: -0.018em;
+          font-size: 38px; color: #ffffff }
+</style>
+  <div id="stage" class="clip" data-start="0" data-duration="77.3" data-track-index="1">
+    <div id="n1" class="n"><span class="k lbl">ReadyRating&#8482; &#183; 1&#8211;5</span><span class="v">Based on demonstrated understanding.</span></div>
+    <div id="n2" class="n"><span class="v">A plan built around you.</span></div>
+    <div id="n3" class="n"><span class="v">Practice aligned to exam content.</span></div>
+    <div id="n4" class="n"><span class="v">Understanding checked over time.</span></div>
+    <div id="n5" class="n"><span class="v">Focus your preparation.</span></div>
+  </div>
+<script>
+  /* Times are film times against a label at zero: this layer runs from 0, so
+     every offset below reads straight against the beat table. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.out', immediateRender: false } });
+  t.addLabel('reel', 0);
+
+  t.fromTo('#n1', { autoAlpha: 0, x: -16 }, { autoAlpha: 1, x: 0, duration: 0.62 }, 'reel+=13.7');
+  t.fromTo('#n1', { autoAlpha: 1, x: 0 }, { autoAlpha: 0, x: -16, duration: 0.50, ease: 'power2.in' }, 'reel+=20.4');
+  t.fromTo('#n2', { autoAlpha: 0, x: -16 }, { autoAlpha: 1, x: 0, duration: 0.62 }, 'reel+=34.7');
+  t.fromTo('#n2', { autoAlpha: 1, x: 0 }, { autoAlpha: 0, x: -16, duration: 0.50, ease: 'power2.in' }, 'reel+=40.4');
+  t.fromTo('#n3', { autoAlpha: 0, x: -16 }, { autoAlpha: 1, x: 0, duration: 0.62 }, 'reel+=42.3');
+  t.fromTo('#n3', { autoAlpha: 1, x: 0 }, { autoAlpha: 0, x: -16, duration: 0.50, ease: 'power2.in' }, 'reel+=45.8');
+  t.fromTo('#n4', { autoAlpha: 0, x: -16 }, { autoAlpha: 1, x: 0, duration: 0.62 }, 'reel+=54.5');
+  t.fromTo('#n4', { autoAlpha: 1, x: 0 }, { autoAlpha: 0, x: -16, duration: 0.50, ease: 'power2.in' }, 'reel+=59.3');
+  t.fromTo('#n5', { autoAlpha: 0, x: -16 }, { autoAlpha: 1, x: 0, duration: 0.62 }, 'reel+=69.7');
+  t.fromTo('#n5', { autoAlpha: 1, x: 0 }, { autoAlpha: 0, x: -16, duration: 0.50, ease: 'power2.in' }, 'reel+=75.4');
+</script>
+</template>
+
+<template data-beat="cap">
+<style>
+  #stage { position: absolute; inset: 0 }
+
+  /* The narration band. The web build ships silent (docs/AUDIO.md), so the
+     captions are the read: scenes 1, 6 and 7 are the combined-program lines
+     this film is authorised to use, and scenes 2 to 5 are the shared
+     learner-facing narration from
+     WKT_ReadyEngine_Final_Revised_Script_20260908_v4.pdf, verbatim and in
+     order, unchanged from work/bcc/llqp because neither names a program. The
+     generated captions.vtt beside this file is the same table again for an
+     external player and for the voiceover pass. */
+  #scrim { position: absolute; left: 0; top: 836px; width: 1920px; height: 244px;
+           background: linear-gradient(to bottom, rgba(8,26,50,0) 0%, rgba(8,26,50,0.88) 44%, rgba(8,26,50,1) 66%) }
+  .c { position: absolute; left: 414px; width: 1092px; bottom: 74px; margin: 0;
+       text-align: center; font-family: var(--text); font-weight: 400; font-size: 29px;
+       line-height: 1.38; color: #eef3f6; opacity: 0 }
+</style>
+  <div id="stage" class="clip" data-start="0" data-duration="88.5" data-track-index="1">
+    <div id="scrim"></div>
+    <p id="k1" class="c">Prepare for your licensing exams with Business Career College.</p>
+    <p id="k2" class="c">Powered by ReadyEngine, our securities and insurance programs<br>combine personalized preparation with a clear view of exam readiness.</p>
+    <p id="k3" class="c">Your ReadyRating shows exam readiness on a scale of one to five, based on<br>your demonstrated understanding of the concepts your exam requires.</p>
+    <p id="k4" class="c">The breakdown shows which concepts need more practice.</p>
+    <p id="k5" class="c">Here&#8217;s how it works.</p>
+    <p id="k6" class="c">As you answer practice questions,<br>ReadyEngine identifies where you need more support.</p>
+    <p id="k7" class="c">It builds a plan around your needs and exam date, with lessons<br>and practice to guide what you work on next.</p>
+    <p id="k8" class="c">Practice exams are aligned to the concepts covered on your exam.</p>
+    <p id="k9" class="c">You can ask questions and get explanations<br>through Riley, your 24/7 study assistant.</p>
+    <p id="k10" class="c">ReadyEngine keeps checking. It looks for understanding<br>you can demonstrate more than once, without help.</p>
+    <p id="k11" class="c">As you practise, your study plan and ReadyRating update.</p>
+    <p id="k12" class="c">Concepts that need more attention return to your plan.</p>
+    <p id="k13" class="c">With Business Career College, you can see where you stand and what to<br>work on next, with focused preparation for your exams.</p>
+    <p id="k14" class="c">Know when you&#8217;re ready.</p>
+    <p id="k15" class="c">Explore securities and insurance training<br>with Business Career College.</p>
+  </div>
+<script>
+  /* One cue per line, in and out the same shape, so no two cues can ever be on
+     screen together: each out lands before the next in. Times are film times
+     against a label at zero, because the law wants every position stated as a
+     label expression and this layer starts with the film. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power1.out', immediateRender: false } });
+  t.addLabel('reel', 0);
+
+  t.fromTo('#k1', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=0.80');
+  t.fromTo('#k1', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=4.00');
+  t.fromTo('#k2', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=4.50');
+  t.fromTo('#k2', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=11.50');
+  t.fromTo('#k3', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=12.00');
+  t.fromTo('#k3', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=20.70');
+  t.fromTo('#k4', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=21.20');
+  t.fromTo('#k4', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=24.50');
+  t.fromTo('#k5', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=25.10');
+  t.fromTo('#k5', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=26.70');
+  t.fromTo('#k6', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=27.30');
+  t.fromTo('#k6', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=32.30');
+  t.fromTo('#k7', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=32.90');
+  t.fromTo('#k7', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=40.70');
+  t.fromTo('#k8', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=41.60');
+  t.fromTo('#k8', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=46.10');
+  t.fromTo('#k9', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=46.90');
+  t.fromTo('#k9', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=52.40');
+  t.fromTo('#k10', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=53.30');
+  t.fromTo('#k10', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=59.20');
+  t.fromTo('#k11', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=59.70');
+  t.fromTo('#k11', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=63.40');
+  t.fromTo('#k12', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=63.80');
+  t.fromTo('#k12', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=67.40');
+  t.fromTo('#k13', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=68.30');
+  t.fromTo('#k13', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=76.00');
+  t.fromTo('#k14', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=77.55');
+  t.fromTo('#k14', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=80.15');
+  t.fromTo('#k15', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, 'reel+=81.20');
+  t.fromTo('#k15', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.18, ease: 'power1.in' }, 'reel+=84.90');
+</script>
+</template>

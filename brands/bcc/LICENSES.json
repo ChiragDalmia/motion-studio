@@ -72,13 +72,22 @@
       "note": "The published reversed variant, for dark grounds. Geometry identical to mark.svg at a 1600x700 artboard. It carries its fills as a <defs> style block on .cls-1/.cls-2; a film that inlines it rewrites those two class fills to literal fill attributes of the same values and drops the style block, because generic class names collide once every beat is inlined into one document. No path data is touched."
     },
     {
-      "asset": "compositions/img/*.webp",
+      "asset": "brands/bcc/gfx/mark-reversed.html",
+      "kind": "mark",
+      "source": "brands/bcc/logo/reversed.svg",
+      "licence": "owned",
+      "permittedUse": ["web", "video", "print"],
+      "expires": null,
+      "note": "The inline form of reversed.svg, produced by the rewrite that file's own entry describes. All 29 paths carry the master's geometry byte for byte and a literal fill of #ffffff or #f15d2a; nothing in it is inheritable."
+    },
+    {
+      "asset": "media/bcc/*.webp",
       "kind": "screenshot",
-      "source": "businesscareercollege.com/images/CIRO_web_*.webp",
+      "source": "businesscareercollege.com/images/CIRO_web_ready-rating.webp, CIRO_web_concept-mastery.webp",
       "licence": "owned",
       "permittedUse": ["web", "video"],
       "expires": null,
-      "note": "Product captures BCC publishes on its own CIRE Exam Prep and ReadyEngine pages. Learner data in them is the vendor's own demo data."
+      "note": "The two ReadyEngine product captures BCC publishes on its own LLQP course page, unretouched. Both are components that name no course, which is why an LLQP film may carry them: nothing in either states a program. Learner data in them is the vendor's own demo data. The rest of the CIRO_web_* set is NOT here: those frames carry securities course titles and concepts and would put the wrong program on screen."
     }
   ],
   "missing": [
