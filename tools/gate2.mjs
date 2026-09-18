@@ -18,13 +18,12 @@ import { chromium } from 'playwright-core';
 import { load } from './tokens.mjs';
 import { build } from './build.mjs';
 import { chrome } from './doctor.mjs';
-import { load as loadFilm, BUDGET } from './film.mjs';
+import { load as loadFilm, BUDGET, PCM_CAP, PCM_PER_ENCODED_BYTE } from './film.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 
 const THROTTLE = 4;          // CDP CPU throttling rate
 const SEEK_P95_MS = 25;      // best of three rounds; see the note where it is measured
-const PCM_CAP = 8 * 1024 * 1024;
 
 /** A budget overrun, with the one line that would legitimately fix it. */
 const over = (unit, got, cap, brand, slug) =>
@@ -123,8 +122,18 @@ export async function gate2(brand, slug) {
     };
     const dclRuns = [await dclOf(), await dclOf()].filter((n) => n != null);
     const dcl = dclRuns.length ? Math.min(...dclRuns) : null;
-    await page.waitForFunction('window.__player && document.fonts.status === "loaded"', null, { timeout: 20000 })
+    // A FUNCTION, never a string. A string predicate is evaluated with eval(),
+    // which this artifact's own CSP forbids, so the wait threw instantly and
+    // the catch below swallowed it: every probe ran against whatever state the
+    // page happened to be in.
+    await page.waitForFunction(() => window.__player && document.fonts.status === 'loaded', null, { timeout: 20000 })
       .catch(() => {});
+    // A data: URI still decodes asynchronously, so the readyState assertion
+    // below would otherwise report a race rather than a defect.
+    await page.waitForFunction(() => {
+      const a = document.getElementById('ms-mix');
+      return !a || a.readyState === 4;
+    }, null, { timeout: 20000 }).catch(() => {});
 
     probe = await page.evaluate(async ({ expectIds, authoredDuration, tokens }) => {
       const out = { fail: [], info: {} };
@@ -180,6 +189,19 @@ export async function gate2(brand, slug) {
       for (const m of media) {
         if (!m.id) out.fail.push('a media element has no id, the mixer never sees it and the render is silent');
         if (m.readyState !== 4) out.fail.push(`${m.tagName.toLowerCase()}#${m.id} readyState is ${m.readyState}, expected 4`);
+      }
+
+      // The mix, when one ships. A track shorter than the film ends in silence
+      // and a longer one runs past the last frame; either way the sound and
+      // the picture stop disagreeing only because nobody measured them.
+      const mix = document.getElementById('ms-mix');
+      if (mix) {
+        out.info.mix = { duration: +mix.duration.toFixed(3), muted: mix.muted, paused: mix.paused, readyState: mix.readyState };
+        if (!(Math.abs(mix.duration - d) <= 0.05)) out.fail.push(`#ms-mix is ${mix.duration.toFixed(3)}s and the film is ${d}s; re-run npm run audio mix`);
+        if (!mix.paused) out.fail.push('#ms-mix is already playing before any gesture, which no browser should permit and no viewer asked for');
+        if (!mix.muted) out.fail.push('#ms-mix is unmuted at rest; sound must wait for a gesture');
+      } else if (window.__ms && window.__ms.mix) {
+        out.fail.push('window.__ms.mix says this film ships a mix but #ms-mix is not in the document');
       }
 
       // Seek cost, out of order so nothing benefits from a warm forward path.
@@ -333,6 +355,10 @@ export async function gate2(brand, slug) {
           playing: window.__ms && window.__ms.player ? window.__ms.player.isPlaying() : null,
           poster: window.__ms && window.__ms.player ? window.__ms.player.poster : null,
           body: document.body.className,
+          mix: !!document.getElementById('ms-mix'),
+          mixPlaying: !!(document.getElementById('ms-mix') && !document.getElementById('ms-mix').paused),
+          mute: !!document.getElementById('ms-mute'),
+          driving: window.__ms && window.__ms.player ? window.__ms.player.driving() : null,
         }));
         // Real pixels. Nothing short of this distinguishes "a complete frame"
         // from "the frame before every entrance has started", which is blank.
@@ -370,6 +396,13 @@ export async function gate2(brand, slug) {
       `1.5s after a plain open the film is at t=${opened.t} and body is "${opened.body}", neither running nor deliberately showing its poster`);
     ok(!opened.errors?.length, `console error(s) on a plain open: ${(opened.errors || []).slice(0, 2).join(' | ')}`);
     if (opened.ink) note.push(`opened undriven: t=${opened.t}s playing=${opened.playing} poster=${opened.poster?.toFixed?.(2)}s · ${opened.ink.offModal}% of pixels off-modal over ${opened.ink.distinct} colours`);
+    // A narrated film that autostarts silently has already spent its opening
+    // line by the time anyone can reach the unmute control.
+    ok(!opened.mix || !opened.mixPlaying, 'the mix is playing 1.5s after a plain open, with no gesture behind it');
+    ok(!opened.mix || opened.driving === 'visual', `the film opened already driven by the mix (driving=${opened.driving}); the clock changes hands on a gesture and nowhere else`);
+    ok(!opened.mix || opened.mute, 'this film ships a mix but the transport grew no unmute control, so the sound is unreachable');
+    ok(!opened.mix || /ms-poster/.test(opened.body || ''), `a film that ships a mix must rest on its poster until a gesture; body is "${opened.body}"`);
+    if (opened.mix) note.push(`mix: ${probe.info.mix?.duration}s inlined, muted and paused at rest, unmute control present`);
 
     // ---- the embed contract, measured, not assumed ------------------------
     // "Needs nothing from the consuming website" is false. A srcdoc embed
@@ -479,8 +512,7 @@ function decodedPcmBytes(html) {
   let total = 0;
   for (const m of html.matchAll(/<(?:audio|video)\b[^>]*\ssrc="data:[^;]*;base64,([^"]*)"/gi)) {
     const bytes = Math.floor(m[1].length * 3 / 4);
-    // 48 kHz stereo float32 is what a decode costs regardless of the codec.
-    total += bytes * 8;
+    total += bytes * PCM_PER_ENCODED_BYTE;
   }
   return total;
 }

@@ -123,7 +123,11 @@ need('chrome', () => {
   return short(p);
 });
 
-want('ffmpeg', () => { const p = which('ffmpeg'); return p ? short(p) : 'not installed. Only MP4 render needs it; no gate does'; });
+want('ffmpeg', () => {
+  const missing = ['ffmpeg', 'ffprobe'].filter((c) => !(process.env[`MS_${c.toUpperCase()}`] || which(c)));
+  if (missing.length) throw new Error(`${missing.join(' and ')} not found. The audio pipeline and MP4 export need both; no gate does. Install FFmpeg, or set MS_FFMPEG and MS_FFPROBE`);
+  return short(process.env.MS_FFMPEG || which('ffmpeg')) + ' with ffprobe';
+});
 want('python', () => {
   const py = which('python3') ?? which('python');
   if (!py) return 'not installed. Only tools/font.mjs needs it, when a pack\'s faces change';

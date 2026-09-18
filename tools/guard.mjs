@@ -525,13 +525,15 @@ function visibleText(html) {
     [g2, 'clip-path:none !important', 'gate 2 no longer re-measures layout with clips forced off'],
     [g2, 'two consecutive builds are not byte-identical', 'gate 2 no longer builds twice'],
     [g2, 'embedTest', 'gate 2 no longer measures the embed contract'],
+    [g2, '#ms-mix is already playing', 'gate 2 no longer checks that the mix waits for a gesture'],
+    [g2, 'and the film is', 'gate 2 no longer checks the mix against the film duration'],
     [dojs, "'--strict'", 'gate 1 no longer runs --strict, so every warning became advice'],
     [dojs, "'--at-transitions'", 'gate 1 no longer samples transitions'],
     [dojs, 'errorCount', 'gate 1 no longer asserts on counts, which is the only thing that separates clean from never-ran'],
   ];
   for (const [src, needle, why] of must) if (!src.includes(needle)) bad.push(why);
   const asserts = (g2.match(/\bok\(/g) || []).length;
-  if (asserts < 24) bad.push(`gate 2 makes ${asserts} assertions; it made 24 when this floor was set. An assertion was deleted, not fixed`);
+  if (asserts < 29) bad.push(`gate 2 makes ${asserts} assertions; it made 29 when this floor was set. An assertion was deleted, not fixed`);
   if (bad.length) fail(`validation weakened:\n       ${bad.join('\n       ')}`);
   else pass(`gate 1 and gate 2 still make every assertion they were built with (${asserts} in gate 2)`);
 }
@@ -595,6 +597,40 @@ function sentences(md) {
   }
   if (bad.length) fail(`filler prose. Say the thing or delete the sentence:\n       ${bad.join('\n       ')}`);
   else pass(`no filler phrase in any of ${(carried || []).filter((x) => /\.md$/.test(x)).length} markdown files`);
+}
+
+// ---- 22. no paid provider on any automatic path ----------------------------
+// A provider call that fires from install, build, check, gate or export is a
+// bill nobody approved and, worse, a different film: text to speech is not
+// reproducible, so a regenerated take is new content, not a rebuild.
+{
+  const bad = [];
+  const PROVIDER = /elevenlabs|api\.openai|heygen\.com\/v\d|fetch\s*\(\s*['"`]https?:/i;
+  const AUTOMATIC = ['tools/build.mjs', 'tools/gate2.mjs', 'tools/do.mjs', 'tools/prepare.mjs', 'tools/export.mjs', 'tools/audiogate.mjs', 'lib/chrome/chrome.js'];
+  for (const f of AUTOMATIC) {
+    if (!fs.existsSync(P(f))) continue;
+    const src = read(f);
+    if (PROVIDER.test(src)) bad.push(`${f} reaches a provider, and it runs without anyone asking for it`);
+    if (/ELEVENLABS_API_KEY|process\.env\.[A-Z_]*API_KEY/.test(src)) bad.push(`${f} reads an API key; only tools/audio.mjs may`);
+  }
+  const audio = fs.existsSync(P('tools/audio.mjs')) ? read('tools/audio.mjs') : '';
+  if (audio) {
+    // The one paid call in the repo, and the two things that keep it honest:
+    // it prints what it would send, and it does nothing without --yes.
+    if (!audio.includes("flags.includes('--yes')")) bad.push('tools/audio.mjs no longer gates its provider call behind --yes');
+    if (!audio.includes("flags.includes('--replace')")) bad.push('tools/audio.mjs no longer refuses to spend a second time on work it already has');
+    if (!/console\.log\(`\s*submitting to \$\{ALIGN_URL\}`\)/.test(audio)) bad.push('tools/audio.mjs no longer prints what it is about to submit');
+    const scripts = JSON.parse(read('package.json')).scripts || {};
+    for (const [name, cmd] of Object.entries(scripts)) {
+      if (name !== 'audio' && !name.startsWith('audio:') && /audio\.mjs/.test(cmd)) bad.push(`npm script "${name}" runs tools/audio.mjs; a provider must never sit behind a general command`);
+      if (/audio\.mjs\s+align/.test(cmd) && !name.endsWith(':align')) bad.push(`npm script "${name}" runs the paid alignment command`);
+    }
+  }
+  const env = fs.existsSync(P('.gitignore')) ? read('.gitignore') : '';
+  if (!/^\.env$/m.test(env)) bad.push('.gitignore no longer ignores .env, so a key can be committed');
+  for (const f of (carried || [])) if (/(^|\/)\.env$/.test(f)) bad.push(`${f} is tracked and holds credentials`);
+  if (bad.length) fail(`a provider call escaped the one command that asks first:\n       ${bad.join('\n       ')}`);
+  else pass('no provider call on any automatic path; alignment needs --yes and prints what it sends');
 }
 
 for (const m of ok) console.log(`  ok   ${m}`);

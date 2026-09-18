@@ -187,8 +187,10 @@ asserts it. `hyperframes init` is never run for a film: it writes per-film
 routing files and a per-film `package.json` that forks the one pinned CLI
 version.
 
-Sound is not in the web build. [docs/AUDIO.md](docs/AUDIO.md) has the three
-independent reasons and the licence that would have to be bought first.
+A film ships silent unless an audio project points at it. When one does,
+narration, music and effects are mixed into one track before playback and that
+track becomes the clock. [docs/AUDIO.md](docs/AUDIO.md) has the design and
+[audio/README.md](audio/README.md) the order of operations.
 
 ## Contributing and reporting problems
 

@@ -37,6 +37,11 @@ jobs:
       - run: npm ci
       - run: npx playwright-core install --with-deps chromium
 
+      # The mix and the transport, on synthetic fixtures. No provider, no
+      # credit, no approved take: it tests the pipeline, not a film.
+      - name: the audio pipeline and the player transport
+        run: npm run audio:test
+
       # Only the films this change can reach, so one film is one film of gate
       # time instead of all of them. do.mjs widens the selection to every film
       # when lib/ or tools/ moves, and an unresolvable ref widens it too, so

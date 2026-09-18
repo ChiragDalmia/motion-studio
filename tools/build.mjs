@@ -10,6 +10,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { bundleToSingleHtml } from '@hyperframes/core/compiler';
 import { load } from './tokens.mjs';
+import { mixFor } from './audio.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const jsSafe = (s) => s.replace(/<\/script/gi, '<\\/script');
@@ -67,6 +68,16 @@ export async function build(brand, slug) {
 
   // 2. The chrome, and the handful of facts it needs, from film.json.
   const meta = JSON.parse(fs.readFileSync(path.join(film, 'film.json'), 'utf8')).chrome || {};
+
+  // The mix, if one has been made and approved. It is inlined HERE and never
+  // in the source project: base64 media in the source is an upstream lint
+  // error, and a lint error makes `hyperframes check` skip the browser while
+  // still reporting ok. Keeping the source silent is what keeps gate 1 honest.
+  const audio = mixFor(brand, slug);
+  const mixTag = audio
+    ? `<audio id="ms-mix" preload="auto" src="data:audio/mpeg;base64,${fs.readFileSync(audio.mp3).toString('base64')}"></audio>\n`
+    : '';
+
   const ms = {
     film: `${brand}-${slug}`,
     width: pack.defaults.width,
@@ -74,6 +85,7 @@ export async function build(brand, slug) {
     ...(meta.poster != null ? { poster: meta.poster } : {}),
     ...(meta.captions?.length ? { captions: meta.captions } : {}),
     ...(meta.audio ? { audio: true } : {}),
+    ...(audio ? { mix: { project: audio.project, duration: audio.duration, lufs: audio.loudness.target, truePeak: audio.loudness.truePeak } } : {}),
   };
   const chromeCss = fs.readFileSync(path.join(ROOT, 'lib/chrome/chrome.css'), 'utf8');
   const chromeJs = fs.readFileSync(path.join(ROOT, 'lib/chrome/chrome.js'), 'utf8');
@@ -86,7 +98,7 @@ export async function build(brand, slug) {
   );
   html = html.replace(
     /<\/body>/i,
-    `<script>window.__ms=${jsSafe(JSON.stringify(ms))}</script>\n<script>${jsSafe(chromeJs)}</script>\n</body>`,
+    `${mixTag}<script>window.__ms=${jsSafe(JSON.stringify(ms))}</script>\n<script>${jsSafe(chromeJs)}</script>\n</body>`,
   );
 
   // 3. Attribution. Neither HyperFrames package ships a NOTICE file, so the
@@ -141,7 +153,7 @@ export async function build(brand, slug) {
     gzip: zlib.gzipSync(buf, { level: 9 }).length,
     brotli: zlib.brotliCompressSync(buf, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11 } }).length,
   };
-  return { out, sizes, faces: faces.length };
+  return { out, sizes, faces: faces.length, mix: audio };
 }
 
 /** Drop the @font-face rules the prepared brand.css contributed; the packager
@@ -155,5 +167,6 @@ if (process.argv[1]?.endsWith('build.mjs')) {
   if (!brand || !slug) { console.error('usage: npm run build <brand> <slug>'); process.exit(2); }
   const r = await build(brand, slug);
   const k = (n) => (n / 1024).toFixed(1) + ' KB';
-  console.log(`  built builds/${brand}-${slug}.html  raw ${k(r.sizes.raw)} · gzip ${k(r.sizes.gzip)} · brotli ${k(r.sizes.brotli)} · ${r.faces} faces inlined`);
+  console.log(`  built builds/${brand}-${slug}.html  raw ${k(r.sizes.raw)} · gzip ${k(r.sizes.gzip)} · brotli ${k(r.sizes.brotli)} · ${r.faces} faces inlined`
+    + (r.mix ? ` · mix ${r.mix.project} inlined` : ' · silent'));
 }

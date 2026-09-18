@@ -84,6 +84,16 @@ export function load(brand, slug) {
 export const BUDGET = { brotli: 200 * 1024, gzip: 230 * 1024, dclMs: 1500 };
 
 /**
+ * What a browser holds DECODED, which is the ceiling a mix runs into long
+ * before the wire budget does. Inlined audio decodes to 48 kHz stereo float
+ * regardless of the codec, so eight bytes of memory per encoded byte, and an
+ * encoded megabyte is the whole allowance. Gate 2 enforces it on the artifact;
+ * the audio pipeline projects against it before anyone waits for a gate.
+ */
+export const PCM_CAP = 8 * 1024 * 1024;
+export const PCM_PER_ENCODED_BYTE = 8;
+
+/**
  * Parse beats.html. Three top-level forms, all <template>:
  *   <template data-film>            film-level <style> and the master <script>
  *   <template data-layer="type">    markup into that layer, beside its hosts
