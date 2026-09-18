@@ -1,0 +1,53 @@
+{
+  "note": "The house interface set. These six are generated once and reused by every film in the studio; a new film places them at new times and does not commission new sounds. Generate each in ElevenLabs Sound Effects with the prompt below, save it as a 48 kHz WAV at the path given, and keep it short and dry. Reverb and stereo width are mix decisions, not source decisions.",
+  "provider": "ElevenLabs Sound Effects",
+  "settings": {
+    "durationSeconds": "set explicitly per sound, below",
+    "promptInfluence": "high, so the sound stays literal rather than musical",
+    "format": "WAV 48 kHz stereo, then trim the leading silence to zero"
+  },
+  "sounds": [
+    {
+      "id": "ui-tap",
+      "file": "source/sfx/ui-tap.wav",
+      "seconds": 0.25,
+      "prompt": "A single soft interface tap. Short muted wooden click with a gentle rounded attack, no reverb, no tail, no musical pitch. Quiet and neutral, the sound of a well made button in a quiet office.",
+      "use": "A pointer landing on a control."
+    },
+    {
+      "id": "ui-select",
+      "file": "source/sfx/ui-select.wav",
+      "seconds": 0.35,
+      "prompt": "A single confirming interface tick. Soft rounded click with a very short upward inflection, dry, no reverb, no melody. Reads as yes without celebrating.",
+      "use": "An answer chosen, a control committed."
+    },
+    {
+      "id": "reveal",
+      "file": "source/sfx/reveal.wav",
+      "seconds": 0.9,
+      "prompt": "A soft airy swell revealing a panel of information. Gentle filtered noise rising and settling over less than a second, no impact, no whoosh, no cinematic boom. Calm and quiet.",
+      "use": "A card, chart or panel arriving on screen."
+    },
+    {
+      "id": "transition",
+      "file": "source/sfx/transition.wav",
+      "seconds": 0.7,
+      "prompt": "A short restrained transition swell for a corporate explainer. Soft filtered air moving past, low volume, no whoosh, no riser, no impact at the end. Understated.",
+      "use": "A cut between two scenes that need joining."
+    },
+    {
+      "id": "count",
+      "file": "source/sfx/count.wav",
+      "seconds": 0.5,
+      "prompt": "A light ticking movement of a number changing, three or four soft mechanical pips in half a second, dry, quiet, no pitch, no melody.",
+      "use": "A figure counting up, a rating settling."
+    },
+    {
+      "id": "settle",
+      "file": "source/sfx/settle.wav",
+      "seconds": 1.2,
+      "prompt": "A soft low resolving tone that fades to nothing over a second. Warm, quiet, no attack, no reverb tail, no chord. The sound of something coming to rest.",
+      "use": "The last frame, under the mark."
+    }
+  ]
+}

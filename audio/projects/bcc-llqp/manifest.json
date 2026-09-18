@@ -1,0 +1,107 @@
+{
+  "project": "bcc-llqp",
+  "film": {
+    "brand": "bcc",
+    "slug": "llqp"
+  },
+  "duration": 87,
+  "sampleRate": 48000,
+  "loudness": {
+    "target": -16,
+    "truePeak": -1,
+    "range": 11
+  },
+  "narration": {
+    "file": "source/narration.wav",
+    "transcript": "brief/narration.txt",
+    "start": 0.9,
+    "gain": 0,
+    "licence": "ElevenLabs paid plan, commercial use. Record the plan and the voice id in work/bcc/llqp/NOTES.md and in brands/bcc/LICENSES.json before this film ships."
+  },
+  "music": {
+    "file": "source/music.wav",
+    "trim": {
+      "start": 0,
+      "end": null
+    },
+    "loop": true,
+    "gain": -20,
+    "fadeIn": 1.2,
+    "fadeOut": 3,
+    "duck": {
+      "thresholdDb": -40,
+      "ratio": 8,
+      "attackMs": 20,
+      "releaseMs": 450
+    },
+    "licence": "ACE-Step 1.5, generated locally. Record the model version, the prompt and the seed in work/bcc/llqp/NOTES.md and in brands/bcc/LICENSES.json before this film ships."
+  },
+  "sfx": [
+    {
+      "id": "reveal",
+      "file": "source/sfx/reveal.wav",
+      "at": [
+        11,
+        40.6
+      ],
+      "gain": -20
+    },
+    {
+      "id": "count",
+      "file": "source/sfx/count.wav",
+      "at": [
+        12.6
+      ],
+      "gain": -22
+    },
+    {
+      "id": "ui-tap",
+      "file": "source/sfx/ui-tap.wav",
+      "at": [
+        26.5
+      ],
+      "gain": -22
+    },
+    {
+      "id": "ui-select",
+      "file": "source/sfx/ui-select.wav",
+      "at": [
+        27.6
+      ],
+      "gain": -22
+    },
+    {
+      "id": "transition",
+      "file": "source/sfx/transition.wav",
+      "at": [
+        31.5,
+        58.8,
+        66.4
+      ],
+      "gain": -24
+    },
+    {
+      "id": "settle",
+      "file": "source/sfx/settle.wav",
+      "at": [
+        76.9
+      ],
+      "gain": -22
+    }
+  ],
+  "captions": {
+    "source": "elevenlabs-forced-alignment",
+    "file": "generated/captions.json",
+    "maxChars": 90,
+    "maxSeconds": 7
+  },
+  "output": {
+    "wav": "generated/mix.wav",
+    "mp3": "generated/mix.mp3"
+  },
+  "mp3": {
+    "bitrate": "80k",
+    "channels": 2
+  },
+  "embed": true
+}

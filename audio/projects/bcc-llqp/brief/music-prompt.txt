@@ -1,0 +1,39 @@
+# ACE-Step 1.5, instrumental bed for bcc/llqp. Paste the PROMPT block into the
+# prompt field and the TAGS block into the tags field. Generate one take.
+# Save it to audio/projects/bcc-llqp/source/music.wav as 48 kHz WAV.
+#
+# Target length 90s for an 87s film: a few seconds of tail gives the fade-out
+# somewhere to land. The manifest loops it if it comes back short.
+
+PROMPT
+Calm instrumental underscore for a corporate education explainer. Warm felt
+piano and soft sustained synth pads carry the whole piece. A light muted
+pulse keeps time without a drum kit. Steady, even dynamics with no build and
+no drop, so it can sit under a voice for a minute and a half without ever
+pulling attention. Hopeful and composed rather than triumphant. No vocals, no
+lyrics, no vocal samples, no melodic hook in the 1 kHz to 4 kHz range where
+speech lives. Ends by settling rather than resolving.
+
+TAGS
+instrumental, corporate, underscore, ambient, felt piano, soft synth pad,
+warm, calm, hopeful, steady, no vocals, no drums, background music, 85 bpm,
+C major
+
+LENGTH
+90
+
+NEGATIVE
+vocals, singing, choir, spoken word, drum fill, cymbal crash, brass stab,
+sudden dynamic change, distortion, sound effects
+
+# Settings that matter, in ACE-Step's own UI:
+#   Duration        90
+#   Guidance        a middle value; a high one overfits the tags and the bed
+#                   starts announcing itself
+#   Seed            record whatever you use in NOTES.md, so the take can be
+#                   made again if the file is ever lost
+#   Format          WAV, 48000 Hz, stereo
+#
+# Listen for the one thing that ruins a bed: a melody note that lands in the
+# same register as the voice. If the take has one, generate again rather than
+# trying to mix around it.
