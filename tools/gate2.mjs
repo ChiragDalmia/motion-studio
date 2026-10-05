@@ -254,16 +254,83 @@ export async function gate2(brand, slug) {
     // box. Since "clipped reveals as the primary verb" is a house rule, that
     // blindness is systematic rather than incidental, so measure the layout
     // the type actually occupies, with every clip forced off.
+    //
+    // Forced off means clip-path, which is the verb, and NOT overflow, which is
+    // a pane. getBoundingClientRect ignores an ancestor's overflow, so the box
+    // it returns for a scrolled page, a docked panel's transcript or a dialog's
+    // own page underneath is a box nobody can see. Measured on
+    // relo/dashboard-tutorial, which mounts the product's real DOM: 116
+    // findings, every one of them type an overflow: hidden pane was hiding.
+    // So each rect is intersected with the panes that clip it first. It reads
+    // the same as display: none, visibility: hidden and opacity under 0.05
+    // already do here: what the viewer cannot see is not a collision. A
+    // clip-path reveal is untouched, because the style above removed it.
     const pass = await page.evaluate(({ times, families }) => {
       const off = document.createElement('style');
       off.textContent = '*{clip-path:none !important;-webkit-clip-path:none !important}';
       document.head.appendChild(off);
       const name = (el) => (el.id ? '#' + el.id : el.tagName.toLowerCase() + (el.className ? '.' + String(el.className).split(/\s+/)[0] : ''));
       const ownText = (el) => [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim().length > 1);
+      /** The nearest box above an element that paints a solid colour. Two text
+       *  blocks inside the SAME one are on one ground and can run through each
+       *  other; two inside different ones cannot both be read where one of
+       *  those grounds covers the other, which is what a dialog, a docked
+       *  panel and a sticky bar all are. */
+      const ground = (el) => {
+        for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
+          const m = /^rgba?\(([^)]+)\)/.exec(getComputedStyle(n).backgroundColor);
+          if (!m) continue;
+          const parts = m[1].split(',');
+          if (parts.length < 4 || Number(parts[3]) >= 0.9) return n;
+        }
+        return null;
+      };
+      /** The box the element's OWN glyphs occupy, not the block they sit in. A
+       *  full-width row and the label aligned to its right end share a box and
+       *  share no ink; measuring the block reported that as a collision. */
+      const inkRect = (el) => {
+        let l = Infinity, t = Infinity, r = -Infinity, b = -Infinity;
+        for (const n of el.childNodes) {
+          if (n.nodeType !== 3 || !n.textContent.trim()) continue;
+          const range = document.createRange();
+          range.selectNodeContents(n);
+          for (const q of range.getClientRects()) {
+            if (q.width <= 0 || q.height <= 0) continue;
+            l = Math.min(l, q.left); t = Math.min(t, q.top);
+            r = Math.max(r, q.right); b = Math.max(b, q.bottom);
+          }
+        }
+        return r > l && b > t ? { left: l, top: t, right: r, bottom: b } : null;
+      };
+      /** The part of an element's ink that survives every pane above it, or
+       *  null when a pane hides it completely. */
+      const visible = (el) => {
+        const r = inkRect(el);
+        if (!r) return null;
+        // Never LARGER than the block: a line box can run past its own element,
+        // and on wkt/readyengine that turned a 93x9 near miss into a finding
+        // this check had never made.
+        const own = el.getBoundingClientRect();
+        let l = Math.max(r.left, own.left), t = Math.max(r.top, own.top);
+        let rt = Math.min(r.right, own.right), bt = Math.min(r.bottom, own.bottom);
+        if (rt - l <= 0 || bt - t <= 0) return null;
+        for (let n = el.parentElement; n; n = n.parentElement) {
+          const cs = getComputedStyle(n);
+          const clipX = cs.overflowX !== 'visible';
+          const clipY = cs.overflowY !== 'visible';
+          if (!clipX && !clipY) continue;
+          const p = n.getBoundingClientRect();
+          if (clipX) { l = Math.max(l, p.left); rt = Math.min(rt, p.right); }
+          if (clipY) { t = Math.max(t, p.top); bt = Math.min(bt, p.bottom); }
+          if (rt - l <= 0 || bt - t <= 0) return null;
+        }
+        return { left: l, top: t, right: rt, bottom: bt, width: rt - l, height: bt - t };
+      };
       const seen = new Map();
       const fellBack = new Map();
       for (const t of times) {
         window.__player.seek(t);
+        const boxes = new Map();
         const els = [...document.querySelectorAll('[data-composition-id] *')].filter((el) => {
           const cs = getComputedStyle(el);
           if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) < 0.05) return false;
@@ -273,8 +340,11 @@ export async function gate2(brand, slug) {
           // reported a 172x27px collision between a line and the emphasis on
           // the line after it. The question is whether two text BLOCKS collide.
           if (/^inline/.test(cs.display) || cs.display === 'contents') return false;
-          const r = el.getBoundingClientRect();
-          return r.width > 1 && r.height > 1 && ownText(el);
+          if (!ownText(el)) return false;
+          const r = visible(el);
+          if (!r || r.width <= 1 || r.height <= 1) return false;
+          boxes.set(el, { r, g: ground(el) });
+          return true;
         });
         for (const el of els) {
           const first = getComputedStyle(el).fontFamily.split(',')[0].trim().replace(/^['"]|['"]$/g, '');
@@ -284,9 +354,25 @@ export async function gate2(brand, slug) {
           for (let j = i + 1; j < els.length; j++) {
             const A = els[i], B = els[j];
             if (A.contains(B) || B.contains(A)) continue;
-            const a = A.getBoundingClientRect(), b = B.getBoundingClientRect();
+            const { r: a, g: ga } = boxes.get(A);
+            const { r: b, g: gb } = boxes.get(B);
             const ox = Math.min(a.right, b.right) - Math.max(a.left, b.left);
             const oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+            // Two blocks on DIFFERENT solid grounds, where one of those grounds
+            // covers the whole overlap: the one underneath cannot be read there,
+            // so only one of them is on screen and there is nothing to collide.
+            // This is a dialog over its own page, a docked panel over a
+            // transcript, a sticky bar over the page scrolling under it. Two
+            // blocks on the SAME ground still report, which is the case this
+            // check was built for.
+            if (ox > 4 && oy > 4 && ga && gb && ga !== gb && !ga.contains(gb) && !gb.contains(ga)) {
+              const ol = { left: Math.max(a.left, b.left), top: Math.max(a.top, b.top), right: Math.min(a.right, b.right), bottom: Math.min(a.bottom, b.bottom) };
+              const covers = (g) => {
+                const p = g.getBoundingClientRect();
+                return p.left <= ol.left + 0.5 && p.top <= ol.top + 0.5 && p.right >= ol.right - 0.5 && p.bottom >= ol.bottom - 0.5;
+              };
+              if (covers(ga) || covers(gb)) continue;
+            }
             // 4px of slack: adjacent baselines legitimately touch.
             if (ox > 4 && oy > 4) {
               const key = [name(A), name(B)].sort().join(' x ');
