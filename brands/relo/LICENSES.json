@@ -1,6 +1,6 @@
 {
   "brand": "relo",
-  "reviewed": "2026-09-04",
+  "reviewed": "2026-09-18",
   "assets": [
     {
       "asset": "font/master/Oswald-700.woff2",
@@ -34,6 +34,46 @@
       "expires": null
     },
     {
+      "asset": "font/master/Inter-400.woff2",
+      "kind": "typeface",
+      "family": "Inter",
+      "source": "brands/bcc/font/master/Inter-400.woff2",
+      "licence": "SIL Open Font License 1.1",
+      "url": "https://openfontlicense.org",
+      "permittedUse": ["web", "video", "print"],
+      "expires": null,
+      "note": "Copied from the bcc pack, which instanced it from that site's variable Inter. Both packs subset to the same unicode range, so the shipped bytes are identical. RELO's product interface sets a system stack; this is the face that ships in its place so a render does not depend on the machine that drew it."
+    },
+    {
+      "asset": "font/master/Inter-600.woff2",
+      "kind": "typeface",
+      "family": "Inter",
+      "source": "brands/bcc/font/master/Inter-600.woff2",
+      "licence": "SIL Open Font License 1.1",
+      "url": "https://openfontlicense.org",
+      "permittedUse": ["web", "video", "print"],
+      "expires": null
+    },
+    {
+      "asset": "font/master/Inter-700.woff2",
+      "kind": "typeface",
+      "family": "Inter",
+      "source": "brands/bcc/font/master/Inter-700.woff2",
+      "licence": "SIL Open Font License 1.1",
+      "url": "https://openfontlicense.org",
+      "permittedUse": ["web", "video", "print"],
+      "expires": null
+    },
+    {
+      "asset": "gfx/dash.html, gfx/scr-*.html",
+      "kind": "product-ui",
+      "source": "RELO-onboarding/DashboardLibrary",
+      "licence": "owned",
+      "permittedUse": ["web", "video"],
+      "expires": null,
+      "note": "The RELO dashboard reference library, 25 of its 48 screens. dash.html is the union of their stylesheets, deduplicated, with every custom property renamed --d-* so the product vocabulary cannot collide with the pack's, and with the three things a page resolves against a browser viewport (100vh, position:fixed, the system font stack) re-pointed at the film's 1280x720 box. Each scr-*.html is that screen's body, verbatim, with an em dash replaced by a comma where the house rule requires it and the children of main.content wrapped so the page can be scrolled by transform. Box geometry is identical to the library at 1280x720, screen for screen. RELO product UI, owned by WKT."
+    },
+    {
       "asset": "logo/mark.svg",
       "kind": "mark",
       "source": "RELO brand assets",
@@ -50,12 +90,25 @@
       "permittedUse": ["web", "video", "print"],
       "expires": null,
       "note": "Mark plus the relo wordmark and the by-WKT signature, as outlines, no font is required to set it and no licensed face is redistributed as geometry. The top-right square is bound to --accent rather than --ground, which is an intro-only departure from logo/mark.svg."
-    }
-  ],
-  "missing": [
+    },
     {
-      "kind": "music",
-      "why": "No music or SFX licence has been purchased, so no film in this brand may ship with audio. See docs/AUDIO.md, the free tiers of the bundled providers are not usable commercially, and both plausible stock licences forbid distributing a track in a form a visitor can extract standalone, which is exactly what view-source on an inlined data URI is."
+      "asset": "audio/projects/relo-dashboard-tutorial/source/narration.wav",
+      "kind": "voice",
+      "source": "Chatterbox (Resemble AI), run locally",
+      "licence": "MIT",
+      "url": "https://github.com/resemble-ai/chatterbox",
+      "permittedUse": ["web", "video", "print"],
+      "expires": null,
+      "note": "Generated on this machine from the approved script in the project brief, with the model weights and code under MIT. No provider account, no tier and no attribution condition applies, and nothing was sublicensed, so the inlined data URI a viewer can extract carries no restriction the studio does not already hold. The voice is the model default, seeded at 1234 with exaggeration 0.45 and cfg_weight 0.4, so the take reproduces."
+    },
+    {
+      "asset": "audio/projects/relo-dashboard-tutorial/source/sfx/*.wav",
+      "kind": "sfx",
+      "source": "synthesised with ffmpeg, tools are in the project brief",
+      "licence": "owned",
+      "permittedUse": ["web", "video", "print"],
+      "expires": null,
+      "note": "The two interface sounds are a decaying sine tick and a band-passed noise swell, generated from ffmpeg primitives rather than sampled from any library, so there is no third party in them."
     }
   ]
 }

@@ -34,6 +34,11 @@ const relo: Pack = {
     cyanInk: '#2ba8ce',
     yellow: '#ffde17',
     yellowWash: '#fffce4',
+    // The product's own interface face. The RELO dashboard sets a system stack,
+    // which is an upstream lint error and a render that depends on whichever
+    // machine drew it; Inter is the shipped face closest to what that stack
+    // resolves to. Only a film that replicates the product names it.
+    ui: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
   },
 
   surface: {
@@ -82,6 +87,9 @@ const relo: Pack = {
     { family: 'Oswald', weight: 700, file: 'font/Oswald-700.woff2' },
     { family: 'Poppins', weight: 500, file: 'font/Poppins-500.woff2' },
     { family: 'Poppins', weight: 600, file: 'font/Poppins-600.woff2' },
+    { family: 'Inter', weight: 400, file: 'font/Inter-400.woff2' },
+    { family: 'Inter', weight: 600, file: 'font/Inter-600.woff2' },
+    { family: 'Inter', weight: 700, file: 'font/Inter-700.woff2' },
   ],
 
   logo: { mark: 'logo/mark.svg' },
