@@ -36,7 +36,8 @@
 {&quot;id&quot;:&quot;cyan&quot;,&quot;type&quot;:&quot;color&quot;,&quot;label&quot;:&quot;Cyan&quot;,&quot;default&quot;:&quot;#34bde8&quot;},
 {&quot;id&quot;:&quot;cyanInk&quot;,&quot;type&quot;:&quot;color&quot;,&quot;label&quot;:&quot;Cyan Ink&quot;,&quot;default&quot;:&quot;#2ba8ce&quot;},
 {&quot;id&quot;:&quot;yellow&quot;,&quot;type&quot;:&quot;color&quot;,&quot;label&quot;:&quot;Yellow&quot;,&quot;default&quot;:&quot;#ffde17&quot;},
-{&quot;id&quot;:&quot;yellowWash&quot;,&quot;type&quot;:&quot;color&quot;,&quot;label&quot;:&quot;Yellow Wash&quot;,&quot;default&quot;:&quot;#fffce4&quot;}
+{&quot;id&quot;:&quot;yellowWash&quot;,&quot;type&quot;:&quot;color&quot;,&quot;label&quot;:&quot;Yellow Wash&quot;,&quot;default&quot;:&quot;#fffce4&quot;},
+{&quot;id&quot;:&quot;ui&quot;,&quot;type&quot;:&quot;string&quot;,&quot;label&quot;:&quot;Ui&quot;,&quot;default&quot;:&quot;Inter, system-ui, -apple-system, \&quot;Segoe UI\&quot;, Roboto, \&quot;Helvetica Neue\&quot;, Arial, sans-serif&quot;}
 ]">
 <head><style data-hyperframes-text-rendering="true">html,body,*{text-rendering:geometricPrecision}</style>
 <meta charset="utf-8">
@@ -495,6 +496,7 @@ body { margin: 0; background: var(--ground) }
   --cyanink: #2ba8ce;
   --yellow: #ffde17;
   --yellowwash: #fffce4;
+  --ui: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 [data-hf-var-scope="1"] {
@@ -513,6 +515,7 @@ body { margin: 0; background: var(--ground) }
   --cyanink: #2ba8ce;
   --yellow: #ffde17;
   --yellowwash: #fffce4;
+  --ui: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }</style>
 
 <script data-hyperframes-preview-runtime="1">"use strict";(()=>{var qm=Object.create;var Xi=Object.defineProperty;var $m=Object.getOwnPropertyDescriptor;var jm=Object.getOwnPropertyNames;var Km=Object.getPrototypeOf,Ym=Object.prototype.hasOwnProperty;var Xm=(e,t,n)=>t in e?Xi(e,t,{enumerable:!0,configurable:!0,writable:!0,value:n}):e[t]=n;var ae=(e,t)=>()=>(t||e((t={exports:{}}).exports,t),t.exports);var Jm=(e,t,n,r)=>{if(t&&typeof t=="object"||typeof t=="function")for(let i of jm(t))!Ym.call(e,i)&&i!==n&&Xi(e,i,{get:()=>t[i],enumerable:!(r=$m(t,i))||r.enumerable});return e};var Qm=(e,t,n)=>(n=e!=null?qm(Km(e)):{},Jm(t||!e||!e.__esModule?Xi(n,"default",{value:e,enumerable:!0}):n,e));var ge=(e,t,n)=>Xm(e,typeof t!="symbol"?t+"":t,n);var Lu=ae((aA,Ko)=>{var Z=String,Nu=function(){return{isColorSupported:!1,reset:Z,bold:Z,dim:Z,italic:Z,underline:Z,inverse:Z,hidden:Z,strikethrough:Z,black:Z,red:Z,green:Z,yellow:Z,blue:Z,magenta:Z,cyan:Z,white:Z,gray:Z,bgBlack:Z,bgRed:Z,bgGreen:Z,bgYellow:Z,bgBlue:Z,bgMagenta:Z,bgCyan:Z,bgWhite:Z,blackBright:Z,redBright:Z,greenBright:Z,yellowBright:Z,blueBright:Z,magentaBright:Z,cyanBright:Z,whiteBright:Z,bgBlackBright:Z,bgRedBright:Z,bgGreenBright:Z,bgYellowBright:Z,bgBlueBright:Z,bgMagentaBright:Z,bgCyanBright:Z,bgWhiteBright:Z}};Ko.exports=Nu();Ko.exports.createColors=Nu});var Yo=ae(()=>{});var Xr=ae((uA,Pu)=>{"use strict";var Du=Lu(),Iu=Yo(),Hn=class e extends Error{constructor(t,n,r,i,o,a){super(t),this.name="CssSyntaxError",this.reason=t,o&&(this.file=o),i&&(this.source=i),a&&(this.plugin=a),typeof n<"u"&&typeof r<"u"&&(typeof n=="number"?(this.line=n,this.column=r):(this.line=n.line,this.column=n.column,this.endLine=r.line,this.endColumn=r.column)),this.setMessage(),Error.captureStackTrace&&Error.captureStackTrace(this,e)}setMessage(){this.message=this.plugin?this.plugin+": ":"",this.message+=this.file?this.file:"<css input>",typeof this.line<"u"&&(this.message+=":"+this.line+":"+this.column),this.message+=": "+this.reason}showSourceCode(t){if(!this.source)return"";let n=this.source;t==null&&(t=Du.isColorSupported);let r=c=>c,i=c=>c,o=c=>c;if(t){let{bold:c,gray:f,red:m}=Du.createColors(!0);i=p=>c(m(p)),r=p=>f(p),Iu&&(o=p=>Iu(p))}let a=n.split(/\r?\n/),l=Math.max(this.line-3,0),s=Math.min(this.line+2,a.length),u=String(s).length;return a.slice(l,s).map((c,f)=>{let m=l+1+f,p=" "+(" "+m).slice(-u)+" | ";if(m===this.line){if(c.length>160){let v=20,x=Math.max(0,this.column-v),_=Math.max(this.column+v,this.endColumn+v),R=c.slice(x,_),T=r(p.replace(/\d/g," "))+c.slice(0,Math.min(this.column-1,v-1)).replace(/[^\t]/g," ");return i(">")+r(p)+o(R)+`
