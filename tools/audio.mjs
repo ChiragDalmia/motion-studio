@@ -346,7 +346,7 @@ function split(ws, maxChars, maxSeconds) {
 /** The two shapes this studio already reads: film.json's vo table, and the
  *  {t, d, text} rows the player chrome paints. */
 export function captionsFrom(alignment, m) {
-  const rows = cues(alignment.words || [], m.captions, m.narration?.start || 0)
+  const rows = cues(approved(alignment.words || [], m), m.captions, m.narration?.start || 0)
     .map((c) => ({ ...c, end: Math.min(c.end, m.duration) }))
     .filter((c) => c.text && c.end > c.start);
   return {
@@ -393,6 +393,18 @@ async function cmdValidate(project, flags) {
     else {
       note.push(`transcript: ${words} words, about ${Math.round(words / 2.5)}s read aloud against a ${m.duration}s film`);
       if (words / 2.5 > m.duration) warn.push(`the script reads longer than the film; either cut it or retime ${m.film.brand}/${m.film.slug}`);
+    }
+    const pf = m.narration.pronounce;
+    if (pf && !fs.existsSync(m.at(pf))) bad.push(`narration.pronounce names ${pf}, which does not exist`);
+    else if (pf) {
+      const say = pronounce(m.at(pf));
+      const text = script(m.at(m.narration.transcript));
+      const spans = spokenSpans(text, say);
+      const hit = new Set(spans.flatMap((s) => Object.keys(say).filter((k) => new RegExp(bounded(k)).test(s.original))));
+      for (const k of Object.keys(say)) {
+        if (!hit.has(k)) warn.push(`${pf} respells "${k}", which never appears in ${m.narration.transcript}`);
+      }
+      note.push(`${pf}: ${hit.size} of ${Object.keys(say).length} substitution(s) used, ${spans.filter((s) => s.original !== s.said).length} token(s) respelled for the provider`);
     }
   }
   if (fs.existsSync(m.at('brief/sfx-cues.json'))) {
@@ -488,6 +500,26 @@ function report(project, bad, warn, note, flags = []) {
   return bad.length || strict ? 1 : 0;
 }
 
+function cmdSay(project) {
+  const m = manifest(project);
+  if (!m.narration) throw new Error('this project declares no narration, so there is nothing to speak');
+  const approvedText = script(m.at(m.narration.transcript));
+  const say = m.narration.pronounce ? pronounce(m.at(m.narration.pronounce)) : {};
+  const text = spoken(approvedText, say);
+  const out = m.at('generated/spoken.txt');
+  fs.mkdirSync(path.dirname(out), { recursive: true });
+  fs.writeFileSync(out, text + '\n');
+
+  const spans = spokenSpans(approvedText, say);
+  const changed = [...new Map(spans.filter((s) => s.original !== s.said).map((s) => [s.original, s])).values()];
+  console.log(`  wrote ${rel(out)}: ${text.length} characters, ${spans.reduce((n, s) => n + s.count, 0)} words`);
+  for (const c of changed) console.log(`    ${c.original}  ->  ${c.said}`);
+  if (!changed.length) console.log(`    no substitutions; this is ${m.narration.transcript} with its header stripped`);
+  console.log(`\n  Paste that file into the provider. The captions are still built from ${m.narration.transcript},`);
+  console.log(`  so the phonetic spellings never reach the screen.`);
+  return 0;
+}
+
 async function cmdAlign(project, flags) {
   const m = manifest(project);
   if (!m.narration) throw new Error('this project declares no narration, so there is nothing to align');
@@ -499,12 +531,17 @@ async function cmdAlign(project, flags) {
     throw new Error(`generated/alignment.json already exists. Alignment is a paid call, so it is never repeated silently. Pass --replace to spend it again`);
   }
 
-  const text = script(txt);
-  if (!text) throw new Error(`${rel(txt)} has no narration in it once the header is stripped`);
+  const approvedText = script(txt);
+  if (!approvedText) throw new Error(`${rel(txt)} has no narration in it once the header is stripped`);
+  // Alignment is given what the take actually says, not what the captions
+  // will read, or every substituted word would land on the wrong timestamp.
+  const say = m.narration.pronounce ? pronounce(m.at(m.narration.pronounce)) : {};
+  const text = spoken(approvedText, say);
   const bytes = fs.statSync(wav).size;
   console.log(`  submitting to ${ALIGN_URL}`);
   console.log(`    audio       ${rel(wav)}  ${kb(bytes)}`);
   console.log(`    transcript  ${rel(txt)}  ${text.length} characters, ${text.split(/\s+/).length} words`);
+  if (Object.keys(say).length) console.log(`    spoken as   ${m.narration.pronounce}, ${Object.keys(say).length} substitution(s); captions still read ${rel(txt)}`);
   console.log(`    first line  ${text.split('\n')[0].slice(0, 96)}`);
   if (!flags.includes('--yes')) {
     console.log('\n  Nothing was sent. This is the only command in the repo that spends provider credit.');
@@ -597,6 +634,66 @@ export function script(file) {
   return fs.readFileSync(file, 'utf8').split('\n').filter((l) => !/^\s*#/.test(l)).join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
+// A model that says the product's own name wrong is wrong four times in this
+// film, and the lever every provider actually honours is spelling rather than
+// a phoneme tag. So the approved copy stays correct and a map respells it for
+// the provider only. Substitution is per token, which keeps the two texts
+// word-for-word alignable: the timings come off the phonetic read and the
+// caption text off the approved copy, so neither has to compromise.
+export function pronounce(file) {
+  const j = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const say = j.say || {};
+  for (const [k, v] of Object.entries(say)) {
+    if (!String(k).trim() || !String(v).trim()) throw new Error(`${rel(file)}: "${k}" maps to nothing`);
+    if (/\s/.test(k)) throw new Error(`${rel(file)}: "${k}" spans a space; a key is one approved token`);
+  }
+  return say;
+}
+
+const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// \b only asserts against a word character, so a key that begins or ends in
+// punctuation ("study;") can never match with one on that side.
+const bounded = (s) => `${/^\w/.test(s) ? '\\b' : ''}${escRe(s)}${/\w$/.test(s) ? '\\b' : ''}`;
+const sayWord = (w, say) => Object.entries(say).reduce((out, [from, to]) => out.replace(new RegExp(bounded(from), 'g'), to), w);
+
+/** Each approved token beside the tokens a provider is asked to read for it. */
+export function spokenSpans(text, say) {
+  return text.split(/\s+/).filter(Boolean).map((original) => {
+    const said = sayWord(original, say);
+    return { original, said, count: said.split(/\s+/).filter(Boolean).length };
+  });
+}
+
+/** The approved script as a provider should be given it, line breaks intact. */
+export function spoken(text, say) {
+  return text.split('\n')
+    .map((line) => line.split(/\s+/).filter(Boolean).map((w) => sayWord(w, say)).join(' '))
+    .join('\n');
+}
+
+/** Aligned words carry phonetic spellings; the captions must not. Regroup them
+ *  onto the approved tokens, taking each one's start from the first spoken
+ *  word it became and its end from the last. */
+function approved(words, m) {
+  const f = m.narration?.pronounce;
+  if (!f || typeof m.at !== 'function') return words;
+  const say = pronounce(m.at(f));
+  if (!Object.keys(say).length) return words;
+  const spans = spokenSpans(script(m.at(m.narration.transcript)), say);
+  const total = spans.reduce((n, s) => n + s.count, 0);
+  if (total !== words.length) {
+    throw new Error(`forced alignment returned ${words.length} words but ${f} now produces ${total} from `
+      + `${m.narration.transcript}. The alignment was made from a different script than the map produces today.\n`
+      + `  Re-run align after changing either, or the captions would land on the wrong words.`);
+  }
+  let i = 0;
+  return spans.map((s) => {
+    const g = words.slice(i, i + s.count);
+    i += s.count;
+    return { text: s.original, start: g[0].start, end: g[g.length - 1].end };
+  });
+}
+
 /** .env, read here and nowhere else. Never imported by build, check or gate2. */
 function loadEnv() {
   const f = P('.env');
@@ -649,6 +746,7 @@ if (process.argv[1]?.endsWith('audio.mjs')) {
   let code = 0;
   try {
     if (cmd === 'validate') code = await cmdValidate(need(), flags);
+    else if (cmd === 'say') code = cmdSay(need());
     else if (cmd === 'align') code = await cmdAlign(need(), flags);
     else if (cmd === 'captions') code = cmdCaptions(need(), flags);
     else if (cmd === 'mix') code = await cmdMix(need(), flags);
@@ -658,6 +756,7 @@ if (process.argv[1]?.endsWith('audio.mjs')) {
 
   list                       every audio project, and whether it is mixed
   validate <project>         files, formats, duration, cues, clipping, licence, ffmpeg
+  say      <project>         generated/spoken.txt: the script as a provider should be given it
   align    <project> --yes   ElevenLabs forced alignment. The ONLY paid call here
   captions <project>         alignment -> cues. --write copies them into film.json
   mix      <project>         generated/mix.wav and generated/mix.mp3

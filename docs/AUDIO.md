@@ -12,10 +12,10 @@ made, and its brand holds a licence for what is in it. All three are checked.
 
 ```
 audio/projects/<project>/
-  brief/       narration.txt, music-prompt.txt, sfx-cues.json, elevenlabs.md
+  brief/       narration.txt, pronounce.json, music-prompt.txt, sfx-cues.json, elevenlabs.md
   source/      narration.wav, music.wav, sfx/*.wav        (gitignored)
   manifest.json
-  generated/   alignment.json, captions.json, mix.wav, mix.mp3   (gitignored)
+  generated/   spoken.txt, alignment.json, captions.json, mix.wav, mix.mp3   (gitignored)
 ```
 
 `manifest.json` is the whole contract: the exact film duration, the narration
@@ -33,6 +33,7 @@ regenerating a take produces a different film rather than the same one.
 |---|---|
 | `npm run audio list` | every project, and whether it is mixed |
 | `npm run audio:validate <project>` | files, formats, duration, cues, clipping, licence, ffmpeg |
+| `npm run audio:say <project>` | `generated/spoken.txt`, the script as a provider should be given it |
 | `npm run audio:align <project> -- --yes` | ElevenLabs forced alignment. The only paid call in the repo |
 | `npm run audio:captions <project>` | alignment to cues. `-- --write` copies them into `film.json` |
 | `npm run audio:mix <project>` | `generated/mix.wav` and `generated/mix.mp3` |
@@ -94,6 +95,33 @@ twice on work it already has unless given `--replace`. `tools/guard.mjs` rule
 `ELEVENLABS_API_KEY` lives in `.env`, which is gitignored, and is read in one
 function in `tools/audio.mjs`. It never reaches a browser, a build, a log or
 the artifact.
+
+## What is read and what is shown are two different texts
+
+A model that says the product's name wrong is wrong every time the name
+appears, and the lever providers actually honour is spelling, not a phoneme
+tag: `<phoneme>` is unsupported on several of the high quality models,
+including Eleven Multilingual v2.
+
+So the approved copy is never bent to suit a model. `brief/narration.txt`
+stays correct and is what the captions show. `brief/pronounce.json` maps the
+tokens a model reads wrong onto spellings it reads right, and `audio:say` lays
+one over the other into `generated/spoken.txt`, which is what gets pasted into
+the provider and what forced alignment is given afterwards.
+
+```json
+"say": { "RELO": "rell-oh", "RECA": "reck-ah", "ReadyRating": "Ready Rating" }
+```
+
+A key is one token of the approved script; a value may be several words. Both
+directions are tracked per token, so the timings come off the phonetic read
+and the caption text off the approved copy, and neither has to compromise.
+`ReadyRating` is spoken as two words and captioned as one.
+
+Alignment and the map have to describe the same take. If the word counts
+disagree, `audio:captions` refuses rather than sliding every caption after the
+first substitution onto the wrong word. Change the script or the map and the
+take is re-read and re-aligned, which is the same rule as any other edit.
 
 ## Captions
 
