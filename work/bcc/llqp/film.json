@@ -1,0 +1,144 @@
+{
+  "brand": "bcc",
+  "title": "Business Career College LLQP on ReadyEngine",
+  "duration": 87,
+  "budget": { "brotli": 229376, "gzip": 261120 },
+  "chrome": { "poster": 3.6 },
+  "beats": [
+    { "id": "open", "layer": "art", "duration": 10.9, "surface": "navy" },
+    { "id": "rating", "layer": "art", "duration": 13, "surface": "navy" },
+    { "id": "quiz", "layer": "art", "duration": 8.1, "surface": "navy" },
+    { "id": "plan", "layer": "art", "start": 31.5, "duration": 8.6, "surface": "navy" },
+    { "id": "exams", "layer": "art", "start": 39.6, "duration": 6.1, "surface": "navy" },
+    { "id": "riley", "layer": "art", "start": 45.2, "duration": 7.2, "surface": "navy" },
+    { "id": "again", "layer": "art", "start": 51.9, "duration": 7.4, "surface": "navy" },
+    { "id": "update", "layer": "art", "start": 58.8, "duration": 8.1, "surface": "navy" },
+    { "id": "focus", "layer": "art", "start": 66.4, "duration": 9.2, "surface": "navy" },
+    { "id": "note", "layer": "type", "start": 0, "duration": 76, "surface": "navy" },
+    { "id": "cap", "layer": "ui", "start": 0, "duration": 87, "surface": "navy" }
+  ],
+  "labels": {
+    "end": 76
+  },
+  "images": [
+    "mastery",
+    "rating"
+  ],
+  "vo": [
+    {
+      "start": 0.9,
+      "end": 4,
+      "text": "Prepare for your LLQP exams with Business Career College."
+    },
+    {
+      "start": 4.6,
+      "end": 10.4,
+      "text": "Powered by ReadyEngine, the program combines personalized preparation with a clear view of exam readiness."
+    },
+    {
+      "start": 11,
+      "end": 19.6,
+      "text": "Your ReadyRating shows exam readiness on a scale of one to five, based on your demonstrated understanding of the concepts your exam requires."
+    },
+    {
+      "start": 20.2,
+      "end": 23.4,
+      "text": "The breakdown shows which concepts need more practice."
+    },
+    {
+      "start": 24.1,
+      "end": 25.6,
+      "text": "Here’s how it works."
+    },
+    {
+      "start": 26.3,
+      "end": 31.2,
+      "text": "As you answer practice questions, ReadyEngine identifies where you need more support."
+    },
+    {
+      "start": 31.9,
+      "end": 39.6,
+      "text": "It builds a plan around your needs and exam date, with lessons and practice to guide what you work on next."
+    },
+    {
+      "start": 40.6,
+      "end": 45,
+      "text": "Practice exams are aligned to the concepts covered on your exam."
+    },
+    {
+      "start": 45.9,
+      "end": 51.3,
+      "text": "You can ask questions and get explanations through Riley, your 24/7 study assistant."
+    },
+    {
+      "start": 52.3,
+      "end": 58.1,
+      "text": "ReadyEngine keeps checking. It looks for understanding you can demonstrate more than once, without help."
+    },
+    {
+      "start": 58.7,
+      "end": 62.3,
+      "text": "As you practise, your study plan and ReadyRating update."
+    },
+    {
+      "start": 62.8,
+      "end": 66.3,
+      "text": "Concepts that need more attention return to your plan."
+    },
+    {
+      "start": 67.3,
+      "end": 75.2,
+      "text": "With Business Career College, you can see where you stand and what to work on next, with focused preparation for your LLQP exams."
+    },
+    {
+      "start": 76.9,
+      "end": 79.4,
+      "text": "Know when you’re ready."
+    },
+    {
+      "start": 80.2,
+      "end": 83.4,
+      "text": "Explore LLQP with Business Career College."
+    }
+  ],
+  "motion": {
+    "assertions": [
+      { "kind": "appearsBy", "selector": "#h1", "bySec": 2.2 },
+      { "kind": "appearsBy", "selector": "#o-rr", "bySec": 7.2 },
+      { "kind": "appearsBy", "selector": "#o-pb", "bySec": 8.4 },
+      { "kind": "appearsBy", "selector": "#r-cm", "bySec": 18.8 },
+      { "kind": "appearsBy", "selector": "#r-lbl2", "bySec": 22.4 },
+      { "kind": "appearsBy", "selector": "#q-qt", "bySec": 26.4 },
+      { "kind": "appearsBy", "selector": "#q-ex", "bySec": 30.0 },
+      { "kind": "appearsBy", "selector": "#p-ed", "bySec": 34.0 },
+      { "kind": "appearsBy", "selector": "#p-l1", "bySec": 35.6 },
+      { "kind": "appearsBy", "selector": "#x-h1", "bySec": 42.0 },
+      { "kind": "appearsBy", "selector": "#y-a1", "bySec": 49.0 },
+      { "kind": "appearsBy", "selector": "#a-m3", "bySec": 55.8 },
+      { "kind": "appearsBy", "selector": "#u-rr", "bySec": 61.0 },
+      { "kind": "appearsBy", "selector": "#u-n1", "bySec": 64.6 },
+      { "kind": "appearsBy", "selector": "#f-s4", "bySec": 69.0 },
+      { "kind": "appearsBy", "selector": "#f-n1", "bySec": 71.2 },
+      { "kind": "appearsBy", "selector": "#e-name", "bySec": 77.6 },
+      { "kind": "appearsBy", "selector": "#e-lock", "bySec": 80.4 },
+      { "kind": "appearsBy", "selector": "#e-url", "bySec": 82.0 },
+      { "kind": "before", "a": "#h1", "b": "#o-rr" },
+      { "kind": "before", "a": "#o-rr", "b": "#o-pb" },
+      { "kind": "before", "a": "#r-cm", "b": "#r-lbl2" },
+      { "kind": "before", "a": "#q-qt", "b": "#q-ex" },
+      { "kind": "before", "a": "#q-ex", "b": "#p-ed" },
+      { "kind": "before", "a": "#p-ed", "b": "#p-l1" },
+      { "kind": "before", "a": "#a-m3", "b": "#u-rr" },
+      { "kind": "before", "a": "#u-rr", "b": "#u-n1" },
+      { "kind": "before", "a": "#e-name", "b": "#e-lock" },
+      { "kind": "before", "a": "#e-lock", "b": "#e-url" },
+      { "kind": "staysInFrame", "selector": "#e-llqp" },
+      { "kind": "staysInFrame", "selector": "#e-name" },
+      { "kind": "staysInFrame", "selector": "#e-lock" },
+      { "kind": "staysInFrame", "selector": "#e-cta" },
+      { "kind": "staysInFrame", "selector": "#e-url" },
+      { "kind": "staysInFrame", "selector": "#mark" },
+      { "kind": "keepsMoving", "maxStaticSec": 5.4 }
+    ]
+  }
+}

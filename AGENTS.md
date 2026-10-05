@@ -64,6 +64,8 @@ composition template, player). A film change never edits `lib/` or `tools/`.
 | `npm run gate2 <brand> <slug>` | gate 2, on the shipped bytes |
 | `npm run ship <brand> <slug>` | pre, lint, check, build, gate2, stopping at the first failure |
 | `npm run clean` | remove every generated path |
+| `npm run audio <cmd>` | the soundtrack; see docs/AUDIO.md |
+| `npm run export <b> <s>` | the picture rendered, the mix muxed |
 | `npx hyperframes preview work/<b>/<s> --background` | watch it in a browser |
 
 Run those full invocations. Do not consult a tool reference to reconstruct one.

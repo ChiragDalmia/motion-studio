@@ -18,6 +18,24 @@
       "weight": 600,
       "master": 8000,
       "shipped": 5004
+    },
+    {
+      "family": "Inter",
+      "weight": 400,
+      "master": 23676,
+      "shipped": 11184
+    },
+    {
+      "family": "Inter",
+      "weight": 600,
+      "master": 24336,
+      "shipped": 11584
+    },
+    {
+      "family": "Inter",
+      "weight": 700,
+      "master": 24264,
+      "shipped": 11616
     }
   ],
   "codepoints": [

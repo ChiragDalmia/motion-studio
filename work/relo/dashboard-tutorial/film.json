@@ -1,0 +1,675 @@
+{
+  "brand": "relo",
+  "title": "RELO dashboard tutorial",
+  "duration": 251,
+  "budget": {
+    "brotli": 1100800,
+    "gzip": 1177600
+  },
+  "chrome": {
+    "poster": 2.6,
+    "captions": [
+      {
+        "t": 1.6,
+        "d": 3.6,
+        "text": "You have your real estate course open in RELO."
+      },
+      {
+        "t": 5.2,
+        "d": 5.2,
+        "text": "Where do you start, and how will you know your study is working?"
+      },
+      {
+        "t": 10.4,
+        "d": 6,
+        "text": "At the top: your course, a search for any concept, and your target exam date."
+      },
+      {
+        "t": 16.4,
+        "d": 4,
+        "text": "Down the left: Lessons, Content Catalog, Analytics, Review and Support."
+      },
+      {
+        "t": 21,
+        "d": 3.6,
+        "text": "Your Study Navigator suggests what to work on next."
+      },
+      {
+        "t": 24.6,
+        "d": 2,
+        "text": "It pairs learning with practice."
+      },
+      {
+        "t": 26.6,
+        "d": 3.2,
+        "text": "Watch opens the lesson material for a topic."
+      },
+      {
+        "t": 29.8,
+        "d": 4.8,
+        "text": "Level Up takes you to the activities that build that topic's mastery."
+      },
+      {
+        "t": 34.6,
+        "d": 5.2,
+        "text": "Beside them: lesson progress, and the mastery points left to the next milestone."
+      },
+      {
+        "t": 39.8,
+        "d": 2.4,
+        "text": "Watching a lesson helps you learn."
+      },
+      {
+        "t": 42.2,
+        "d": 4.4,
+        "text": "Answering practice questions is what gives RELO evidence of your understanding."
+      },
+      {
+        "t": 46.6,
+        "d": 6,
+        "text": "The Navigator adjusts as you work, so come back whenever you need a next step."
+      },
+      {
+        "t": 53.2,
+        "d": 2.4,
+        "text": "Let's open the lesson it recommends."
+      },
+      {
+        "t": 55.6,
+        "d": 3.6,
+        "text": "The player keeps the topic list beside the video."
+      },
+      {
+        "t": 59.2,
+        "d": 7.2,
+        "text": "When something matters, save a note at that point in the video and come back to it later."
+      },
+      {
+        "t": 67,
+        "d": 3.6,
+        "text": "When you are ready to practise, use Level Up."
+      },
+      {
+        "t": 70.6,
+        "d": 3.2,
+        "text": "This percentage is your mastery of the concept."
+      },
+      {
+        "t": 73.8,
+        "d": 3.6,
+        "text": "Under it, the next milestone: ten points to Basic."
+      },
+      {
+        "t": 77.4,
+        "d": 5.2,
+        "text": "Those are mastery points, not a promise that ten questions get you there."
+      },
+      {
+        "t": 82.6,
+        "d": 3.6,
+        "text": "Choose questions and a session length you can finish."
+      },
+      {
+        "t": 86.2,
+        "d": 3.2,
+        "text": "Answer, submit, then spend time with the explanation."
+      },
+      {
+        "t": 89.4,
+        "d": 4.4,
+        "text": "Why the correct answer fits, and why the others do not."
+      },
+      {
+        "t": 93.8,
+        "d": 6,
+        "text": "If an idea keeps catching you out, save a short note in your own words."
+      },
+      {
+        "t": 99.8,
+        "d": 4.8,
+        "text": "Finish the set, read the summary, then look at the concept again."
+      },
+      {
+        "t": 104.6,
+        "d": 2,
+        "text": "Twenty percent has become twenty-five."
+      },
+      {
+        "t": 106.6,
+        "d": 6,
+        "text": "Treat that as feedback about where you are, not a fixed reward for each answer."
+      },
+      {
+        "t": 112.6,
+        "d": 3.2,
+        "text": "One good set does not finish a concept."
+      },
+      {
+        "t": 115.8,
+        "d": 5.6,
+        "text": "Flashcards are there for when you understand an idea but cannot yet recall it."
+      },
+      {
+        "t": 122,
+        "d": 4.8,
+        "text": "ReadyRating answers a broader question: how ready are you for this exam?"
+      },
+      {
+        "t": 126.8,
+        "d": 3.6,
+        "text": "Expand the card for its one to five scale."
+      },
+      {
+        "t": 130.4,
+        "d": 3.6,
+        "text": "Concept mastery helps you choose work inside a topic."
+      },
+      {
+        "t": 134,
+        "d": 2.4,
+        "text": "ReadyRating is your overall readiness signal."
+      },
+      {
+        "t": 136.4,
+        "d": 6.4,
+        "text": "It is not the percentage of lessons watched, and it is not your last quiz score."
+      },
+      {
+        "t": 143.4,
+        "d": 4,
+        "text": "Your target exam date puts that work on a timeline."
+      },
+      {
+        "t": 147.4,
+        "d": 4.4,
+        "text": "It plans your study; it does not book the official exam."
+      },
+      {
+        "t": 151.8,
+        "d": 3.2,
+        "text": "Pacing moves through Launch, Study and Final Review."
+      },
+      {
+        "t": 155,
+        "d": 3.2,
+        "text": "Forward Pace shows the pace each target needs."
+      },
+      {
+        "t": 158.2,
+        "d": 3.2,
+        "text": "Track Pace compares your real progress against it."
+      },
+      {
+        "t": 162,
+        "d": 3.2,
+        "text": "Analytics brings your activity and your results together."
+      },
+      {
+        "t": 165.2,
+        "d": 4.4,
+        "text": "Practice Stats gathers your question activity, scores, flashcards and practice exams."
+      },
+      {
+        "t": 169.6,
+        "d": 2,
+        "text": "Readiness Insights suggests a focus."
+      },
+      {
+        "t": 171.6,
+        "d": 4.8,
+        "text": "Mastery Ranges breaks it down by exam domain, with each domain's weight."
+      },
+      {
+        "t": 176.4,
+        "d": 5.2,
+        "text": "Find the area that needs work and take a quiz straight from it."
+      },
+      {
+        "t": 181.6,
+        "d": 6,
+        "text": "Below it, Practice Pace Insights compares your progress with the pace your date asks for."
+      },
+      {
+        "t": 188.2,
+        "d": 6,
+        "text": "Review is where you go back: recent questions with their explanations, and your saved notes."
+      },
+      {
+        "t": 194.8,
+        "d": 4,
+        "text": "Under Practice, read the practice exam instructions before you begin."
+      },
+      {
+        "t": 198.8,
+        "d": 5.6,
+        "text": "Inside, watch the timer, use the question navigation, and flag anything to return to."
+      },
+      {
+        "t": 204.4,
+        "d": 3.6,
+        "text": "Finish Exam asks you to confirm before it grades."
+      },
+      {
+        "t": 208,
+        "d": 4.4,
+        "text": "A RELO practice exam is separate from the official licensing exam."
+      },
+      {
+        "t": 213,
+        "d": 6,
+        "text": "If an explanation still feels unclear, ask Riley a specific question, then a follow up."
+      },
+      {
+        "t": 219,
+        "d": 1.6,
+        "text": "Riley helps you understand."
+      },
+      {
+        "t": 220.6,
+        "d": 5.2,
+        "text": "Work there does not count toward mastery, so graded practice is yours alone."
+      },
+      {
+        "t": 226.4,
+        "d": 4.4,
+        "text": "Support is where you reach the team and book office hours."
+      },
+      {
+        "t": 230.8,
+        "d": 6.4,
+        "text": "When you arrange the official exam, follow RELO and RECA's current instructions for authorization and booking."
+      },
+      {
+        "t": 237.2,
+        "d": 2.4,
+        "text": "Nothing here books it for you."
+      },
+      {
+        "t": 240.2,
+        "d": 2,
+        "text": "So: learn, practise, review, adjust."
+      },
+      {
+        "t": 242.2,
+        "d": 5.2,
+        "text": "Next session, open your Study Navigator and take the step it gives you."
+      }
+    ]
+  },
+  "beats": [
+    {
+      "id": "open",
+      "layer": "art",
+      "start": 0,
+      "duration": 52.7,
+      "surface": "default"
+    },
+    {
+      "id": "learn",
+      "layer": "art",
+      "start": 52.7,
+      "duration": 13.8,
+      "surface": "default"
+    },
+    {
+      "id": "practice",
+      "layer": "art",
+      "start": 66.5,
+      "duration": 55,
+      "surface": "default"
+    },
+    {
+      "id": "rating",
+      "layer": "art",
+      "start": 121.5,
+      "duration": 21.4,
+      "surface": "default"
+    },
+    {
+      "id": "pacing",
+      "layer": "art",
+      "start": 142.9,
+      "duration": 18.6,
+      "surface": "default"
+    },
+    {
+      "id": "analytics",
+      "layer": "art",
+      "start": 161.5,
+      "duration": 26.2,
+      "surface": "default"
+    },
+    {
+      "id": "review",
+      "layer": "art",
+      "start": 187.7,
+      "duration": 6.6,
+      "surface": "default"
+    },
+    {
+      "id": "exams",
+      "layer": "art",
+      "start": 194.3,
+      "duration": 18.2,
+      "surface": "default"
+    },
+    {
+      "id": "riley",
+      "layer": "art",
+      "start": 212.5,
+      "duration": 13.4,
+      "surface": "default"
+    },
+    {
+      "id": "support",
+      "layer": "art",
+      "start": 225.9,
+      "duration": 13.8,
+      "surface": "default"
+    },
+    {
+      "id": "close",
+      "layer": "art",
+      "start": 239.5,
+      "duration": 11.5,
+      "surface": "default"
+    },
+    {
+      "id": "label",
+      "layer": "type",
+      "start": 0,
+      "duration": 251,
+      "surface": "default"
+    }
+  ],
+  "labels": {
+    "navigator": 21
+  },
+  "vo": [
+    {
+      "start": 1.6,
+      "end": 5.2,
+      "text": "You have your real estate course open in RELO."
+    },
+    {
+      "start": 5.2,
+      "end": 10.4,
+      "text": "Where do you start, and how will you know your study is working?"
+    },
+    {
+      "start": 10.4,
+      "end": 16.4,
+      "text": "At the top: your course, a search for any concept, and your target exam date."
+    },
+    {
+      "start": 16.4,
+      "end": 20.4,
+      "text": "Down the left: Lessons, Content Catalog, Analytics, Review and Support."
+    },
+    {
+      "start": 21,
+      "end": 24.6,
+      "text": "Your Study Navigator suggests what to work on next."
+    },
+    {
+      "start": 24.6,
+      "end": 26.6,
+      "text": "It pairs learning with practice."
+    },
+    {
+      "start": 26.6,
+      "end": 29.8,
+      "text": "Watch opens the lesson material for a topic."
+    },
+    {
+      "start": 29.8,
+      "end": 34.6,
+      "text": "Level Up takes you to the activities that build that topic's mastery."
+    },
+    {
+      "start": 34.6,
+      "end": 39.8,
+      "text": "Beside them: lesson progress, and the mastery points left to the next milestone."
+    },
+    {
+      "start": 39.8,
+      "end": 42.2,
+      "text": "Watching a lesson helps you learn."
+    },
+    {
+      "start": 42.2,
+      "end": 46.6,
+      "text": "Answering practice questions is what gives RELO evidence of your understanding."
+    },
+    {
+      "start": 46.6,
+      "end": 52.6,
+      "text": "The Navigator adjusts as you work, so come back whenever you need a next step."
+    },
+    {
+      "start": 53.2,
+      "end": 55.6,
+      "text": "Let's open the lesson it recommends."
+    },
+    {
+      "start": 55.6,
+      "end": 59.2,
+      "text": "The player keeps the topic list beside the video."
+    },
+    {
+      "start": 59.2,
+      "end": 66.4,
+      "text": "When something matters, save a note at that point in the video and come back to it later."
+    },
+    {
+      "start": 67,
+      "end": 70.6,
+      "text": "When you are ready to practise, use Level Up."
+    },
+    {
+      "start": 70.6,
+      "end": 73.8,
+      "text": "This percentage is your mastery of the concept."
+    },
+    {
+      "start": 73.8,
+      "end": 77.4,
+      "text": "Under it, the next milestone: ten points to Basic."
+    },
+    {
+      "start": 77.4,
+      "end": 82.6,
+      "text": "Those are mastery points, not a promise that ten questions get you there."
+    },
+    {
+      "start": 82.6,
+      "end": 86.2,
+      "text": "Choose questions and a session length you can finish."
+    },
+    {
+      "start": 86.2,
+      "end": 89.4,
+      "text": "Answer, submit, then spend time with the explanation."
+    },
+    {
+      "start": 89.4,
+      "end": 93.8,
+      "text": "Why the correct answer fits, and why the others do not."
+    },
+    {
+      "start": 93.8,
+      "end": 99.8,
+      "text": "If an idea keeps catching you out, save a short note in your own words."
+    },
+    {
+      "start": 99.8,
+      "end": 104.6,
+      "text": "Finish the set, read the summary, then look at the concept again."
+    },
+    {
+      "start": 104.6,
+      "end": 106.6,
+      "text": "Twenty percent has become twenty-five."
+    },
+    {
+      "start": 106.6,
+      "end": 112.6,
+      "text": "Treat that as feedback about where you are, not a fixed reward for each answer."
+    },
+    {
+      "start": 112.6,
+      "end": 115.8,
+      "text": "One good set does not finish a concept."
+    },
+    {
+      "start": 115.8,
+      "end": 121.4,
+      "text": "Flashcards are there for when you understand an idea but cannot yet recall it."
+    },
+    {
+      "start": 122,
+      "end": 126.8,
+      "text": "ReadyRating answers a broader question: how ready are you for this exam?"
+    },
+    {
+      "start": 126.8,
+      "end": 130.4,
+      "text": "Expand the card for its one to five scale."
+    },
+    {
+      "start": 130.4,
+      "end": 134,
+      "text": "Concept mastery helps you choose work inside a topic."
+    },
+    {
+      "start": 134,
+      "end": 136.4,
+      "text": "ReadyRating is your overall readiness signal."
+    },
+    {
+      "start": 136.4,
+      "end": 142.8,
+      "text": "It is not the percentage of lessons watched, and it is not your last quiz score."
+    },
+    {
+      "start": 143.4,
+      "end": 147.4,
+      "text": "Your target exam date puts that work on a timeline."
+    },
+    {
+      "start": 147.4,
+      "end": 151.8,
+      "text": "It plans your study; it does not book the official exam."
+    },
+    {
+      "start": 151.8,
+      "end": 155,
+      "text": "Pacing moves through Launch, Study and Final Review."
+    },
+    {
+      "start": 155,
+      "end": 158.2,
+      "text": "Forward Pace shows the pace each target needs."
+    },
+    {
+      "start": 158.2,
+      "end": 161.4,
+      "text": "Track Pace compares your real progress against it."
+    },
+    {
+      "start": 162,
+      "end": 165.2,
+      "text": "Analytics brings your activity and your results together."
+    },
+    {
+      "start": 165.2,
+      "end": 169.6,
+      "text": "Practice Stats gathers your question activity, scores, flashcards and practice exams."
+    },
+    {
+      "start": 169.6,
+      "end": 171.6,
+      "text": "Readiness Insights suggests a focus."
+    },
+    {
+      "start": 171.6,
+      "end": 176.4,
+      "text": "Mastery Ranges breaks it down by exam domain, with each domain's weight."
+    },
+    {
+      "start": 176.4,
+      "end": 181.6,
+      "text": "Find the area that needs work and take a quiz straight from it."
+    },
+    {
+      "start": 181.6,
+      "end": 187.6,
+      "text": "Below it, Practice Pace Insights compares your progress with the pace your date asks for."
+    },
+    {
+      "start": 188.2,
+      "end": 194.2,
+      "text": "Review is where you go back: recent questions with their explanations, and your saved notes."
+    },
+    {
+      "start": 194.8,
+      "end": 198.8,
+      "text": "Under Practice, read the practice exam instructions before you begin."
+    },
+    {
+      "start": 198.8,
+      "end": 204.4,
+      "text": "Inside, watch the timer, use the question navigation, and flag anything to return to."
+    },
+    {
+      "start": 204.4,
+      "end": 208,
+      "text": "Finish Exam asks you to confirm before it grades."
+    },
+    {
+      "start": 208,
+      "end": 212.4,
+      "text": "A RELO practice exam is separate from the official licensing exam."
+    },
+    {
+      "start": 213,
+      "end": 219,
+      "text": "If an explanation still feels unclear, ask Riley a specific question, then a follow up."
+    },
+    {
+      "start": 219,
+      "end": 220.6,
+      "text": "Riley helps you understand."
+    },
+    {
+      "start": 220.6,
+      "end": 225.8,
+      "text": "Work there does not count toward mastery, so graded practice is yours alone."
+    },
+    {
+      "start": 226.4,
+      "end": 230.8,
+      "text": "Support is where you reach the team and book office hours."
+    },
+    {
+      "start": 230.8,
+      "end": 237.2,
+      "text": "When you arrange the official exam, follow RELO and RECA's current instructions for authorization and booking."
+    },
+    {
+      "start": 237.2,
+      "end": 239.6,
+      "text": "Nothing here books it for you."
+    },
+    {
+      "start": 240.2,
+      "end": 242.2,
+      "text": "So: learn, practise, review, adjust."
+    },
+    {
+      "start": 242.2,
+      "end": 247.4,
+      "text": "Next session, open your Study Navigator and take the step it gives you."
+    }
+  ]
+}

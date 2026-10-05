@@ -1,66 +1,153 @@
 # Audio
 
-**The web build ships silent. Audio is an MP4 feature unless explicitly
-waived.** Three independent lines of evidence arrive at the same place.
+One film, one mixed track. Narration, music and every effect are mixed into a
+single file before playback starts, and that file is the clock: the timeline
+follows it. Nothing is triggered live, so a seek cannot fire a cue twice and a
+scrub backwards cannot fire it again.
 
-**1. Inlining a stem makes the film uncheckable.** `base64_media_prohibited` is
-an upstream lint error with no documented suppression, and `hyperframes check`
-skips the browser entirely when lint reports any error. So an inlined audio
-stem means every browser audit, runtime, layout, motion and contrast, silently
-does not run while the JSON envelope still reports `runtime.ok: true`,
-`contrast.ok: true`, `samples: 0`, `checked: 0`. The rule matches `audio` and
-`video` `src` only, which is why fonts, images and CSS `url(data:)` inline
-freely and the silent film is entirely self-contained.
+A film ships silent unless an audio project points at it, its mix has been
+made, and its brand holds a licence for what is in it. All three are checked.
 
-**2. It is by far the largest byte line.** One 8-second 22 kHz mono WAV stem
-measures 470,482 B as a data URI, more than the entire animation runtime and
-more than twice the whole wire budget.
+## Where the pieces live
 
-**3. It may breach the music licence.** A single inlined HTML file on a public
-URL means any visitor can view-source and decode the original track as a
-standalone file. Both plausible upstream licences forbid exactly that:
-Pixabay's Content License bars distributing content on a standalone basis, and
-the Storyblocks EULA bars making a stock file available in a manner that
-invites a third party to extract or access it as a standalone file, audio
-included.
+```
+audio/projects/<project>/
+  brief/       narration.txt, pronounce.json, music-prompt.txt, sfx-cues.json, elevenlabs.md
+  source/      narration.wav, music.wav, sfx/*.wav        (gitignored)
+  manifest.json
+  generated/   spoken.txt, alignment.json, captions.json, mix.wav, mix.mp3   (gitignored)
+```
 
-## The licence, which has to be bought
+`manifest.json` is the whole contract: the exact film duration, the narration
+file and its approved transcript, the music trim, loop, fades, gain and
+ducking, every effect with its cue times and gain, where the captions come
+from, the output filenames, and the loudness and true-peak targets.
 
-The bundled providers' free tiers do not solve this. HeyGen's Terms restrict
-Free Plan output to personal, non-commercial and internal evaluation use, which
-rules out client work; that covers BGM, SFX, images, icons, TTS, avatars and
-translation alike, because the Terms distinguish plans, not asset classes.
-Worse for music specifically, the Terms say nothing at all about the stock
-catalogue while the help centre names Pixabay and Storyblocks upstream and puts
-the burden on the user. A subscriber licence is not sublicensable, which is the
-likely reason for the silence.
+The brief is tracked because it is what gets pasted into a provider. The audio
+is not: it is entropy-coded, so git deltas achieve nothing against it, and
+regenerating a take produces a different film rather than the same one.
 
-So **buy a music licence before any audio work**, source from a purchased
-subscription, and ingest it without touching a provider credential. For a
-studio whose brands are clients the tier matters: Epidemic Sound Pro
-sublicenses to clients under $50M revenue, with agencies above $5M pushed to
-Enterprise. Treat any local generated-BGM fallback as non-commercial until
-proven otherwise; it fires silently when no credential is present, and
-MusicGen's original weights are CC-BY-NC.
+## Commands
 
-Until a licence is in hand, every brand's `LICENSES.json` carries a `missing`
-entry for music, and that is what a film with audio should be checked against.
+| | |
+|---|---|
+| `npm run audio list` | every project, and whether it is mixed |
+| `npm run audio:validate <project>` | files, formats, duration, cues, clipping, licence, ffmpeg |
+| `npm run audio:say <project>` | `generated/spoken.txt`, the script as a provider should be given it |
+| `npm run audio:align <project> -- --yes` | ElevenLabs forced alignment. The only paid call in the repo |
+| `npm run audio:captions <project>` | alignment to cues. `-- --write` copies them into `film.json` |
+| `npm run audio:mix <project>` | `generated/mix.wav` and `generated/mix.mp3` |
+| `npm run audio:test` | the pipeline and the transport, on synthetic fixtures |
+| `npm run export <brand> <slug>` | render the picture, then mux `mix.wav` into an MP4 |
 
-## When a film must have web audio
+`npm run build` inlines `mix.mp3` on its own once a mix exists. There is no
+separate command for it and no flag to remember.
 
-Serve the stem as a sibling file from the brand's own origin, which is also
-what those licence clauses require. Set `chrome.audio` in the film's
-`film.json` and the player grows an unmute affordance; browsers do not permit
-unprompted sound, so the film must work silent regardless. A `data:audio` build
-is a deliberate, flagged exception with a purchased licence behind it, and it
-forfeits gate 1, so it needs its own written sign-off.
+## Three findings that still govern the design
+
+**1. An inlined stem in the SOURCE makes the film uncheckable.**
+`base64_media_prohibited` is an upstream lint error with no documented
+suppression, and `hyperframes check` skips the browser entirely when lint
+reports any error, so every browser audit silently does not run while the JSON
+envelope still reports `runtime.ok: true`, `contrast.ok: true`, `samples: 0`,
+`checked: 0`.
+
+So the source project stays silent and the packager inlines the mix, exactly
+as it already does for typefaces. Gate 1 sees the same project it always saw.
+Gate 2 covers the artifact: it asserts the mix is the film's length, that it is
+muted and paused until a gesture, that the unmute control exists, and that the
+page still makes zero network requests.
+
+**2. It is by far the largest byte line.** An 87-second mix at 80 kbps is
+850 KB, and base64 adds a third. The wire budget is per film and declared in
+`film.json` beside the content that costs it, so a film that carries audio
+states its own number and no other film's allowance moves.
+
+The ceiling a mix hits first is not the wire, though. Inlined audio decodes to
+48 kHz stereo float whatever the codec, so a browser holds eight bytes per
+encoded byte, and `PCM_CAP` in `tools/film.mjs` allows one encoded megabyte.
+`audio:validate` projects against it and names the highest bitrate that fits.
+
+**3. It may breach a licence.** A single inlined HTML file on a public URL
+means any visitor can view-source and decode the track as a standalone file.
+Stock licences forbid exactly that: Pixabay's Content License bars
+distributing content on a standalone basis, and the Storyblocks EULA bars
+making a stock file available in a manner that invites a third party to
+extract it.
+
+The pipeline answers that by not using stock. Music is generated locally with
+ACE-Step, narration and effects come from a paid ElevenLabs plan, and both are
+work the studio commissioned rather than a file it sublicenses. That is a
+claim about a licence somebody holds, so it is written down and checked:
+`brands/<slug>/LICENSES.json` must carry no open `missing` entry of kind
+`music`, `audio`, `sfx` or `voice`, and the packager refuses to inline a mix
+until it does not. A build that quietly dropped the sound would look exactly
+like one that never had any.
 
 ## Providers are authoring-time only
 
-Neither `build` nor `gate2` nor `check` ever calls a provider. A cache miss is
-a build failure, not a fetch: text-to-speech is nondeterministic and seeded
-reproducibility is best-effort, so regenerating produces a *different film*.
+No install, build, check, gate, preview or export path reaches a provider.
+`npm run audio:align` is the only command that spends anything, it prints what
+it would submit and does nothing without `--yes`, and it refuses to spend
+twice on work it already has unless given `--replace`. `tools/guard.mjs` rule
+22 asserts all of that, and that no automatic tool reads an API key.
+
+`ELEVENLABS_API_KEY` lives in `.env`, which is gitignored, and is read in one
+function in `tools/audio.mjs`. It never reaches a browser, a build, a log or
+the artifact.
+
+## What is read and what is shown are two different texts
+
+A model that says the product's name wrong is wrong every time the name
+appears, and the lever providers actually honour is spelling, not a phoneme
+tag: `<phoneme>` is unsupported on several of the high quality models,
+including Eleven Multilingual v2.
+
+So the approved copy is never bent to suit a model. `brief/narration.txt`
+stays correct and is what the captions show. `brief/pronounce.json` maps the
+tokens a model reads wrong onto spellings it reads right, and `audio:say` lays
+one over the other into `generated/spoken.txt`, which is what gets pasted into
+the provider and what forced alignment is given afterwards.
+
+```json
+"say": { "RELO": "rell-oh", "RECA": "reck-ah", "ReadyRating": "Ready Rating" }
+```
+
+A key is one token of the approved script; a value may be several words. Both
+directions are tracked per token, so the timings come off the phonetic read
+and the caption text off the approved copy, and neither has to compromise.
+`ReadyRating` is spoken as two words and captioned as one.
+
+Alignment and the map have to describe the same take. If the word counts
+disagree, `audio:captions` refuses rather than sliding every caption after the
+first substitution onto the wrong word. Change the script or the map and the
+take is re-read and re-aligned, which is the same rule as any other edit.
+
+## Captions
 
 `film.json`'s `vo` table stays the committed manifest of text and timing, and
-it generates `captions.vtt`. Generated blobs live content-addressed outside the
-tree, because MP3 is entropy-coded and git deltas achieve nothing against it.
+it generates `captions.vtt`. What changes is where the numbers come from:
+`audio:align` sends the approved narration and its transcript to forced
+alignment, `audio:captions` groups the returned words into cues at sentence
+ends and then at a length ceiling, and `-- --write` copies them into `film.json`
+as both `vo` and `chrome.captions`. No timestamp is guessed.
+
+Because the cues carry `narration.start`, they stay aligned to the mix, and
+because the mix is the clock, they stay aligned after a seek or a restart.
+
+## Playback
+
+With a mix present the film rests on its poster until a gesture. No browser
+permits unprompted sound, and starting the picture silently spends the opening
+line before anyone can reach the unmute control. On that gesture the mix
+starts, takes the clock, and the timeline is seeked to `audio.currentTime` once
+a frame. Pause, resume, restart and seek move both together. If the browser
+refuses to play, the film falls back to its own clock and runs silent.
+
+A film with no mix behaves exactly as it did before: it autostarts when it
+scrolls into view, it grows no unmute control, and nothing in the artifact
+mentions audio.
+
+During a render there is no real-time clock at all. `npm run export` renders
+the picture frame by frame, then muxes the lossless `mix.wav`, so a dropped
+frame cannot slide the sound.
