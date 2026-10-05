@@ -1,0 +1,9 @@
+{
+  "note": "What a provider is given in place of a word it reads wrong. narration.txt stays correct and is what the captions show; audio:say lays this map over it and writes generated/spoken.txt, which is what gets pasted into the model and what forced alignment is given afterwards. A key is one token of the approved script and its value may be several words, so the two texts stay word-for-word alignable and every caption keeps the real spelling. Change nothing here without re-running audio:say and listening to the result.",
+  "say": {
+    "RELO": "rell-oh",
+    "RECA": "reek-ah",
+    "ReadyRating": "Ready Rating",
+    "study;": "study."
+  }
+}

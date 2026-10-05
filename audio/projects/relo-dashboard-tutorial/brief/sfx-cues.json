@@ -1,0 +1,25 @@
+{
+  "note": "The house interface set, also described in audio/projects/bcc-llqp/brief/sfx-cues.json. No project has generated them yet, so these two are the studio's first pair and every later film should copy source/sfx/ from here rather than generate its own, so every film clicks the same way. This film places two sounds and asks for nothing more: a tutorial that plays a sound on every pointer move stops being a tutorial.",
+  "provider": "ElevenLabs Sound Effects",
+  "settings": {
+    "durationSeconds": "set explicitly per sound, below",
+    "promptInfluence": "high, so the sound stays literal rather than musical",
+    "format": "WAV 48 kHz stereo, then trim the leading silence to zero"
+  },
+  "sounds": [
+    {
+      "id": "ui-select",
+      "file": "source/sfx/ui-select.wav",
+      "seconds": 0.35,
+      "prompt": "A single confirming interface tick. Soft rounded click with a very short upward inflection, dry, no reverb, no melody. Reads as yes without celebrating.",
+      "use": "Every click that changes what is on screen, and nothing else: twenty three of them across the film, from Watch in the Study Navigator to the office hours link in Support. Never a hover, never a pointer move, never a scroll."
+    },
+    {
+      "id": "transition",
+      "file": "source/sfx/transition.wav",
+      "seconds": 0.7,
+      "prompt": "A short restrained transition swell for a corporate explainer. Soft filtered air moving past, low volume, no whoosh, no riser, no impact at the end. Understated.",
+      "use": "Once, on the dissolve into the closing frame. It is the only section change in the film the picture does not already carry on its own."
+    }
+  ]
+}

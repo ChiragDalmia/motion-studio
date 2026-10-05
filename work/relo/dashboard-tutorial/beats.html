@@ -1,0 +1,1281 @@
+<!-- work/relo/dashboard-tutorial. Beat ids, starts, tracks and labels come from
+     film.json, so a retime is one number there and nothing here moves.
+     Every generated file is gitignored: npm run pre writes them.
+
+     THE SHAPE OF THIS FILM. Every beat carries the RELO dashboard screens it
+     needs as <!--include scr-*-->: the DashboardLibrary body, verbatim, one
+     line each. Their one shared stylesheet is included once, into the art
+     layer, so it reaches every beat through the host document. The camera is
+     the beat's own #wr transform, never #cam, and every beat opens and closes
+     at the base framing, so a cut between two beats is a cut between two
+     identical poses.
+
+     TWO RULES ABOUT CROSSING, both learned from frames:
+
+     A beat NEVER overlaps the one after it. An overlapped beat paints its
+     opaque world over the outgoing beat's type, which is a text_occluded
+     error at the seam. Instead each beat fades its own page content out over
+     its last quarter second and the next fades its own in, so the shell reads
+     as continuous and only the content area changes.
+
+     Inside a beat, one screen replaces another on a SET, never on a fade. Two
+     different pages at half opacity is a double exposure: every line of one
+     page reads through the other. Where the page underneath is genuinely the
+     same and only a dialog is new, the set is invisible and the dialog itself
+     is what fades in, which is what the product does. -->
+
+<template data-film>
+<style>
+  /* The stage ground is the product's own page grey, not the pack default.
+     Every beat's screen is opaque and covers the frame, so this is seen only
+     where the film deliberately leaves it: the closing dissolve. A literal,
+     not a token, because a surface re-points a core token and the runtime
+     stamps the defaults inline on whichever clip is live. */
+  #root { background: #f5f5f5; color: var(--onGround) }
+
+  /* The runtime treats the root as a clip and hides it at t = duration, and
+     the end frame has to be on screen when playback stops. */
+  #root { visibility: visible !important }
+  #ui, #type { pointer-events: none }
+
+  /* THE END FRAME, film 245.8 -> 251. It is an untimed host element, not a
+     beat: a clip shows for start <= t < end, so a beat that reached 251 would
+     already be gone on the last frame the player paints. It crosses with the
+     close beat's screen; the audit allows that one because the two live in
+     different composition mounts and one of them is always mid-fade.
+     --onGround is re-pointed here because the lockup is token-bound and
+     everything outside a beat reads the pack defaults, where onGround is the
+     navy this sits on. */
+  #end { position: absolute; inset: 0; background: var(--navy); --onGround: #ffffff;
+         opacity: 0; visibility: hidden }
+  #e-lock { position: absolute; left: 580px; top: 252px; width: 760px }
+  #e-lock svg { display: block; width: 100%; height: auto }
+  /* The pack's display face, which is the one thing in this film that is not
+     the product's own type, on the one frame that is not the product. */
+  #e-title, #e-line { opacity: 0; visibility: hidden }
+  #e-title { position: absolute; left: 0; right: 0; top: 664px; margin: 0; text-align: center;
+             font-size: 76px; line-height: 1; color: #ffffff }
+  #e-line { position: absolute; left: 0; right: 0; top: 786px; margin: 0; text-align: center;
+            font-family: var(--text); font-weight: 500; font-size: 34px; letter-spacing: 0.01em;
+            color: var(--brand) }
+
+  /* Reduced motion: one still frame, in #ui, which the camera never touches.
+     Static CSS and no script, so the render is unaffected and the timeline is
+     never asked to behave differently.
+
+     Two things the second copy of the lockup needs, both because ids are not
+     unique once the same shape is inlined twice. Its mark is clipped to a
+     circle the master timeline only opens on the END frame's copy, and the
+     clip id resolves to whichever comes first in the document, so this copy is
+     unclipped instead. And everything outside a beat reads the pack defaults,
+     where onGround is the navy this sits on, so the wordmark is re-pointed. */
+  #poster { display: none; position: absolute; inset: 0; background: var(--navy); color: #ffffff; --onGround: #ffffff }
+  #poster .lock { position: absolute; left: 580px; top: 196px; width: 760px }
+  #poster .lock svg { display: block; width: 100%; height: auto }
+  #poster [id="relo-lockup-icon"] { clip-path: none }
+  #poster h2 { position: absolute; left: 0; right: 0; top: 608px; margin: 0; text-align: center;
+               font-size: 76px; line-height: 1; color: #ffffff }
+  #poster p { position: absolute; left: 240px; right: 240px; top: 726px; margin: 0; text-align: center;
+              font-family: var(--text); font-weight: 500; font-size: 32px; line-height: 1.45 }
+  @media (prefers-reduced-motion: reduce) {
+    #art, #type { visibility: hidden }
+    #poster { display: block }
+  }
+</style>
+<script>
+  /* The master timeline owns three things: the film's one deliberate beat
+     overlap, the end frame, and the bloom that opens the lockup's mark. Every
+     reframe, pointer move and state change belongs to the beat it happens in.
+
+     THE OVERLAP. close is pinned two tenths before support ends, and the two
+     beats show the same screen at the same pose, so the cross cannot be seen.
+     It is here because a beat's end is start + duration in floating point and
+     225.9 + 13.8 lands a hair PAST 239.7: at exactly that frame both clips are
+     mounted and both are settled at full opacity, which is the one overlap the
+     layout audit refuses to excuse. Fading this host across the seam keeps one
+     of the two scenes under full opacity while they share the frame, which is
+     what the audit asks for and what the picture wanted anyway. */
+  tl.fromTo('#closehost', { opacity: 0 }, { opacity: 1, duration: 0.3, ease: 'power2.inOut', immediateRender: false }, 'close');
+  tl.fromTo('#end', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.6, ease: 'power2.inOut', immediateRender: false }, 'close+=6.3');
+  /* The mark ships clipped to a zero-radius circle so nothing has to hide it
+     before a timeline touches it; 335 is the radius that clears the mark. */
+  tl.fromTo('#relo-lockup-bloom-c', { attr: { r: 0 } }, { attr: { r: 335 }, duration: 0.62, ease: 'power3.out', immediateRender: false }, 'close+=6.7');
+  tl.fromTo('#e-title', { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.5, ease: 'power3.out', immediateRender: false }, 'close+=7.0');
+  tl.fromTo('#e-line', { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.5, ease: 'power3.out', immediateRender: false }, 'close+=7.2');
+</script>
+</template>
+
+<template data-layer="art">
+<!--include dash-->
+<!--hosts-->
+<div id="end">
+  <div id="e-lock">
+<!--include lockup-->
+  </div>
+  <h2 id="e-title">Learn. Practise. Review. Adjust.</h2>
+  <p id="e-line">Your next step is in the Study Navigator.</p>
+</div>
+</template>
+
+<template data-layer="ui">
+<div id="poster">
+  <div class="lock">
+<!--include lockup-->
+  </div>
+  <h2>Learn. Practise. Review. Adjust.</h2>
+  <p>Choose what to study, learn it, practise it, read the feedback, then adjust. Your next step is in the Study Navigator.</p>
+</div>
+</template>
+
+<template data-beat="open">
+<style>
+  #s-dashboard-home { opacity: 1; visibility: inherit }
+</style>
+<div id="wr" data-layout-allow-overflow>
+<!--include scr-dashboard-home-->
+<!--include tour-->
+</div>
+<script>
+  /* Framing arithmetic. look() puts screen point (px, py) at the frame centre
+     at scale s and clamps so the world never uncovers the frame; to() is the
+     same thing with a duration, which is what a tween wants. A pose is chosen
+     so the thing being named sits inside the visible window, which at scale s
+     is 1280/s screen pixels wide starting at -x/s. */
+  function look(px, py, s) {
+    return { scale: s, x: Math.min(0, Math.max(1920 - 1280 * s, 960 - s * px)), y: Math.min(0, Math.max(1080 - 720 * s, 540 - s * py)) };
+  }
+  function to(px, py, s, d) { var v = look(px, py, s); v.duration = d; return v; }
+  /* A hover mark sits five screen pixels outside the control it names. */
+  function box(x, y, w, h) { return { x: x - 5, y: y - 5, width: w + 10, height: h + 10 }; }
+
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('b0', 0);
+  t.addLabel('o3', 10.4);
+  t.addLabel('o4', 16.4);
+  t.addLabel('o5', 21);
+  t.addLabel('o7', 26.6);
+  t.addLabel('o8', 29.8);
+  t.addLabel('o9', 34.6);
+  t.addLabel('o10', 39.8);
+  t.addLabel('o11', 42.2);
+  t.addLabel('o12', 46.6);
+  t.addLabel('out', 52.44);
+
+  /* Open on the whole dashboard and drift two per cent over the first two
+     lines. It is the only unmotivated move in the film: everything after it is
+     the pointer's, or a page's. Every reframe starts before the line that
+     wants it, so the line lands on a frame that has already settled. */
+  t.fromTo('#wr', look(640, 360, 1.5), to(640, 350, 1.53, 9.2), 'b0');
+  t.to('#wr', to(700, 262, 1.9, 1.5), 'o3-=0.8');
+  t.to('#wr', to(300, 300, 1.95, 1.4), 'o4-=0.7');
+  t.to('#wr', to(462, 300, 1.95, 1.5), 'o5-=0.7');
+  t.to('#wr', to(440, 278, 2.25, 1.5), 'o9-=0.7');
+  t.to('#wr', to(470, 292, 1.8, 1.6), 'o12-=0.5');
+
+  /* The three controls across the top, named in the order the line names them. */
+  t.set('#ring', box(260, 14, 252, 20), 'o3+=0.8');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.1 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'o3+=0.8');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'o3+=2.4');
+  t.set('#ring', box(857, 9, 224, 30), 'o3+=2.8');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.1 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'o3+=2.8');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'o3+=4.2');
+  t.set('#ring', box(1095, 9, 86, 30), 'o3+=4.6');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.1 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'o3+=4.6');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'o4-=0.9');
+
+  /* The sidebar. One mark around the whole list rather than five in four
+     seconds, which would be a flicker and not a reading. */
+  t.set('#ring', box(0, 48, 239, 202), 'o4+=1.0');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.06 }, { autoAlpha: 1, scale: 1, duration: 0.36, ease: 'power3.out' }, 'o4+=1.0');
+  t.to('#ring', { autoAlpha: 0, duration: 0.26, ease: 'power2.in' }, 'o5-=0.9');
+
+  t.set('#ring', box(257, 65, 412, 69), 'o5+=1.1');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.06 }, { autoAlpha: 1, scale: 1, duration: 0.34, ease: 'power3.out' }, 'o5+=1.1');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'o7-=1.1');
+
+  /* The pointer arrives from outside the frame, never from nowhere, and lands
+     on Watch as the line names it. x and y carry different curves, which is
+     what stops the path being a ruled line. */
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3, ease: 'power2.out' }, 'o7-=1.3');
+  t.fromTo('#cur', { x: 1120 }, { x: 592, duration: 1.2, ease: 'power2.inOut' }, 'o7-=1.3');
+  t.fromTo('#cur', { y: 700 }, { y: 212, duration: 1.2, ease: 'power1.inOut' }, 'o7-=1.3');
+  t.set('#ring', box(553, 203, 85, 26), 'o7+=0.1');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.14 }, { autoAlpha: 1, scale: 1, duration: 0.28, ease: 'power3.out' }, 'o7+=0.1');
+  t.to('#ring', { autoAlpha: 0, duration: 0.22, ease: 'power2.in' }, 'o8-=0.6');
+
+  t.to('#cur', { x: 586, duration: 0.75, ease: 'power2.inOut' }, 'o8-=0.5');
+  t.to('#cur', { y: 311, duration: 0.75, ease: 'power1.inOut' }, 'o8-=0.5');
+  t.set('#ring', box(541, 302, 97, 26), 'o8+=0.4');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.14 }, { autoAlpha: 1, scale: 1, duration: 0.28, ease: 'power3.out' }, 'o8+=0.4');
+  t.to('#ring', { autoAlpha: 0, duration: 0.22, ease: 'power2.in' }, 'o9-=0.7');
+
+  /* The two measures, in close. Lesson progress first, then the points to the
+     next milestone, because that is the order the line puts them in. */
+  t.to('#cur', { x: 430, duration: 0.8, ease: 'power2.inOut' }, 'o9-=0.4');
+  t.to('#cur', { y: 214, duration: 0.8, ease: 'power1.inOut' }, 'o9-=0.4');
+  t.set('#ring', box(388, 207, 88, 17), 'o9+=0.9');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.16 }, { autoAlpha: 1, scale: 1, duration: 0.28, ease: 'power3.out' }, 'o9+=0.9');
+  t.to('#ring', { autoAlpha: 0, duration: 0.22, ease: 'power2.in' }, 'o9+=2.4');
+  t.to('#cur', { x: 340, duration: 0.75, ease: 'power2.inOut' }, 'o9+=2.2');
+  t.to('#cur', { y: 314, duration: 0.75, ease: 'power1.inOut' }, 'o9+=2.2');
+  t.set('#ring', box(288, 307, 165, 17), 'o9+=2.9');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.16 }, { autoAlpha: 1, scale: 1, duration: 0.28, ease: 'power3.out' }, 'o9+=2.9');
+  t.to('#ring', { autoAlpha: 0, duration: 0.22, ease: 'power2.in' }, 'o10-=0.5');
+
+  /* Learning and evidence, one row each. */
+  t.set('#ring', box(275, 150, 376, 90), 'o10+=0.2');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.05 }, { autoAlpha: 1, scale: 1, duration: 0.32, ease: 'power3.out' }, 'o10+=0.2');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'o11-=0.5');
+  t.set('#ring', box(275, 250, 376, 90), 'o11+=0.2');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.05 }, { autoAlpha: 1, scale: 1, duration: 0.32, ease: 'power3.out' }, 'o11+=0.2');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'o12+=1.0');
+
+  /* The click that opens the lesson, at the end of the line rather than under
+     it: the pointer hovers for a second and a half first, which is how long a
+     person takes to be sure, and the page changes on the cut. */
+  t.to('#cur', { x: 592, duration: 1.1, ease: 'power2.inOut' }, 'o12+=2.3');
+  t.to('#cur', { y: 212, duration: 1.1, ease: 'power1.inOut' }, 'o12+=2.3');
+  t.set('#ring', box(553, 203, 85, 26), 'o12+=3.5');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.14 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: 'power3.out' }, 'o12+=3.5');
+  t.set('#tap', { x: 592, y: 212 }, 'o12+=4.9');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'o12+=4.9');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'o12+=4.9');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'o12+=4.99');
+  t.to('#wr', to(640, 360, 1.5, 0.9), 'o12+=5.05');
+  t.to('#ring', { autoAlpha: 0, duration: 0.22, ease: 'power2.in' }, 'o12+=5.4');
+  t.to('#cur', { autoAlpha: 0, duration: 0.26, ease: 'power2.in' }, 'o12+=5.45');
+
+  /* The handoff. The content area leaves and the sidebar's selected row lets
+     go; the shell itself never moves, so the cut into the lesson player reads
+     as the page changing and not as a new film starting. */
+  t.to('#s-dashboard-home .vp', { autoAlpha: 0, y: -10, duration: 0.26, ease: 'power2.in' }, 'out');
+  t.to('#s-dashboard-home .nav-item.is-active', { backgroundColor: 'rgba(176,216,250,0)', duration: 0.26, ease: 'power2.in' }, 'out');
+</script>
+</template>
+
+<template data-beat="learn">
+<style>
+  #s-lesson-player { opacity: 1; visibility: inherit }
+</style>
+<div id="wr" data-layout-allow-overflow>
+<!--include scr-lesson-player-->
+<!--include tour-->
+</div>
+<script>
+  function look(px, py, s) {
+    return { scale: s, x: Math.min(0, Math.max(1920 - 1280 * s, 960 - s * px)), y: Math.min(0, Math.max(1080 - 720 * s, 540 - s * py)) };
+  }
+  function to(px, py, s, d) { var v = look(px, py, s); v.duration = d; return v; }
+  function box(x, y, w, h) { return { x: x - 5, y: y - 5, width: w + 10, height: h + 10 }; }
+
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+  t.addLabel('l1', 0.5);
+  t.addLabel('l2', 2.9);
+  t.addLabel('l3', 6.5);
+  t.addLabel('out', 13.54);
+
+  t.fromTo('#s-lesson-player .pl-wrap', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.34, ease: 'power2.out' }, 'in');
+  t.fromTo('#s-lesson-player .nav-item.is-active', { backgroundColor: 'rgba(176,216,250,0)' }, { backgroundColor: 'rgb(176,216,250)', duration: 0.44, ease: 'power2.out' }, 'in+=0.12');
+
+  t.fromTo('#wr', look(640, 360, 1.5), to(610, 246, 1.72, 1.4), 'l1-=0.2');
+  t.to('#wr', to(1010, 300, 1.7, 1.4), 'l2-=0.6');
+  t.to('#wr', to(610, 452, 1.9, 1.4), 'l3-=0.7');
+  t.to('#wr', to(640, 360, 1.5, 1.2), 'out-=1.6');
+
+  /* The playback controls, marked and not pressed. A press has to change
+     something, and the lesson is one slide: the film would be miming. */
+  t.set('#ring', box(240, 354, 420, 46), 'l1+=1.3');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.08 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'l1+=1.3');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'l2-=0.5');
+
+  /* The topic list beside the video, which is the one thing about this player
+     the routine needs: you can see where the lesson sits in the course. */
+  t.set('#ring', box(981, 48, 298, 660), 'l2+=1.0');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.04 }, { autoAlpha: 1, scale: 1, duration: 0.36, ease: 'power3.out' }, 'l2+=1.0');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'l3-=0.8');
+
+  /* One note, at a point in the video. The pointer comes in from the right,
+     where the topic list left it. */
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.28, ease: 'power2.out' }, 'l3-=0.4');
+  t.fromTo('#cur', { x: 1080 }, { x: 640, duration: 1.15, ease: 'power2.inOut' }, 'l3-=0.4');
+  t.fromTo('#cur', { y: 300 }, { y: 470, duration: 1.15, ease: 'power1.inOut' }, 'l3-=0.4');
+  t.set('#ring', box(395, 455, 430, 37), 'l3+=0.9');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.1 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'l3+=0.9');
+  t.to('#cur', { x: 805, duration: 0.85, ease: 'power2.inOut' }, 'l3+=2.2');
+  t.to('#cur', { y: 472, duration: 0.85, ease: 'power1.inOut' }, 'l3+=2.2');
+  t.set('#tap', { x: 805, y: 472 }, 'l3+=3.5');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'l3+=3.5');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'l3+=3.5');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'l3+=3.59');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'l3+=4.2');
+  t.to('#cur', { autoAlpha: 0, duration: 0.3, ease: 'power2.in' }, 'l3+=4.5');
+
+  t.to('#s-lesson-player .pl-wrap', { autoAlpha: 0, y: -10, duration: 0.26, ease: 'power2.in' }, 'out');
+  t.to('#s-lesson-player .nav-item.is-active', { backgroundColor: 'rgba(176,216,250,0)', duration: 0.26, ease: 'power2.in' }, 'out');
+</script>
+</template>
+
+<template data-beat="practice">
+<style>
+  #s-concept-detail { opacity: 1; visibility: inherit }
+  /* The two dialogs arrive on a page that is already there, so the page swaps
+     on a set and only the dialog is animated. */
+  #s-practice-questions-modal .scrim, #s-practice-questions-modal .pq { opacity: 0; visibility: hidden }
+  #s-quiz-question-note-modal .note-modal { opacity: 0; visibility: hidden }
+</style>
+<div id="wr" data-layout-allow-overflow>
+<!--include scr-concept-detail-->
+<!--include scr-practice-questions-modal-->
+<!--include scr-quiz-question-->
+<!--include scr-quiz-explanation-->
+<!--include scr-quiz-question-note-modal-->
+<!--include scr-quiz-summary-->
+<!--include scr-concept-detail-after-practice-->
+<!--include scr-flashcards-front-->
+<!--include scr-flashcards-answer-->
+<!--include tour-->
+</div>
+<script>
+  function look(px, py, s) {
+    return { scale: s, x: Math.min(0, Math.max(1920 - 1280 * s, 960 - s * px)), y: Math.min(0, Math.max(1080 - 720 * s, 540 - s * py)) };
+  }
+  function to(px, py, s, d) { var v = look(px, py, s); v.duration = d; return v; }
+  function box(x, y, w, h) { return { x: x - 5, y: y - 5, width: w + 10, height: h + 10 }; }
+
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+  t.addLabel('p1', 0.5);
+  t.addLabel('p2', 4.1);
+  t.addLabel('p3', 7.3);
+  t.addLabel('p4', 10.9);
+  t.addLabel('p5', 16.1);
+  t.addLabel('p6', 19.7);
+  t.addLabel('p7', 22.9);
+  t.addLabel('p8', 27.3);
+  t.addLabel('p9', 33.3);
+  t.addLabel('p10', 38.1);
+  t.addLabel('p11', 40.1);
+  t.addLabel('p12', 46.1);
+  t.addLabel('p13', 49.3);
+  t.addLabel('out', 54.74);
+
+  t.fromTo('#s-concept-detail .vp', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.34, ease: 'power2.out' }, 'in');
+  t.fromTo('#s-concept-detail .nav-item.is-active', { backgroundColor: 'rgba(176,216,250,0)' }, { backgroundColor: 'rgb(176,216,250)', duration: 0.44, ease: 'power2.out' }, 'in+=0.12');
+
+  /* Level Up is where practice lives, so the beat opens on it and comes back
+     to it twice: once for questions, once for flashcards. */
+  t.fromTo('#wr', look(640, 360, 1.5), to(950, 274, 1.8, 1.4), 'p1');
+  t.set('#ring', box(703, 150, 264, 253), 'p1+=1.2');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.05 }, { autoAlpha: 1, scale: 1, duration: 0.34, ease: 'power3.out' }, 'p1+=1.2');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'p2-=0.8');
+
+  /* The number, then what it is counting toward. */
+  t.to('#wr', to(462, 250, 2.2, 1.4), 'p2-=0.7');
+  t.set('#ring', box(407, 205, 112, 74), 'p2+=0.9');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.12 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'p2+=0.9');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'p3-=0.5');
+  t.set('#ring', box(407, 366, 112, 19), 'p3+=0.4');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.14 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'p3+=0.4');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'p4-=0.8');
+
+  /* Points, not questions: the milestones are the thing to look at while the
+     line says so. */
+  t.to('#wr', to(470, 300, 1.95, 1.4), 'p4-=0.7');
+  t.set('#ring', box(257, 389, 412, 71), 'p4+=1.1');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.06 }, { autoAlpha: 1, scale: 1, duration: 0.32, ease: 'power3.out' }, 'p4+=1.1');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'p5-=1.4');
+
+  /* Open the session. */
+  t.to('#wr', to(950, 290, 1.85, 1.4), 'p5-=1.3');
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.28, ease: 'power2.out' }, 'p5-=1.2');
+  t.fromTo('#cur', { x: 1180 }, { x: 834, duration: 1.3, ease: 'power2.inOut' }, 'p5-=1.2');
+  t.fromTo('#cur', { y: 690 }, { y: 344, duration: 1.3, ease: 'power1.inOut' }, 'p5-=1.2');
+  t.set('#ring', box(767, 329, 137, 34), 'p5+=0.25');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.12 }, { autoAlpha: 1, scale: 1, duration: 0.28, ease: 'power3.out' }, 'p5+=0.25');
+  t.set('#tap', { x: 834, y: 344 }, 'p5+=1.3');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'p5+=1.3');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'p5+=1.3');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'p5+=1.39');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'p5+=1.4');
+
+  /* The session dialog. The page underneath is the concept page unchanged, so
+     the swap is a set and the dim and the dialog are what arrive. */
+  t.set('#s-concept-detail', { autoAlpha: 0 }, 'p5+=1.55');
+  t.set('#s-practice-questions-modal', { autoAlpha: 1 }, 'p5+=1.55');
+  t.fromTo('#s-practice-questions-modal .scrim', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.32, ease: 'power2.out' }, 'p5+=1.55');
+  t.fromTo('#s-practice-questions-modal .pq', { autoAlpha: 0, scale: 0.96 }, { autoAlpha: 1, scale: 1, duration: 0.36, ease: 'power3.out' }, 'p5+=1.6');
+  t.to('#wr', to(640, 360, 1.9, 1.0), 'p5+=1.55');
+  t.to('#cur', { x: 690, duration: 0.8, ease: 'power2.inOut' }, 'p5+=1.9');
+  t.to('#cur', { y: 358, duration: 0.8, ease: 'power1.inOut' }, 'p5+=1.9');
+  t.set('#ring', box(478, 342, 324, 30), 'p5+=2.2');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.1 }, { autoAlpha: 1, scale: 1, duration: 0.28, ease: 'power3.out' }, 'p5+=2.2');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'p6-=0.9');
+  t.to('#cur', { x: 752, duration: 0.6, ease: 'power2.inOut' }, 'p6-=0.85');
+  t.to('#cur', { y: 444, duration: 0.6, ease: 'power1.inOut' }, 'p6-=0.85');
+  t.set('#ring', box(698, 431, 108, 27), 'p6-=0.6');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.12 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: 'power3.out' }, 'p6-=0.6');
+  t.set('#tap', { x: 752, y: 444 }, 'p6-=0.15');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'p6-=0.15');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'p6-=0.15');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'p6-=0.06');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'p6-=0.1');
+
+  /* Answer, submit. The quiz is a different page, so it cuts. */
+  t.set('#s-practice-questions-modal', { autoAlpha: 0 }, 'p6+=0.15');
+  t.set('#s-quiz-question', { autoAlpha: 1 }, 'p6+=0.15');
+  t.to('#wr', to(420, 300, 1.66, 1.0), 'p6+=0.15');
+  t.to('#cur', { x: 250, duration: 0.85, ease: 'power2.inOut' }, 'p6+=0.4');
+  t.to('#cur', { y: 312, duration: 0.85, ease: 'power1.inOut' }, 'p6+=0.4');
+  t.set('#ring', box(20, 294, 638, 39), 'p6+=1.0');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.05 }, { autoAlpha: 1, scale: 1, duration: 0.28, ease: 'power3.out' }, 'p6+=1.0');
+  t.set('#tap', { x: 250, y: 312 }, 'p6+=1.45');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'p6+=1.45');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'p6+=1.45');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'p6+=1.54');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'p6+=1.9');
+  t.to('#cur', { x: 57, duration: 0.7, ease: 'power2.inOut' }, 'p6+=2.1');
+  t.to('#cur', { y: 400, duration: 0.7, ease: 'power1.inOut' }, 'p6+=2.1');
+  t.set('#ring', box(19, 387, 77, 28), 'p6+=2.4');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.12 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: 'power3.out' }, 'p6+=2.4');
+  t.set('#tap', { x: 57, y: 400 }, 'p6+=2.9');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'p6+=2.9');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'p6+=2.9');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'p6+=2.99');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'p6+=3.05');
+  t.to('#cur', { autoAlpha: 0, duration: 0.26, ease: 'power2.in' }, 'p6+=3.1');
+
+  /* The explanation, and long enough to actually read some of it. */
+  t.set('#s-quiz-question', { autoAlpha: 0 }, 'p7-=0.5');
+  t.set('#s-quiz-explanation', { autoAlpha: 1 }, 'p7-=0.5');
+  t.to('#wr', to(960, 320, 1.76, 1.2), 'p7-=0.5');
+  t.set('#ring', box(659, 127, 621, 120), 'p7+=0.9');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.04 }, { autoAlpha: 1, scale: 1, duration: 0.34, ease: 'power3.out' }, 'p7+=0.9');
+  t.to('#ring', { autoAlpha: 0, duration: 0.26, ease: 'power2.in' }, 'p7+=2.6');
+  t.set('#ring', box(659, 253, 621, 130), 'p7+=2.9');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.04 }, { autoAlpha: 1, scale: 1, duration: 0.34, ease: 'power3.out' }, 'p7+=2.9');
+  t.to('#ring', { autoAlpha: 0, duration: 0.26, ease: 'power2.in' }, 'p8-=0.7');
+
+  /* A note, in the learner's own words. */
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.26, ease: 'power2.out' }, 'p8-=0.6');
+  t.fromTo('#cur', { x: 1200 }, { x: 1120, duration: 0.9, ease: 'power2.inOut' }, 'p8-=0.6');
+  t.fromTo('#cur', { y: 640 }, { y: 104, duration: 0.9, ease: 'power1.inOut' }, 'p8-=0.6');
+  t.set('#ring', box(969, 84, 310, 42), 'p8+=0.35');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.08 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: 'power3.out' }, 'p8+=0.35');
+  t.set('#tap', { x: 1120, y: 104 }, 'p8+=0.8');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'p8+=0.8');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'p8+=0.8');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'p8+=0.89');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'p8+=0.95');
+  t.set('#s-quiz-explanation', { autoAlpha: 0 }, 'p8+=1.15');
+  t.set('#s-quiz-question-note-modal', { autoAlpha: 1 }, 'p8+=1.15');
+  t.fromTo('#s-quiz-question-note-modal .note-modal', { autoAlpha: 0, y: -14 }, { autoAlpha: 1, y: 0, duration: 0.34, ease: 'power3.out' }, 'p8+=1.25');
+  t.to('#wr', to(280, 330, 1.9, 1.1), 'p8+=1.15');
+  t.to('#cur', { x: 300, duration: 0.95, ease: 'power2.inOut' }, 'p8+=1.6');
+  t.to('#cur', { y: 350, duration: 0.95, ease: 'power1.inOut' }, 'p8+=1.6');
+  t.set('#ring', box(15, 316, 510, 66), 'p8+=2.3');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.05 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'p8+=2.3');
+  t.to('#ring', { autoAlpha: 0, duration: 0.22, ease: 'power2.in' }, 'p8+=4.0');
+  t.to('#cur', { x: 501, duration: 0.7, ease: 'power2.inOut' }, 'p8+=4.0');
+  t.to('#cur', { y: 410, duration: 0.7, ease: 'power1.inOut' }, 'p8+=4.0');
+  t.set('#ring', box(476, 397, 50, 26), 'p8+=4.3');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.14 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: 'power3.out' }, 'p8+=4.3');
+  t.set('#tap', { x: 501, y: 410 }, 'p8+=4.85');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'p8+=4.85');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'p8+=4.85');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'p8+=4.94');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'p8+=5.0');
+  t.to('#cur', { autoAlpha: 0, duration: 0.26, ease: 'power2.in' }, 'p8+=5.1');
+
+  /* The set, then its summary, scrolled far enough to see that the review of
+     every question is under the score. */
+  t.set('#s-quiz-question-note-modal', { autoAlpha: 0 }, 'p9-=0.5');
+  t.set('#s-quiz-summary', { autoAlpha: 1 }, 'p9-=0.5');
+  t.to('#wr', to(640, 240, 1.6, 1.2), 'p9-=0.5');
+  t.set('#ring', box(68, 146, 1144, 142), 'p9+=0.7');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.04 }, { autoAlpha: 1, scale: 1, duration: 0.34, ease: 'power3.out' }, 'p9+=0.7');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'p9+=2.3');
+  t.fromTo('#s-quiz-summary .sum-wrap', { y: 0 }, { y: -196, duration: 1.7, ease: 'power2.inOut' }, 'p9+=2.4');
+
+  /* The same donut, at the same place in the frame, one cut apart: 20 per cent
+     against 25. Matching positions do the comparing, so nothing has to say it. */
+  t.set('#s-quiz-summary', { autoAlpha: 0 }, 'p10-=0.5');
+  t.set('#s-concept-detail-after-practice', { autoAlpha: 1 }, 'p10-=0.5');
+  t.to('#wr', to(462, 250, 2.2, 1.0), 'p10-=0.5');
+  t.set('#ring', box(407, 205, 112, 74), 'p10+=0.6');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.12 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'p10+=0.6');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'p11-=0.4');
+  t.set('#ring', box(407, 366, 112, 19), 'p11-=0.1');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.14 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'p11-=0.1');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'p11+=2.0');
+
+  /* Feedback, not a reward: pull back to the whole concept, where the elements
+     still to be mastered are the thing that is obviously unfinished. */
+  t.to('#wr', to(470, 330, 1.85, 1.5), 'p11+=1.9');
+  t.set('#ring', box(256, 475, 414, 249), 'p12-=1.4');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.05 }, { autoAlpha: 1, scale: 1, duration: 0.34, ease: 'power3.out' }, 'p12-=1.4');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'p12+=1.4');
+
+  /* Flashcards, once, as recall. */
+  t.to('#wr', to(1100, 290, 1.8, 1.3), 'p12+=1.5');
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.26, ease: 'power2.out' }, 'p12+=1.6');
+  t.fromTo('#cur', { x: 700 }, { x: 1108, duration: 1.0, ease: 'power2.inOut' }, 'p12+=1.6');
+  t.fromTo('#cur', { y: 620 }, { y: 344, duration: 1.0, ease: 'power1.inOut' }, 'p12+=1.6');
+  t.set('#ring', box(1041, 329, 145, 34), 'p12+=2.6');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.12 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: 'power3.out' }, 'p12+=2.6');
+  t.set('#tap', { x: 1108, y: 344 }, 'p12+=2.95');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'p12+=2.95');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'p12+=2.95');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'p12+=3.04');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'p12+=3.1');
+  t.to('#cur', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'p12+=3.15');
+
+  t.set('#s-concept-detail-after-practice', { autoAlpha: 0 }, 'p13-=0.3');
+  t.set('#s-flashcards-front', { autoAlpha: 1 }, 'p13-=0.3');
+  t.to('#wr', to(640, 250, 1.55, 1.0), 'p13-=0.3');
+  t.set('#ring', box(298, 371, 684, 22), 'p13+=1.0');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.06 }, { autoAlpha: 1, scale: 1, duration: 0.28, ease: 'power3.out' }, 'p13+=1.0');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'p13+=1.9');
+  t.set('#s-flashcards-front', { autoAlpha: 0 }, 'p13+=2.1');
+  t.set('#s-flashcards-answer', { autoAlpha: 1 }, 'p13+=2.1');
+  t.set('#ring', box(298, 397, 684, 48), 'p13+=2.45');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.06 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'p13+=2.45');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'p13+=3.7');
+
+  /* Back to the concept, which is where the routine actually leaves you, and
+     by the control that takes you there rather than by a cut. */
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.24, ease: 'power2.out' }, 'p13+=3.4');
+  t.fromTo('#cur', { x: 880 }, { x: 1224, duration: 0.8, ease: 'power2.inOut' }, 'p13+=3.4');
+  t.fromTo('#cur', { y: 440 }, { y: 26, duration: 0.8, ease: 'power1.inOut' }, 'p13+=3.4');
+  t.set('#ring', box(1191, 13, 67, 26), 'p13+=3.95');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.14 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: 'power3.out' }, 'p13+=3.95');
+  t.set('#tap', { x: 1224, y: 26 }, 'p13+=4.35');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'p13+=4.35');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'p13+=4.35');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'p13+=4.44');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'p13+=4.5');
+  t.to('#cur', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'p13+=4.55');
+  t.set('#s-flashcards-answer', { autoAlpha: 0 }, 'p13+=4.6');
+  t.set('#s-concept-detail-after-practice', { autoAlpha: 1 }, 'p13+=4.6');
+  t.to('#wr', to(640, 360, 1.5, 0.9), 'p13+=4.6');
+  t.to('#s-concept-detail-after-practice .vp', { autoAlpha: 0, y: -10, duration: 0.26, ease: 'power2.in' }, 'out');
+</script>
+</template>
+
+<template data-beat="rating">
+<style>
+  #s-dashboard-home-study-stage { opacity: 1; visibility: inherit }
+  /* The card opens. Its body is the only thing under it in that column, so a
+     height is the honest motion here and nothing else in the page reflows. */
+  #s-dashboard-home-study-stage .card[data-part="card-ready-rating"] { height: 69px }
+</style>
+<div id="wr" data-layout-allow-overflow>
+<!--include scr-dashboard-home-study-stage-->
+<!--include tour-->
+</div>
+<script>
+  function look(px, py, s) {
+    return { scale: s, x: Math.min(0, Math.max(1920 - 1280 * s, 960 - s * px)), y: Math.min(0, Math.max(1080 - 720 * s, 540 - s * py)) };
+  }
+  function to(px, py, s, d) { var v = look(px, py, s); v.duration = d; return v; }
+  function box(x, y, w, h) { return { x: x - 5, y: y - 5, width: w + 10, height: h + 10 }; }
+
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+  t.addLabel('r1', 0.5);
+  t.addLabel('r2', 5.3);
+  t.addLabel('r3', 8.9);
+  t.addLabel('r4', 12.5);
+  t.addLabel('r5', 14.9);
+  t.addLabel('out', 21.14);
+
+  t.fromTo('#s-dashboard-home-study-stage .vp', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.34, ease: 'power2.out' }, 'in');
+
+  /* The page scrolls sixty-two pixels, which is all it has, so the card clears
+     the footer before anyone is asked to look at it. */
+  t.fromTo('#s-dashboard-home-study-stage .vp', { y: 0 }, { y: -62, duration: 1.1, ease: 'power2.inOut' }, 'r1+=0.2');
+  t.fromTo('#wr', look(640, 360, 1.5), to(462, 448, 1.95, 1.4), 'r1+=0.2');
+
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.28, ease: 'power2.out' }, 'r1+=1.4');
+  t.fromTo('#cur', { x: 220 }, { x: 640, duration: 1.05, ease: 'power2.inOut' }, 'r1+=1.4');
+  t.fromTo('#cur', { y: 690 }, { y: 534, duration: 1.05, ease: 'power1.inOut' }, 'r1+=1.4');
+  t.set('#ring', box(626, 524, 35, 35), 'r1+=2.6');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.2 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: 'power3.out' }, 'r1+=2.6');
+  t.set('#tap', { x: 640, y: 534 }, 'r2-=0.4');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'r2-=0.4');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'r2-=0.4');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'r2-=0.31');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'r2-=0.25');
+
+  /* The card opens on the click, and the one to five scale is what it opens
+     to reveal. */
+  t.fromTo('#s-dashboard-home-study-stage .card[data-part="card-ready-rating"]', { height: 69 }, { height: 160, duration: 0.44, ease: 'power3.out' }, 'r2-=0.33');
+  t.fromTo('#s-dashboard-home-study-stage .rr-body', { autoAlpha: 0, y: -14 }, { autoAlpha: 1, y: 0, duration: 0.42, ease: 'power2.out' }, 'r2-=0.17');
+  t.to('#cur', { autoAlpha: 0, duration: 0.28, ease: 'power2.in' }, 'r2+=0.3');
+  t.set('#ring', box(273, 624, 380, 27), 'r2+=0.8');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.1 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'r2+=0.8');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'r3-=0.7');
+
+  /* Inside a topic against across the course: the mastery map, then the
+     rating, framed one after the other so the difference is a move and not a
+     sentence. */
+  t.to('#wr', to(950, 500, 1.9, 1.3), 'r3-=0.6');
+  t.set('#ring', box(703, 502, 284, 61), 'r3+=1.0');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.06 }, { autoAlpha: 1, scale: 1, duration: 0.32, ease: 'power3.out' }, 'r3+=1.0');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'r4-=0.7');
+  t.to('#wr', to(462, 480, 1.95, 1.2), 'r4-=0.6');
+  t.set('#ring', box(256, 507, 414, 160), 'r4+=0.9');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.05 }, { autoAlpha: 1, scale: 1, duration: 0.32, ease: 'power3.out' }, 'r4+=0.9');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'r5+=2.2');
+
+  /* Not lessons watched, not the last score: the whole dashboard is the answer
+     to what it is, so the camera gives the whole dashboard back. */
+  t.to('#wr', to(640, 360, 1.5, 1.6), 'r5+=1.6');
+  t.to('#s-dashboard-home-study-stage .vp', { autoAlpha: 0, duration: 0.26, ease: 'power2.in' }, 'out');
+</script>
+</template>
+
+<template data-beat="pacing">
+<style>
+  #s-dashboard-home-study-stage { opacity: 1; visibility: inherit }
+  /* exam-date-picker-open is the Track Pace dashboard with the picker on it.
+     Hiding the picker and its dim is how the film reaches the Track Pace state
+     without a second capture; both are the page's own elements. */
+  #s-exam-date-picker-open .dp, #s-exam-date-picker-open .scrim { opacity: 0; visibility: hidden }
+  #s-pacing-stages-modal .scrim, #s-pacing-stages-modal .ps-modal { opacity: 0; visibility: hidden }
+</style>
+<div id="wr" data-layout-allow-overflow>
+<!--include scr-dashboard-home-study-stage-->
+<!--include scr-exam-date-picker-open-->
+<!--include scr-pacing-stages-modal-->
+<!--include tour-->
+</div>
+<script>
+  function look(px, py, s) {
+    return { scale: s, x: Math.min(0, Math.max(1920 - 1280 * s, 960 - s * px)), y: Math.min(0, Math.max(1080 - 720 * s, 540 - s * py)) };
+  }
+  function to(px, py, s, d) { var v = look(px, py, s); v.duration = d; return v; }
+  function box(x, y, w, h) { return { x: x - 5, y: y - 5, width: w + 10, height: h + 10 }; }
+
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+  t.addLabel('c1', 0.5);
+  t.addLabel('c2', 4.5);
+  t.addLabel('c3', 8.9);
+  t.addLabel('c4', 12.1);
+  t.addLabel('c5', 15.3);
+  t.addLabel('out', 18.34);
+
+  t.fromTo('#s-dashboard-home-study-stage .vp', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3, ease: 'power2.out' }, 'in');
+
+  /* The target date. */
+  t.fromTo('#wr', look(640, 360, 1.5), to(880, 268, 1.85, 1.3), 'c1-=0.3');
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.26, ease: 'power2.out' }, 'c1-=0.3');
+  t.fromTo('#cur', { x: 640 }, { x: 1138, duration: 1.1, ease: 'power2.inOut' }, 'c1-=0.3');
+  t.fromTo('#cur', { y: 620 }, { y: 24, duration: 1.1, ease: 'power1.inOut' }, 'c1-=0.3');
+  t.set('#ring', box(1095, 9, 86, 30), 'c1+=0.85');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.14 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: 'power3.out' }, 'c1+=0.85');
+  t.set('#tap', { x: 1138, y: 24 }, 'c1+=1.35');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'c1+=1.35');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'c1+=1.35');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'c1+=1.44');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'c1+=1.5');
+  t.to('#cur', { autoAlpha: 0, duration: 0.26, ease: 'power2.in' }, 'c1+=1.6');
+
+  t.set('#s-dashboard-home-study-stage', { autoAlpha: 0 }, 'c1+=1.7');
+  t.set('#s-exam-date-picker-open', { autoAlpha: 1 }, 'c1+=1.7');
+  t.fromTo('#s-exam-date-picker-open .scrim', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.32, ease: 'power2.out' }, 'c1+=1.7');
+  t.fromTo('#s-exam-date-picker-open .dp', { autoAlpha: 0, scale: 0.96 }, { autoAlpha: 1, scale: 1, duration: 0.36, ease: 'power3.out' }, 'c1+=1.76');
+  t.to('#wr', to(640, 360, 1.85, 1.1), 'c1+=1.7');
+  t.set('#ring', box(492, 220, 296, 279), 'c2-=0.8');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.05 }, { autoAlpha: 1, scale: 1, duration: 0.32, ease: 'power3.out' }, 'c2-=0.8');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'c2+=2.4');
+
+  /* Closing the picker leaves the Track Pace state behind it. */
+  t.to('#s-exam-date-picker-open .dp', { autoAlpha: 0, scale: 0.97, duration: 0.26, ease: 'power2.in' }, 'c2+=2.9');
+  t.to('#s-exam-date-picker-open .scrim', { autoAlpha: 0, duration: 0.3, ease: 'power2.in' }, 'c2+=2.94');
+
+  /* The three stages, opened from the card's own help dot. */
+  t.to('#wr', to(950, 220, 1.85, 1.1), 'c2+=3.2');
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.24, ease: 'power2.out' }, 'c2+=3.3');
+  t.fromTo('#cur', { x: 700 }, { x: 937, duration: 0.8, ease: 'power2.inOut' }, 'c2+=3.3');
+  t.fromTo('#cur', { y: 500 }, { y: 89, duration: 0.8, ease: 'power1.inOut' }, 'c2+=3.3');
+  t.set('#ring', box(929, 81, 17, 17), 'c3-=0.75');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.3 }, { autoAlpha: 1, scale: 1, duration: 0.24, ease: 'power3.out' }, 'c3-=0.75');
+  t.set('#tap', { x: 937, y: 89 }, 'c3-=0.35');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'c3-=0.35');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'c3-=0.35');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'c3-=0.26');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'c3-=0.2');
+  t.to('#cur', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'c3-=0.15');
+  t.set('#s-exam-date-picker-open', { autoAlpha: 0 }, 'c3-=0.1');
+  t.set('#s-pacing-stages-modal', { autoAlpha: 1 }, 'c3-=0.1');
+  t.fromTo('#s-pacing-stages-modal .scrim', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3, ease: 'power2.out' }, 'c3-=0.1');
+  t.fromTo('#s-pacing-stages-modal .ps-modal', { autoAlpha: 0, scale: 0.97 }, { autoAlpha: 1, scale: 1, duration: 0.34, ease: 'power3.out' }, 'c3-=0.04');
+  t.to('#wr', to(640, 360, 1.72, 0.9), 'c3-=0.1');
+  t.set('#ring', box(431, 192, 418, 81), 'c3+=0.7');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.05 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: 'power3.out' }, 'c3+=0.7');
+  t.to('#ring', box(431, 276, 418, 81), 'c3+=1.4');
+  t.to('#ring', box(431, 361, 418, 81), 'c3+=2.1');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'c4-=1.25');
+
+  /* Forward pace, then track pace, on the card itself. The modal is dismissed
+     by its own Okay, and the page under it is the same page, so the set that
+     follows is not visible. */
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.24, ease: 'power2.out' }, 'c4-=1.5');
+  t.fromTo('#cur', { x: 460 }, { x: 829, duration: 0.8, ease: 'power2.inOut' }, 'c4-=1.5');
+  t.fromTo('#cur', { y: 300 }, { y: 616, duration: 0.8, ease: 'power1.inOut' }, 'c4-=1.5');
+  t.set('#ring', box(805, 605, 48, 22), 'c4-=0.85');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.2 }, { autoAlpha: 1, scale: 1, duration: 0.24, ease: 'power3.out' }, 'c4-=0.85');
+  t.set('#tap', { x: 829, y: 616 }, 'c4-=0.5');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'c4-=0.5');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'c4-=0.5');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'c4-=0.41');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'c4-=0.35');
+  t.to('#cur', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'c4-=0.3');
+  t.to('#s-pacing-stages-modal .ps-modal', { autoAlpha: 0, scale: 0.98, duration: 0.24, ease: 'power2.in' }, 'c4-=0.45');
+  t.to('#s-pacing-stages-modal .scrim', { autoAlpha: 0, duration: 0.28, ease: 'power2.in' }, 'c4-=0.45');
+  t.set('#s-pacing-stages-modal', { autoAlpha: 0 }, 'c4-=0.1');
+  t.set('#s-dashboard-home-study-stage', { autoAlpha: 1 }, 'c4-=0.1');
+  t.to('#wr', to(950, 220, 1.85, 0.9), 'c4-=0.1');
+  t.set('#ring', box(685, 134, 289, 44), 'c4+=0.6');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.08 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: 'power3.out' }, 'c4+=0.6');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'c4+=1.15');
+  t.set('#ring', box(685, 224, 578, 100), 'c4+=1.4');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.05 }, { autoAlpha: 1, scale: 1, duration: 0.28, ease: 'power3.out' }, 'c4+=1.4');
+  t.to('#ring', { autoAlpha: 0, duration: 0.22, ease: 'power2.in' }, 'c5-=0.7');
+
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.24, ease: 'power2.out' }, 'c5-=1.0');
+  t.fromTo('#cur', { x: 780 }, { x: 1118, duration: 0.9, ease: 'power2.inOut' }, 'c5-=1.0');
+  t.fromTo('#cur', { y: 420 }, { y: 154, duration: 0.9, ease: 'power1.inOut' }, 'c5-=1.0');
+  t.set('#ring', box(974, 134, 289, 44), 'c5-=0.1');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.08 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: 'power3.out' }, 'c5-=0.1');
+  t.set('#tap', { x: 1118, y: 154 }, 'c5+=0.3');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'c5+=0.3');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'c5+=0.3');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'c5+=0.39');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'c5+=0.45');
+  t.to('#cur', { autoAlpha: 0, duration: 0.26, ease: 'power2.in' }, 'c5+=0.6');
+  t.set('#s-dashboard-home-study-stage', { autoAlpha: 0 }, 'c5+=0.55');
+  t.set('#s-exam-date-picker-open', { autoAlpha: 1 }, 'c5+=0.55');
+  t.set('#ring', box(685, 179, 578, 290), 'c5+=1.1');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.04 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'c5+=1.1');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'out-=0.5');
+  t.to('#wr', to(640, 360, 1.5, 1.2), 'c5+=1.6');
+  t.to('#s-exam-date-picker-open .vp', { autoAlpha: 0, duration: 0.26, ease: 'power2.in' }, 'out');
+  t.to('#s-exam-date-picker-open .nav-item.is-active', { backgroundColor: 'rgba(176,216,250,0)', duration: 0.26, ease: 'power2.in' }, 'out');
+</script>
+</template>
+
+<template data-beat="analytics">
+<style>
+  #s-analytics-unlocked { opacity: 1; visibility: inherit }
+</style>
+<div id="wr" data-layout-allow-overflow>
+<!--include scr-analytics-unlocked-->
+<!--include tour-->
+</div>
+<script>
+  function look(px, py, s) {
+    return { scale: s, x: Math.min(0, Math.max(1920 - 1280 * s, 960 - s * px)), y: Math.min(0, Math.max(1080 - 720 * s, 540 - s * py)) };
+  }
+  function to(px, py, s, d) { var v = look(px, py, s); v.duration = d; return v; }
+  function box(x, y, w, h) { return { x: x - 5, y: y - 5, width: w + 10, height: h + 10 }; }
+
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+  t.addLabel('a1', 0.5);
+  t.addLabel('a2', 3.7);
+  t.addLabel('a3', 8.1);
+  t.addLabel('a4', 10.1);
+  t.addLabel('a5', 14.9);
+  t.addLabel('a6', 20.1);
+  t.addLabel('out', 25.94);
+
+  t.fromTo('#s-analytics-unlocked .vp', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.34, ease: 'power2.out' }, 'in');
+  t.fromTo('#s-analytics-unlocked .nav-item.is-active', { backgroundColor: 'rgba(176,216,250,0)' }, { backgroundColor: 'rgb(176,216,250)', duration: 0.44, ease: 'power2.out' }, 'in+=0.12');
+
+  /* Practice stats: three tiles, one mark each, in the order the line names. */
+  t.fromTo('#wr', look(640, 360, 1.5), to(640, 250, 1.72, 1.3), 'a2-=0.9');
+  t.set('#ring', box(275, 120, 313, 204), 'a2+=0.3');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.05 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'a2+=0.3');
+  t.to('#ring', box(604, 120, 313, 204), 'a2+=1.6');
+  t.to('#ring', box(932, 120, 313, 204), 'a2+=2.7');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'a3-=0.6');
+
+  /* Readiness insights, then the ranges under it. The scroll carries the eye;
+     the camera only widens to let it. */
+  t.to('#wr', to(640, 300, 1.6, 1.2), 'a3-=0.5');
+  t.fromTo('#s-analytics-unlocked .vp', { y: 0 }, { y: -292, duration: 1.5, ease: 'power2.inOut' }, 'a3-=0.5');
+  t.set('#ring', box(257, 110, 1006, 92), 'a3+=1.2');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.04 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'a3+=1.2');
+  t.to('#ring', { autoAlpha: 0, duration: 0.22, ease: 'power2.in' }, 'a4+=0.1');
+
+  t.fromTo('#s-analytics-unlocked .vp', { y: -292 }, { y: -432, duration: 1.2, ease: 'power2.inOut' }, 'a4+=0.2');
+  t.set('#ring', box(275, 63, 970, 81), 'a4+=1.3');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.04 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'a4+=1.3');
+  t.to('#ring', box(275, 153, 970, 81), 'a4+=2.4');
+  t.to('#ring', box(275, 242, 970, 81), 'a5-=0.4');
+
+  /* The weakest domain, and the quiz link that sits beside it. The pointer
+     stops on the link and does not press it: a click has to change something,
+     and this film does not have that quiz to change to. */
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.26, ease: 'power2.out' }, 'a5+=0.4');
+  t.fromTo('#cur', { x: 700 }, { x: 1196, duration: 1.1, ease: 'power2.inOut' }, 'a5+=0.4');
+  t.fromTo('#cur', { y: 640 }, { y: 256, duration: 1.1, ease: 'power1.inOut' }, 'a5+=0.4');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'a5+=1.15');
+  t.set('#ring', box(1171, 247, 65, 22), 'a5+=1.4');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.2 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: 'power3.out' }, 'a5+=1.4');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'a6-=1.1');
+  t.to('#cur', { autoAlpha: 0, duration: 0.26, ease: 'power2.in' }, 'a6-=1.0');
+
+  /* Practice pace, at the bottom of the same page. */
+  t.fromTo('#s-analytics-unlocked .vp', { y: -432 }, { y: -830, duration: 2.0, ease: 'power2.inOut' }, 'a6-=0.8');
+  t.set('#ring', box(550, 128, 420, 138), 'a6+=1.5');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.05 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'a6+=1.5');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'a6+=2.9');
+  t.to('#wr', to(640, 420, 1.6, 1.2), 'a6+=2.9');
+  t.set('#ring', box(257, 320, 1006, 330), 'a6+=3.4');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.03 }, { autoAlpha: 1, scale: 1, duration: 0.32, ease: 'power3.out' }, 'a6+=3.4');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'out-=0.9');
+
+  t.to('#wr', to(640, 360, 1.5, 1.1), 'out-=1.2');
+  t.to('#s-analytics-unlocked .vp', { autoAlpha: 0, duration: 0.26, ease: 'power2.in' }, 'out');
+  t.to('#s-analytics-unlocked .nav-item.is-active', { backgroundColor: 'rgba(176,216,250,0)', duration: 0.26, ease: 'power2.in' }, 'out');
+</script>
+</template>
+
+<template data-beat="review">
+<style>
+  #s-review { opacity: 1; visibility: inherit }
+</style>
+<div id="wr" data-layout-allow-overflow>
+<!--include scr-review-->
+<!--include scr-review-questions-notes-->
+<!--include tour-->
+</div>
+<script>
+  function look(px, py, s) {
+    return { scale: s, x: Math.min(0, Math.max(1920 - 1280 * s, 960 - s * px)), y: Math.min(0, Math.max(1080 - 720 * s, 540 - s * py)) };
+  }
+  function to(px, py, s, d) { var v = look(px, py, s); v.duration = d; return v; }
+  function box(x, y, w, h) { return { x: x - 5, y: y - 5, width: w + 10, height: h + 10 }; }
+
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+  t.addLabel('v1', 0.5);
+  t.addLabel('v2', 3.4);
+  t.addLabel('out', 6.34);
+
+  t.fromTo('#s-review .vp', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.32, ease: 'power2.out' }, 'in');
+  t.fromTo('#s-review .nav-item.is-active', { backgroundColor: 'rgba(176,216,250,0)' }, { backgroundColor: 'rgb(176,216,250)', duration: 0.42, ease: 'power2.out' }, 'in+=0.1');
+
+  t.fromTo('#wr', look(640, 360, 1.5), to(640, 270, 1.55, 1.0), 'in');
+  t.set('#ring', box(256, 64, 1008, 146), 'v1+=0.2');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.04 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'v1+=0.2');
+  t.to('#ring', box(256, 224, 1008, 146), 'v1+=1.2');
+
+  /* Straight to the note the practice section saved, which is the one thing
+     Review is worth six seconds for, opened by the button that opens it. */
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.24, ease: 'power2.out' }, 'v1+=1.3');
+  t.fromTo('#cur', { x: 700 }, { x: 1168, duration: 0.85, ease: 'power2.inOut' }, 'v1+=1.3');
+  t.fromTo('#cur', { y: 640 }, { y: 341, duration: 0.85, ease: 'power1.inOut' }, 'v1+=1.3');
+  t.to('#ring', { autoAlpha: 0, duration: 0.18, ease: 'power2.in' }, 'v1+=1.65');
+  t.set('#ring', box(1092, 326, 153, 30), 'v1+=1.9');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.14 }, { autoAlpha: 1, scale: 1, duration: 0.24, ease: 'power3.out' }, 'v1+=1.9');
+  t.set('#tap', { x: 1168, y: 341 }, 'v2-=0.35');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'v2-=0.35');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'v2-=0.35');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'v2-=0.26');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'v2-=0.2');
+  t.to('#cur', { autoAlpha: 0, duration: 0.22, ease: 'power2.in' }, 'v2-=0.18');
+  t.set('#s-review', { autoAlpha: 0 }, 'v2');
+  t.set('#s-review-questions-notes', { autoAlpha: 1 }, 'v2');
+  t.to('#wr', to(820, 390, 1.65, 1.1), 'v2');
+  t.set('#ring', box(677, 337, 432, 125), 'v2+=0.9');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.05 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'v2+=0.9');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'out-=0.75');
+
+  t.set('#s-review-questions-notes', { autoAlpha: 0 }, 'out-=0.5');
+  t.set('#s-review', { autoAlpha: 1 }, 'out-=0.5');
+  t.to('#wr', to(640, 360, 1.5, 0.5), 'out-=0.5');
+  t.to('#s-review .vp', { autoAlpha: 0, duration: 0.26, ease: 'power2.in' }, 'out');
+  t.to('#s-review .nav-item.is-active', { backgroundColor: 'rgba(176,216,250,0)', duration: 0.26, ease: 'power2.in' }, 'out');
+</script>
+</template>
+
+<template data-beat="exams">
+<style>
+  #s-practice-exams { opacity: 1; visibility: inherit }
+  #s-practice-exam-finish-dialog .scrim, #s-practice-exam-finish-dialog .ex-dialog { opacity: 0; visibility: hidden }
+</style>
+<div id="wr" data-layout-allow-overflow>
+<!--include scr-practice-exams-->
+<!--include scr-practice-exam-instructions-->
+<!--include scr-practice-exam-question-->
+<!--include scr-practice-exam-finish-dialog-->
+<!--include tour-->
+</div>
+<script>
+  function look(px, py, s) {
+    return { scale: s, x: Math.min(0, Math.max(1920 - 1280 * s, 960 - s * px)), y: Math.min(0, Math.max(1080 - 720 * s, 540 - s * py)) };
+  }
+  function to(px, py, s, d) { var v = look(px, py, s); v.duration = d; return v; }
+  function box(x, y, w, h) { return { x: x - 5, y: y - 5, width: w + 10, height: h + 10 }; }
+
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+  t.addLabel('x1', 0.5);
+  t.addLabel('x2', 4.5);
+  t.addLabel('x3', 10.1);
+  t.addLabel('x4', 13.7);
+  t.addLabel('out', 17.94);
+
+  t.fromTo('#s-practice-exams .vp', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.32, ease: 'power2.out' }, 'in');
+  t.fromTo('#s-practice-exams .nav-item.is-active', { backgroundColor: 'rgba(176,216,250,0)' }, { backgroundColor: 'rgb(176,216,250)', duration: 0.42, ease: 'power2.out' }, 'in+=0.1');
+
+  t.fromTo('#wr', look(640, 360, 1.5), to(640, 250, 1.68, 1.1), 'in');
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.26, ease: 'power2.out' }, 'x1-=0.2');
+  t.fromTo('#cur', { x: 760 }, { x: 378, duration: 1.0, ease: 'power2.inOut' }, 'x1-=0.2');
+  t.fromTo('#cur', { y: 640 }, { y: 306, duration: 1.0, ease: 'power1.inOut' }, 'x1-=0.2');
+  t.set('#ring', box(278, 288, 202, 38), 'x1+=0.8');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.1 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: 'power3.out' }, 'x1+=0.8');
+  t.set('#tap', { x: 378, y: 306 }, 'x1+=1.35');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'x1+=1.35');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'x1+=1.35');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'x1+=1.44');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'x1+=1.5');
+  t.to('#cur', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'x1+=1.6');
+
+  /* The instructions, the question count and time limit inside them, and the
+     control that actually starts the exam. */
+  t.set('#s-practice-exams', { autoAlpha: 0 }, 'x1+=1.7');
+  t.set('#s-practice-exam-instructions', { autoAlpha: 1 }, 'x1+=1.7');
+  t.to('#wr', to(640, 300, 1.7, 1.0), 'x1+=1.7');
+  t.set('#ring', box(283, 207, 714, 186), 'x1+=2.3');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.04 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'x1+=2.3');
+  t.to('#ring', { autoAlpha: 0, duration: 0.22, ease: 'power2.in' }, 'x1+=3.1');
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.24, ease: 'power2.out' }, 'x1+=2.8');
+  t.fromTo('#cur', { x: 900 }, { x: 607, duration: 0.85, ease: 'power2.inOut' }, 'x1+=2.8');
+  t.fromTo('#cur', { y: 660 }, { y: 493, duration: 0.85, ease: 'power1.inOut' }, 'x1+=2.8');
+  t.set('#ring', box(575, 478, 64, 30), 'x1+=3.4');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.14 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: 'power3.out' }, 'x1+=3.4');
+  t.set('#tap', { x: 607, y: 493 }, 'x1+=3.85');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'x1+=3.85');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'x1+=3.85');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'x1+=3.94');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'x1+=4.0');
+  t.to('#cur', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'x1+=4.05');
+
+  /* Inside. The timer, the navigation, the flag. */
+  t.set('#s-practice-exam-instructions', { autoAlpha: 0 }, 'x2-=0.4');
+  t.set('#s-practice-exam-question', { autoAlpha: 1 }, 'x2-=0.4');
+  t.to('#wr', to(360, 210, 1.8, 1.0), 'x2-=0.4');
+  t.set('#ring', box(18, 22, 272, 42), 'x2+=0.6');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.1 }, { autoAlpha: 1, scale: 1, duration: 0.28, ease: 'power3.out' }, 'x2+=0.6');
+  t.to('#ring', { autoAlpha: 0, duration: 0.22, ease: 'power2.in' }, 'x2+=1.8');
+  t.to('#wr', to(640, 470, 1.62, 1.1), 'x2+=1.9');
+  t.set('#ring', box(54, 411, 1172, 156), 'x2+=2.6');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.04 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'x2+=2.6');
+  t.to('#ring', { autoAlpha: 0, duration: 0.22, ease: 'power2.in' }, 'x2+=3.8');
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.24, ease: 'power2.out' }, 'x2+=3.6');
+  t.fromTo('#cur', { x: 620 }, { x: 236, duration: 0.9, ease: 'power2.inOut' }, 'x2+=3.6');
+  t.fromTo('#cur', { y: 600 }, { y: 362, duration: 0.9, ease: 'power1.inOut' }, 'x2+=3.6');
+  t.set('#ring', box(162, 348, 151, 28), 'x2+=4.1');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.12 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: 'power3.out' }, 'x2+=4.1');
+  t.set('#tap', { x: 236, y: 362 }, 'x2+=4.6');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'x2+=4.6');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'x2+=4.6');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'x2+=4.69');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'x2+=4.8');
+
+  /* Finishing asks first. The pointer goes on from the flag to the control at
+     the top, and question one is flagged in the grid of the screen that
+     follows, which is what the flag just did. */
+  t.to('#wr', to(640, 360, 1.5, 1.1), 'x2+=4.9');
+  t.to('#cur', { x: 1210, duration: 1.0, ease: 'power2.inOut' }, 'x2+=4.9');
+  t.to('#cur', { y: 42, duration: 1.0, ease: 'power1.inOut' }, 'x2+=4.9');
+  t.set('#ring', box(1162, 29, 100, 27), 'x3-=0.2');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.12 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: 'power3.out' }, 'x3-=0.2');
+  t.set('#tap', { x: 1210, y: 42 }, 'x3+=0.35');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'x3+=0.35');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'x3+=0.35');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'x3+=0.44');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'x3+=0.5');
+  t.to('#cur', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'x3+=0.55');
+  t.set('#s-practice-exam-question', { autoAlpha: 0 }, 'x3+=0.55');
+  t.set('#s-practice-exam-finish-dialog', { autoAlpha: 1 }, 'x3+=0.55');
+  t.fromTo('#s-practice-exam-finish-dialog .scrim', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3, ease: 'power2.out' }, 'x3+=0.55');
+  t.fromTo('#s-practice-exam-finish-dialog .ex-dialog', { autoAlpha: 0, scale: 0.96 }, { autoAlpha: 1, scale: 1, duration: 0.34, ease: 'power3.out' }, 'x3+=0.6');
+  t.set('#ring', box(475, 295, 330, 88), 'x3+=1.2');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.05 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'x3+=1.2');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'x4-=1.2');
+
+  /* A practice exam, and only that. */
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.24, ease: 'power2.out' }, 'x4-=1.6');
+  t.fromTo('#cur', { x: 780 }, { x: 529, duration: 0.8, ease: 'power2.inOut' }, 'x4-=1.6');
+  t.fromTo('#cur', { y: 620 }, { y: 357, duration: 0.8, ease: 'power1.inOut' }, 'x4-=1.6');
+  t.set('#ring', box(491, 344, 77, 26), 'x4-=0.9');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.16 }, { autoAlpha: 1, scale: 1, duration: 0.24, ease: 'power3.out' }, 'x4-=0.9');
+  t.set('#tap', { x: 529, y: 357 }, 'x4-=0.55');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'x4-=0.55');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'x4-=0.55');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'x4-=0.46');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'x4-=0.4');
+  t.to('#cur', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'x4-=0.35');
+  t.to('#s-practice-exam-finish-dialog .ex-dialog', { autoAlpha: 0, scale: 0.98, duration: 0.24, ease: 'power2.in' }, 'x4-=0.45');
+  t.to('#s-practice-exam-finish-dialog .scrim', { autoAlpha: 0, duration: 0.28, ease: 'power2.in' }, 'x4-=0.45');
+  t.set('#s-practice-exam-finish-dialog', { autoAlpha: 0 }, 'x4-=0.1');
+  t.set('#s-practice-exams', { autoAlpha: 1 }, 'x4-=0.1');
+  t.set('#ring', box(256, 178, 1008, 170), 'x4+=0.9');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.04 }, { autoAlpha: 1, scale: 1, duration: 0.32, ease: 'power3.out' }, 'x4+=0.9');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'out-=0.6');
+  t.to('#s-practice-exams .vp', { autoAlpha: 0, duration: 0.26, ease: 'power2.in' }, 'out');
+</script>
+</template>
+
+<template data-beat="riley">
+<style>
+  #s-concept-detail { opacity: 1; visibility: inherit }
+</style>
+<div id="wr" data-layout-allow-overflow>
+<!--include scr-concept-detail-->
+<!--include scr-ask-riley-followup-->
+<!--include tour-->
+</div>
+<script>
+  function look(px, py, s) {
+    return { scale: s, x: Math.min(0, Math.max(1920 - 1280 * s, 960 - s * px)), y: Math.min(0, Math.max(1080 - 720 * s, 540 - s * py)) };
+  }
+  function to(px, py, s, d) { var v = look(px, py, s); v.duration = d; return v; }
+  function box(x, y, w, h) { return { x: x - 5, y: y - 5, width: w + 10, height: h + 10 }; }
+
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+  t.addLabel('y1', 0.5);
+  t.addLabel('y2', 6.5);
+  t.addLabel('y3', 8.1);
+  t.addLabel('out', 13.14);
+
+  t.fromTo('#s-concept-detail .vp', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3, ease: 'power2.out' }, 'in');
+
+  /* Riley is reached from the corner of every page, so the beat opens by
+     pressing the thing that is always there. */
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.24, ease: 'power2.out' }, 'in+=0.1');
+  t.fromTo('#cur', { x: 900 }, { x: 1236, duration: 0.8, ease: 'power2.inOut' }, 'in+=0.1');
+  t.fromTo('#cur', { y: 690 }, { y: 654, duration: 0.8, ease: 'power1.inOut' }, 'in+=0.1');
+  t.set('#ring', box(1214, 632, 44, 44), 'y1+=0.35');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.2 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: 'power3.out' }, 'y1+=0.35');
+  t.set('#tap', { x: 1236, y: 654 }, 'y1+=0.75');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 'y1+=0.75');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 'y1+=0.75');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 'y1+=0.84');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'y1+=0.9');
+  t.to('#cur', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'y1+=1.0');
+
+  t.set('#s-concept-detail', { autoAlpha: 0 }, 'y1+=1.05');
+  t.set('#s-ask-riley-followup', { autoAlpha: 1 }, 'y1+=1.05');
+  t.fromTo('#wr', look(640, 360, 1.5), to(1020, 380, 1.7, 1.1), 'y1+=1.05');
+  /* The answer, then the follow up, by moving the transcript rather than by
+     pretending a message is being typed. */
+  t.fromTo('#s-ask-riley-followup .riley-body > *', { y: 0 }, { y: -74, duration: 1.6, ease: 'power2.inOut' }, 'y1+=2.6');
+  t.set('#ring', box(795, 425, 430, 62), 'y1+=4.1');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.06 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'y1+=4.1');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'y2-=0.7');
+  t.set('#ring', box(795, 499, 430, 111), 'y2-=0.4');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.05 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 'y2-=0.4');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'y3-=0.9');
+
+  /* What the product itself says about it, in the product's own words. */
+  t.set('#s-ask-riley-followup', { autoAlpha: 0 }, 'y3-=0.7');
+  t.set('#s-concept-detail', { autoAlpha: 1 }, 'y3-=0.7');
+  t.to('#wr', to(950, 540, 1.95, 1.1), 'y3-=0.7');
+  t.set('#ring', box(703, 526, 542, 50), 'y3+=0.8');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.05 }, { autoAlpha: 1, scale: 1, duration: 0.32, ease: 'power3.out' }, 'y3+=0.8');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'out-=0.9');
+
+  t.to('#wr', to(640, 360, 1.5, 1.2), 'out-=1.4');
+  t.to('#s-concept-detail .vp', { autoAlpha: 0, duration: 0.26, ease: 'power2.in' }, 'out');
+</script>
+</template>
+
+<template data-beat="support">
+<style>
+  #s-support { opacity: 1; visibility: inherit }
+</style>
+<div id="wr" data-layout-allow-overflow>
+<!--include scr-support-->
+<!--include scr-office-hours-registration-->
+<!--include scr-dashboard-home-study-stage-->
+<!--include tour-->
+</div>
+<script>
+  function look(px, py, s) {
+    return { scale: s, x: Math.min(0, Math.max(1920 - 1280 * s, 960 - s * px)), y: Math.min(0, Math.max(1080 - 720 * s, 540 - s * py)) };
+  }
+  function to(px, py, s, d) { var v = look(px, py, s); v.duration = d; return v; }
+  function box(x, y, w, h) { return { x: x - 5, y: y - 5, width: w + 10, height: h + 10 }; }
+
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  t.addLabel('in', 0);
+  t.addLabel('s1', 0.5);
+  t.addLabel('s2', 4.9);
+  t.addLabel('s3', 11.3);
+  t.addLabel('out', 13.54);
+
+  t.fromTo('#s-support .vp', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.32, ease: 'power2.out' }, 'in');
+  t.fromTo('#s-support .nav-item.is-active', { backgroundColor: 'rgba(176,216,250,0)' }, { backgroundColor: 'rgb(176,216,250)', duration: 0.42, ease: 'power2.out' }, 'in+=0.1');
+
+  t.fromTo('#wr', look(640, 360, 1.5), to(640, 220, 1.66, 1.1), 'in');
+  t.set('#ring', box(256, 64, 240, 247), 's1+=0.3');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.05 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 's1+=0.3');
+  t.to('#ring', box(776, 64, 240, 247), 's1+=1.4');
+  t.to('#ring', { autoAlpha: 0, duration: 0.22, ease: 'power2.in' }, 's1+=2.4');
+
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.24, ease: 'power2.out' }, 's1+=1.8');
+  t.fromTo('#cur', { x: 520 }, { x: 866, duration: 0.9, ease: 'power2.inOut' }, 's1+=1.8');
+  t.fromTo('#cur', { y: 620 }, { y: 166, duration: 0.9, ease: 'power1.inOut' }, 's1+=1.8');
+  t.set('#ring', box(810, 154, 110, 34), 's1+=2.7');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.12 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: 'power3.out' }, 's1+=2.7');
+  t.set('#tap', { x: 866, y: 166 }, 's1+=3.2');
+  t.fromTo('#tap', { autoAlpha: 0.9, scale: 0.35 }, { autoAlpha: 0, scale: 1.6, duration: 0.44, ease: 'power2.out' }, 's1+=3.2');
+  t.to('#cur', { scale: 0.86, duration: 0.08, ease: 'power2.out' }, 's1+=3.2');
+  t.to('#cur', { scale: 1, duration: 0.17, ease: 'power2.inOut' }, 's1+=3.29');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 's1+=3.35');
+  t.to('#cur', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 's1+=3.45');
+
+  /* The dates and the time zone, which are the two details worth checking. */
+  t.set('#s-support', { autoAlpha: 0 }, 's1+=3.6');
+  t.set('#s-office-hours-registration', { autoAlpha: 1 }, 's1+=3.6');
+  t.to('#wr', to(640, 300, 1.58, 1.1), 's1+=3.6');
+  t.set('#ring', box(336, 475, 608, 168), 's2+=0.5');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.04 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: 'power3.out' }, 's2+=0.5');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 's2+=1.65');
+  t.set('#ring', box(480, 621, 464, 22), 's2+=1.9');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.14 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: 'power3.out' }, 's2+=1.9');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 's2+=2.9');
+
+  /* The claim the line is making is about this control, so the film goes back
+     to it: a target date, and nothing that books anything. */
+  t.set('#s-office-hours-registration', { autoAlpha: 0 }, 's2+=3.2');
+  t.set('#s-dashboard-home-study-stage', { autoAlpha: 1 }, 's2+=3.2');
+  t.to('#wr', to(640, 360, 1.5, 0.9), 's2+=3.2');
+  t.to('#wr', to(900, 250, 1.95, 1.2), 's3-=1.1');
+  t.set('#ring', box(1095, 9, 86, 30), 's3+=0.3');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.14 }, { autoAlpha: 1, scale: 1, duration: 0.28, ease: 'power3.out' }, 's3+=0.3');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 's3+=1.5');
+  t.to('#wr', to(640, 360, 1.5, 0.9), 's3+=1.4');
+  t.to('#s-dashboard-home-study-stage .vp', { autoAlpha: 0, duration: 0.26, ease: 'power2.in' }, 'out');
+</script>
+</template>
+
+<template data-beat="close">
+<style>
+  #s-dashboard-home-study-stage { opacity: 1; visibility: inherit }
+</style>
+<div id="wr" data-layout-allow-overflow>
+<!--include scr-dashboard-home-study-stage-->
+<!--include tour-->
+</div>
+<script>
+  function look(px, py, s) {
+    return { scale: s, x: Math.min(0, Math.max(1920 - 1280 * s, 960 - s * px)), y: Math.min(0, Math.max(1080 - 720 * s, 540 - s * py)) };
+  }
+  function to(px, py, s, d) { var v = look(px, py, s); v.duration = d; return v; }
+  function box(x, y, w, h) { return { x: x - 5, y: y - 5, width: w + 10, height: h + 10 }; }
+
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut', immediateRender: false } });
+  /* This beat is pinned two tenths before support ends; see the film script.
+     Every label is the film second minus 239.5. */
+  t.addLabel('in', 0);
+  t.addLabel('z1', 0.7);
+  t.addLabel('z2', 2.7);
+  t.addLabel('z3', 6.2);
+
+  t.fromTo('#s-dashboard-home-study-stage .vp', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.32, ease: 'power2.out' }, 'in');
+
+  /* The routine, on the two places it actually happens: what to learn and
+     practise is the navigator, and what the practice changed is the mastery
+     map. The label names all four steps; the marks point at where they live.
+     The mark is never tweened between two boxes of different sizes, because a
+     rectangle stretching diagonally across a dashboard reads as a fault. */
+  t.set('#ring', box(256, 64, 414, 491), 'z1');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.04 }, { autoAlpha: 1, scale: 1, duration: 0.28, ease: 'power3.out' }, 'z1');
+  t.to('#ring', { autoAlpha: 0, duration: 0.2, ease: 'power2.in' }, 'z1+=0.95');
+  t.set('#ring', box(684, 431, 580, 268), 'z1+=1.2');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.04 }, { autoAlpha: 1, scale: 1, duration: 0.28, ease: 'power3.out' }, 'z1+=1.2');
+  t.to('#ring', { autoAlpha: 0, duration: 0.24, ease: 'power2.in' }, 'z2-=0.25');
+
+  /* Back to where the next session starts. */
+  t.fromTo('#wr', look(640, 360, 1.5), to(462, 300, 1.9, 1.4), 'z2');
+  t.fromTo('#cur', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.26, ease: 'power2.out' }, 'z2+=0.3');
+  t.fromTo('#cur', { x: 1000 }, { x: 592, duration: 1.2, ease: 'power2.inOut' }, 'z2+=0.3');
+  t.fromTo('#cur', { y: 690 }, { y: 212, duration: 1.2, ease: 'power1.inOut' }, 'z2+=0.3');
+  t.set('#ring', box(553, 203, 85, 26), 'z2+=1.6');
+  t.fromTo('#ring', { autoAlpha: 0, scale: 1.14 }, { autoAlpha: 1, scale: 1, duration: 0.28, ease: 'power3.out' }, 'z2+=1.6');
+  t.to('#ring', { autoAlpha: 0, duration: 0.26, ease: 'power2.in' }, 'z3-=0.7');
+  t.to('#cur', { autoAlpha: 0, duration: 0.28, ease: 'power2.in' }, 'z3-=0.6');
+  t.to('#wr', to(640, 360, 1.5, 1.1), 'z3-=1.1');
+
+  /* The screen crosses with the end frame rather than cutting to it: the two
+     live in different composition mounts and one of them is always mid-fade,
+     which is the one overlap the audit allows and the only one this film has. */
+  t.to('#s-dashboard-home-study-stage', { autoAlpha: 0, duration: 0.6, ease: 'power2.inOut' }, 'z3+=0.1');
+</script>
+</template>
+
+<template data-beat="label">
+<style>
+  .lbl { position: absolute; left: 64px; top: 880px; margin: 0; padding: 12px 24px;
+         border-radius: 6px; background: var(--navy); color: #ffffff;
+         font-family: var(--text); font-weight: 600; font-size: 30px; line-height: 1.25;
+         letter-spacing: 0.01em; opacity: 0; visibility: hidden }
+</style>
+<p class="lbl" id="k1">Study Navigator</p>
+<p class="lbl" id="k2">Learn</p>
+<p class="lbl" id="k3">Practice</p>
+<p class="lbl" id="k4">Feedback, not a reward</p>
+<p class="lbl" id="k5">ReadyRating</p>
+<p class="lbl" id="k6">Pacing</p>
+<p class="lbl" id="k7">Analytics</p>
+<p class="lbl" id="k8">Review</p>
+<p class="lbl" id="k9">Not the official exam</p>
+<p class="lbl" id="k10">Learn, practise, review, adjust</p>
+<script>
+  /* Ten labels in four minutes, each on the line that earns it. They live in
+     #type, which the camera never scales, so they stay sharp through every
+     push, and they sit low and left of the caption band. */
+  var t = gsap.timeline({ paused: true, defaults: { ease: 'power3.out', immediateRender: false } });
+  t.addLabel('k1', 21);
+  t.addLabel('k2', 53.4);
+  t.addLabel('k3', 67.2);
+  t.addLabel('k4', 106.8);
+  t.addLabel('k5', 122.2);
+  t.addLabel('k6', 151.9);
+  t.addLabel('k7', 162.2);
+  t.addLabel('k8', 188.4);
+  t.addLabel('k9', 208.2);
+  t.addLabel('k10', 240.4);
+
+  t.fromTo('#k1', { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.42 }, 'k1');
+  t.to('#k1', { autoAlpha: 0, y: -12, duration: 0.34, ease: 'power2.in' }, 'k1+=2.8');
+  t.fromTo('#k2', { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.42 }, 'k2');
+  t.to('#k2', { autoAlpha: 0, y: -12, duration: 0.34, ease: 'power2.in' }, 'k2+=2.4');
+  t.fromTo('#k3', { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.42 }, 'k3');
+  t.to('#k3', { autoAlpha: 0, y: -12, duration: 0.34, ease: 'power2.in' }, 'k3+=2.4');
+  t.fromTo('#k4', { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.42 }, 'k4');
+  t.to('#k4', { autoAlpha: 0, y: -12, duration: 0.34, ease: 'power2.in' }, 'k4+=3.2');
+  t.fromTo('#k5', { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.42 }, 'k5');
+  t.to('#k5', { autoAlpha: 0, y: -12, duration: 0.34, ease: 'power2.in' }, 'k5+=2.8');
+  t.fromTo('#k6', { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.42 }, 'k6');
+  t.to('#k6', { autoAlpha: 0, y: -12, duration: 0.34, ease: 'power2.in' }, 'k6+=2.4');
+  t.fromTo('#k7', { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.42 }, 'k7');
+  t.to('#k7', { autoAlpha: 0, y: -12, duration: 0.34, ease: 'power2.in' }, 'k7+=2.4');
+  t.fromTo('#k8', { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.42 }, 'k8');
+  t.to('#k8', { autoAlpha: 0, y: -12, duration: 0.34, ease: 'power2.in' }, 'k8+=2.4');
+  t.fromTo('#k9', { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.42 }, 'k9');
+  t.to('#k9', { autoAlpha: 0, y: -12, duration: 0.34, ease: 'power2.in' }, 'k9+=3.2');
+  t.fromTo('#k10', { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.42 }, 'k10');
+  t.to('#k10', { autoAlpha: 0, y: -12, duration: 0.34, ease: 'power2.in' }, 'k10+=3.4');
+</script>
+</template>
